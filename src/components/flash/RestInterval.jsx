@@ -10,7 +10,7 @@ const restMessages = [
 ];
 
 export default function RestInterval({ onContinue }) {
-  const [countdown, setCountdown] = useState(5);
+  const [countdown, setCountdown] = useState(600); // 10 minutes = 600 seconds
   const randomRest = restMessages[Math.floor(Math.random() * restMessages.length)];
 
   useEffect(() => {
@@ -19,6 +19,12 @@ export default function RestInterval({ onContinue }) {
       return () => clearTimeout(timer);
     }
   }, [countdown]);
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   return (
     <div className="h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-indigo-900 to-purple-900 p-4 overflow-hidden">
@@ -49,19 +55,23 @@ export default function RestInterval({ onContinue }) {
             {randomRest.message}
           </h2>
           <p className="text-lg md:text-xl text-white/70 px-4">
-            Take a moment to breathe and relax
+            Random rest interval - scientifically proven to boost learning
           </p>
         </div>
 
         {/* Countdown */}
         <motion.div
-          key={countdown}
-          initial={{ scale: 1.5, opacity: 0 }}
+          key={Math.floor(countdown / 10)}
+          initial={{ scale: 1.2, opacity: 0.8 }}
           animate={{ scale: 1, opacity: 1 }}
           className="text-6xl md:text-8xl font-bold text-white"
         >
-          {countdown}
+          {formatTime(countdown)}
         </motion.div>
+
+        <p className="text-white/60 text-sm md:text-base px-4">
+          Take this time to rest your eyes, stretch, or have a drink of water
+        </p>
 
         {/* Ad Banner Placeholder */}
         <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6 md:p-8 mx-4">
@@ -69,7 +79,7 @@ export default function RestInterval({ onContinue }) {
           <p className="text-white/30 text-xs mt-1">Banner ad could be displayed here</p>
         </div>
 
-        {/* Continue Button */}
+        {/* Continue Button - only show when countdown is 0 */}
         {countdown === 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -83,6 +93,18 @@ export default function RestInterval({ onContinue }) {
               Continue Studying →
             </Button>
           </motion.div>
+        )}
+
+        {/* Skip button - available at any time */}
+        {countdown > 0 && (
+          <Button
+            onClick={onContinue}
+            variant="outline"
+            size="sm"
+            className="border-white/20 text-white hover:bg-white/10"
+          >
+            Skip Rest (Not Recommended)
+          </Button>
         )}
       </motion.div>
     </div>

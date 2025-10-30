@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -24,11 +24,18 @@ export default function FlashStudy() {
   const [sessionComplete, setSessionComplete] = useState(false);
   const [sessionStartTime] = useState(Date.now());
   const [reviewAfterRest, setReviewAfterRest] = useState([]);
-  const [cardsUntilRest, setCardsUntilRest] = useState(Math.floor(Math.random() * 11) + 10);
+  const [lastRestTime, setLastRestTime] = useState(Date.now());
+  const [nextRestDuration, setNextRestDuration] = useState(() => {
+    // Random between 1.5 min (90s) and 2.5 min (150s)
+    return Math.floor(Math.random() * 60000) + 90000; // in milliseconds
+  });
 
   const { data: vocabulary = [], isLoading } = useQuery({
     queryKey: ['vocabulary', level],
-    queryFn: () => base44.entities.Vocabulary.filter({ level }),
+    queryFn: async () => {
+      const allVocab = await base44.entities.Vocabulary.list();
+      return allVocab.filter(v => v.level === level);
+    },
   });
 
   const { data: user } = useQuery({
@@ -40,6 +47,7 @@ export default function FlashStudy() {
     mutationFn: (sessionData) => base44.entities.StudySession.create(sessionData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recentSessions'] });
+      queryClient.invalidateQueries({ queryKey: ['allSessions'] });
     },
   });
 
@@ -79,6 +87,18 @@ export default function FlashStudy() {
   const totalAnswered = correctCount + incorrectCount;
   const accuracy = totalAnswered > 0 ? (correctCount / totalAnswered) * 100 : 0;
 
+  // Check for rest time
+  useEffect(() => {
+    const checkRestTime = setInterval(() => {
+      const timeSinceLastRest = Date.now() - lastRestTime;
+      if (timeSinceLastRest >= nextRestDuration && !showRest && !sessionComplete) {
+        setShowRest(true);
+      }
+    }, 1000);
+
+    return () => clearInterval(checkRestTime);
+  }, [lastRestTime, nextRestDuration, showRest, sessionComplete]);
+
   const handleAnswer = (correct) => {
     const currentVocab = shuffledVocab[currentIndex];
     
@@ -94,16 +114,6 @@ export default function FlashStudy() {
       correct
     });
 
-    const newCardsUntilRest = cardsUntilRest - 1;
-    
-    // Check if we should take a rest
-    if (newCardsUntilRest === 0 && currentIndex < shuffledVocab.length - 1) {
-      setShowRest(true);
-      setCardsUntilRest(Math.floor(Math.random() * 11) + 10); // Reset to new random number
-      return;
-    }
-    
-    setCardsUntilRest(newCardsUntilRest);
     moveToNext();
   };
 
@@ -133,6 +143,8 @@ export default function FlashStudy() {
 
   const continueAfterRest = () => {
     setShowRest(false);
+    setLastRestTime(Date.now());
+    setNextRestDuration(Math.floor(Math.random() * 60000) + 90000); // New random duration
     moveToNext();
   };
 
@@ -152,6 +164,7 @@ export default function FlashStudy() {
       <div className="h-screen flex items-center justify-center p-4">
         <div className="text-center space-y-4">
           <p className="text-xl text-slate-600">No vocabulary found for {level}</p>
+          <p className="text-sm text-slate-500">Total vocabulary in database: {vocabulary.length}</p>
           <button
             onClick={() => navigate(createPageUrl('Home'))}
             className="text-indigo-600 hover:text-indigo-700 font-medium"

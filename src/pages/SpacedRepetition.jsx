@@ -1,60 +1,250 @@
-import React from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Brain, Clock } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import React, { useState, useEffect } from "react";
+import { base44 } from "@/api/base44Client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
+import FlashCard from "../components/flash/FlashCard";
+import AccuracyMeter from "../components/flash/AccuracyMeter";
+import RestInterval from "../components/flash/RestInterval";
+import SessionComplete from "../components/flash/SessionComplete";
+
 export default function SpacedRepetition() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  
+  const urlParams = new URLSearchParams(window.location.search);
+  const mode = urlParams.get('mode') || 'kanji_to_meaning';
+  const level = urlParams.get('level') || 'N5';
+
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [correctCount, setCorrectCount] = useState(0);
+  const [incorrectCount, setIncorrectCount] = useState(0);
+  const [showRest, setShowRest] = useState(false);
+  const [sessionComplete, setSessionComplete] = useState(false);
+  const [sessionStartTime] = useState(Date.now());
+  const [reviewAfterRest, setReviewAfterRest] = useState([]);
+  const [lastRestTime, setLastRestTime] = useState(Date.now());
+  const [nextRestDuration, setNextRestDuration] = useState(() => {
+    return Math.floor(Math.random() * 60000) + 90000;
+  });
+
+  const { data: vocabulary = [], isLoading } = useQuery({
+    queryKey: ['vocabulary', level],
+    queryFn: async () => {
+      const allVocab = await base44.entities.Vocabulary.list();
+      return allVocab.filter(v => v.level === level);
+    },
+  });
+
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  const { data: userProgress = [] } = useQuery({
+    queryKey: ['userProgress', user?.email],
+    queryFn: async () => {
+      if (!user) return [];
+      return base44.entities.UserProgress.filter({ user_email: user.email });
+    },
+    enabled: !!user,
+  });
+
+  const createSessionMutation = useMutation({
+    mutationFn: (sessionData) => base44.entities.StudySession.create(sessionData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recentSessions'] });
+      queryClient.invalidateQueries({ queryKey: ['allSessions'] });
+    },
+  });
+
+  const updateProgressMutation = useMutation({
+    mutationFn: async ({ vocabularyId, correct }) => {
+      if (!user) return;
+      
+      const existing = await base44.entities.UserProgress.filter({
+        vocabulary_id: vocabularyId,
+        user_email: user.email
+      });
+
+      if (existing.length > 0) {
+        const progress = existing[0];
+        const newInterval = correct ? progress.interval_days * 2 : 1;
+        const newEaseFactor = correct 
+          ? Math.max(1.3, progress.ease_factor + 0.1)
+          : Math.max(1.3, progress.ease_factor - 0.2);
+
+        return base44.entities.UserProgress.update(progress.id, {
+          correct_count: progress.correct_count + (correct ? 1 : 0),
+          incorrect_count: progress.incorrect_count + (correct ? 0 : 1),
+          last_reviewed: new Date().toISOString(),
+          next_review: new Date(Date.now() + newInterval * 86400000).toISOString(),
+          ease_factor: newEaseFactor,
+          interval_days: newInterval,
+        });
+      } else {
+        return base44.entities.UserProgress.create({
+          vocabulary_id: vocabularyId,
+          user_email: user.email,
+          correct_count: correct ? 1 : 0,
+          incorrect_count: correct ? 0 : 1,
+          last_reviewed: new Date().toISOString(),
+          next_review: new Date(Date.now() + 86400000).toISOString(),
+          ease_factor: 2.5,
+          interval_days: 1,
+        });
+      }
+    },
+  });
+
+  // Get words due for review
+  const dueWords = React.useMemo(() => {
+    if (!vocabulary.length || !userProgress.length) return vocabulary;
+    
+    const now = new Date();
+    const progressMap = new Map(userProgress.map(p => [p.vocabulary_id, p]));
+    
+    return vocabulary
+      .map(word => {
+        const progress = progressMap.get(word.id);
+        if (!progress) return { word, priority: 1000 }; // New words highest priority
+        
+        const nextReview = new Date(progress.next_review);
+        const daysDue = Math.floor((now - nextReview) / 86400000);
+        
+        return { word, priority: daysDue };
+      })
+      .filter(({ priority }) => priority >= 0)
+      .sort((a, b) => b.priority - a.priority)
+      .map(({ word }) => word);
+  }, [vocabulary, userProgress]);
+
+  const totalAnswered = correctCount + incorrectCount;
+  const accuracy = totalAnswered > 0 ? (correctCount / totalAnswered) * 100 : 0;
+
+  // Check for rest time
+  useEffect(() => {
+    const checkRestTime = setInterval(() => {
+      const timeSinceLastRest = Date.now() - lastRestTime;
+      if (timeSinceLastRest >= nextRestDuration && !showRest && !sessionComplete) {
+        setShowRest(true);
+      }
+    }, 1000);
+
+    return () => clearInterval(checkRestTime);
+  }, [lastRestTime, nextRestDuration, showRest, sessionComplete]);
+
+  const handleAnswer = (correct) => {
+    const currentVocab = dueWords[currentIndex];
+    
+    if (correct) {
+      setCorrectCount(prev => prev + 1);
+    } else {
+      setIncorrectCount(prev => prev + 1);
+      setReviewAfterRest(prev => [...prev, currentVocab]);
+    }
+
+    updateProgressMutation.mutate({
+      vocabularyId: currentVocab.id,
+      correct
+    });
+
+    moveToNext();
+  };
+
+  const moveToNext = () => {
+    if (currentIndex < dueWords.length - 1) {
+      setCurrentIndex(prev => prev + 1);
+    } else {
+      completeSession();
+    }
+  };
+
+  const completeSession = () => {
+    const duration = Math.floor((Date.now() - sessionStartTime) / 1000);
+    
+    createSessionMutation.mutate({
+      mode,
+      level,
+      total_cards: totalAnswered,
+      correct_answers: correctCount,
+      accuracy,
+      duration,
+      session_type: 'spaced_repetition',
+    });
+
+    setSessionComplete(true);
+  };
+
+  const continueAfterRest = () => {
+    setShowRest(false);
+    setLastRestTime(Date.now());
+    setNextRestDuration(Math.floor(Math.random() * 60000) + 90000);
+    moveToNext();
+  };
+
+  if (isLoading) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="text-slate-600">Loading vocabulary...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (dueWords.length === 0) {
+    return (
+      <div className="h-screen flex items-center justify-center p-4">
+        <div className="text-center space-y-4">
+          <p className="text-xl text-slate-600">No words due for review!</p>
+          <p className="text-sm text-slate-500">Come back later or try flash study mode</p>
+          <button
+            onClick={() => navigate(createPageUrl('Home'))}
+            className="text-indigo-600 hover:text-indigo-700 font-medium"
+          >
+            ← Back to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (sessionComplete) {
+    return (
+      <SessionComplete
+        correctCount={correctCount}
+        incorrectCount={incorrectCount}
+        accuracy={accuracy}
+        onContinue={() => navigate(createPageUrl('Home'))}
+        reviewWords={reviewAfterRest}
+      />
+    );
+  }
+
+  if (showRest) {
+    return <RestInterval onContinue={continueAfterRest} />;
+  }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-slate-50 via-purple-50 to-indigo-50">
-      <Card className="max-w-2xl w-full border-none shadow-2xl">
-        <CardContent className="p-12 text-center space-y-6">
-          <div className="w-24 h-24 mx-auto bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full flex items-center justify-center shadow-xl">
-            <Brain className="w-12 h-12 text-white" />
-          </div>
-          
-          <div className="space-y-3">
-            <h2 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
-              Spaced Repetition
-            </h2>
-            <p className="text-xl text-slate-600">
-              Coming Soon! もうすぐです
-            </p>
-          </div>
+    <div className="h-screen flex flex-col bg-gradient-to-br from-slate-900 via-indigo-900 to-purple-900 overflow-hidden">
+      <AccuracyMeter
+        accuracy={accuracy}
+        correctCount={correctCount}
+        incorrectCount={incorrectCount}
+        currentCard={currentIndex + 1}
+        totalCards={dueWords.length}
+      />
 
-          <div className="bg-slate-50 rounded-2xl p-6 space-y-4">
-            <Clock className="w-8 h-8 text-indigo-600 mx-auto" />
-            <p className="text-slate-700">
-              The intelligent spaced repetition system is being built to help you review words at the perfect moment for optimal retention.
-            </p>
-            <ul className="text-sm text-slate-600 space-y-2 text-left max-w-md mx-auto">
-              <li className="flex items-start gap-2">
-                <span className="text-indigo-600 mt-1">•</span>
-                <span>Review words based on your performance history</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-indigo-600 mt-1">•</span>
-                <span>Adaptive scheduling that learns from your progress</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-indigo-600 mt-1">•</span>
-                <span>Focus on words you struggle with most</span>
-              </li>
-            </ul>
-          </div>
-
-          <Button
-            onClick={() => navigate(createPageUrl('Home'))}
-            size="lg"
-            className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
-          >
-            Back to Home
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="flex-1 flex items-center justify-center p-4 overflow-hidden">
+        <FlashCard
+          vocabulary={dueWords[currentIndex]}
+          mode={mode}
+          onAnswer={handleAnswer}
+        />
+      </div>
     </div>
   );
 }
