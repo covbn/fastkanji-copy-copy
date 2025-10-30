@@ -48,20 +48,30 @@ export default function FlashCard({ vocabulary, mode, onAnswer }) {
       className="w-full max-w-2xl"
     >
       <Card className="border-none shadow-2xl bg-white/95 backdrop-blur-sm">
-        <CardContent className="p-12">
-          <div className="space-y-8">
+        <CardContent className="p-8 md:p-12">
+          <div className="space-y-6 md:space-y-8">
             {/* Question */}
             <div className="text-center space-y-4">
               <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">
                 {mode.replace(/_/g, ' → ').replace(/to/g, '')}
               </p>
               <motion.div
-                className="text-7xl md:text-8xl font-bold text-slate-900 min-h-[120px] flex items-center justify-center"
+                className="text-5xl md:text-8xl font-bold text-slate-900 min-h-[80px] md:min-h-[120px] flex items-center justify-center"
                 initial={{ y: 20 }}
                 animate={{ y: 0 }}
               >
                 {getQuestion()}
               </motion.div>
+              {/* Show reading for kanji_to_meaning mode */}
+              {mode === 'kanji_to_meaning' && revealed && (
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-xl md:text-2xl text-slate-500"
+                >
+                  {vocabulary.hiragana}
+                </motion.p>
+              )}
             </div>
 
             {/* Divider */}
@@ -89,31 +99,31 @@ export default function FlashCard({ vocabulary, mode, onAnswer }) {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
-                  className="space-y-6"
+                  className="space-y-4 md:space-y-6"
                 >
                   <div className="text-center">
-                    <p className="text-5xl md:text-6xl font-bold text-indigo-600 min-h-[80px] flex items-center justify-center">
+                    <p className="text-4xl md:text-6xl font-bold text-indigo-600 min-h-[60px] md:min-h-[80px] flex items-center justify-center px-2">
                       {getAnswer()}
                     </p>
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3 md:gap-4">
                     <Button
                       onClick={() => handleAnswer(false)}
                       size="lg"
                       variant="outline"
-                      className="h-16 text-lg font-semibold border-2 border-red-500 text-red-600 hover:bg-red-50 hover:border-red-600"
+                      className="h-14 md:h-16 text-base md:text-lg font-semibold border-2 border-red-500 text-red-600 hover:bg-red-50 hover:border-red-600"
                     >
-                      <X className="w-6 h-6 mr-2" />
+                      <X className="w-5 h-5 md:w-6 md:h-6 mr-2" />
                       Wrong
                     </Button>
                     <Button
                       onClick={() => handleAnswer(true)}
                       size="lg"
-                      className="h-16 text-lg font-semibold bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
+                      className="h-14 md:h-16 text-base md:text-lg font-semibold bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
                     >
-                      <Check className="w-6 h-6 mr-2" />
+                      <Check className="w-5 h-5 md:w-6 md:h-6 mr-2" />
                       Correct
                     </Button>
                   </div>
@@ -123,9 +133,9 @@ export default function FlashCard({ vocabulary, mode, onAnswer }) {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="text-center py-12"
+                  className="text-center py-8 md:py-12"
                 >
-                  <p className="text-slate-400 text-lg">Click reveal to check your answer</p>
+                  <p className="text-slate-400 text-base md:text-lg">Click reveal to check your answer</p>
                 </motion.div>
               )}
             </AnimatePresence>

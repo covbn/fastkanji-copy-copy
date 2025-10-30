@@ -24,6 +24,7 @@ export default function FlashStudy() {
   const [sessionComplete, setSessionComplete] = useState(false);
   const [sessionStartTime] = useState(Date.now());
   const [reviewAfterRest, setReviewAfterRest] = useState([]);
+  const [cardsUntilRest, setCardsUntilRest] = useState(Math.floor(Math.random() * 11) + 10);
 
   const { data: vocabulary = [], isLoading } = useQuery({
     queryKey: ['vocabulary', level],
@@ -93,13 +94,16 @@ export default function FlashStudy() {
       correct
     });
 
-    // Check if we should take a rest (random between 10-20 cards)
-    const nextRestAt = Math.floor(Math.random() * 11) + 10;
-    if ((totalAnswered + 1) % nextRestAt === 0 && currentIndex < shuffledVocab.length - 1) {
+    const newCardsUntilRest = cardsUntilRest - 1;
+    
+    // Check if we should take a rest
+    if (newCardsUntilRest === 0 && currentIndex < shuffledVocab.length - 1) {
       setShowRest(true);
+      setCardsUntilRest(Math.floor(Math.random() * 11) + 10); // Reset to new random number
       return;
     }
-
+    
+    setCardsUntilRest(newCardsUntilRest);
     moveToNext();
   };
 
@@ -134,7 +138,7 @@ export default function FlashStudy() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
           <p className="text-slate-600">Loading vocabulary...</p>
@@ -145,7 +149,7 @@ export default function FlashStudy() {
 
   if (shuffledVocab.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="h-screen flex items-center justify-center p-4">
         <div className="text-center space-y-4">
           <p className="text-xl text-slate-600">No vocabulary found for {level}</p>
           <button
@@ -176,7 +180,7 @@ export default function FlashStudy() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-900 via-indigo-900 to-purple-900">
+    <div className="h-screen flex flex-col bg-gradient-to-br from-slate-900 via-indigo-900 to-purple-900 overflow-hidden">
       <AccuracyMeter
         accuracy={accuracy}
         correctCount={correctCount}
@@ -185,7 +189,7 @@ export default function FlashStudy() {
         totalCards={shuffledVocab.length}
       />
 
-      <div className="flex-1 flex items-center justify-center p-4">
+      <div className="flex-1 flex items-center justify-center p-4 overflow-hidden">
         <FlashCard
           vocabulary={shuffledVocab[currentIndex]}
           mode={mode}

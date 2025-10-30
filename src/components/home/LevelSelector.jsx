@@ -8,6 +8,8 @@ const levels = [
   { id: "N5", label: "N5 - Beginner", description: "Basic vocabulary", color: "from-green-500 to-emerald-500" },
   { id: "N4", label: "N4 - Elementary", description: "Daily conversations", color: "from-blue-500 to-cyan-500" },
   { id: "N3", label: "N3 - Intermediate", description: "Complex topics", color: "from-purple-500 to-pink-500" },
+  { id: "N2", label: "N2 - Advanced", description: "News & articles", color: "from-orange-500 to-red-500" },
+  { id: "N1", label: "N1 - Expert", description: "Native-level content", color: "from-indigo-600 to-purple-700" },
 ];
 
 export default function LevelSelector({ selectedLevel, onSelectLevel, vocabularyCount = [] }) {
