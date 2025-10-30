@@ -32,10 +32,7 @@ export default function FlashStudy() {
 
   const { data: vocabulary = [], isLoading } = useQuery({
     queryKey: ['vocabulary', level],
-    queryFn: async () => {
-      const allVocab = await base44.entities.Vocabulary.list();
-      return allVocab.filter(v => v.level === level);
-    },
+    queryFn: () => base44.entities.Vocabulary.filter({ level }),
   });
 
   const { data: user } = useQuery({
@@ -164,7 +161,7 @@ export default function FlashStudy() {
       <div className="h-screen flex items-center justify-center p-4">
         <div className="text-center space-y-4">
           <p className="text-xl text-slate-600">No vocabulary found for {level}</p>
-          <p className="text-sm text-slate-500">Total vocabulary in database: {vocabulary.length}</p>
+          <p className="text-sm text-slate-500">Please add vocabulary words in the Dashboard</p>
           <button
             onClick={() => navigate(createPageUrl('Home'))}
             className="text-indigo-600 hover:text-indigo-700 font-medium"

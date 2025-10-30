@@ -31,10 +31,7 @@ export default function SpacedRepetition() {
 
   const { data: vocabulary = [], isLoading } = useQuery({
     queryKey: ['vocabulary', level],
-    queryFn: async () => {
-      const allVocab = await base44.entities.Vocabulary.list();
-      return allVocab.filter(v => v.level === level);
-    },
+    queryFn: () => base44.entities.Vocabulary.filter({ level }),
   });
 
   const { data: user } = useQuery({
@@ -100,12 +97,13 @@ export default function SpacedRepetition() {
 
   // Get words due for review
   const dueWords = React.useMemo(() => {
-    if (!vocabulary.length || !userProgress.length) return vocabulary;
+    if (!vocabulary.length) return vocabulary;
+    if (!userProgress.length) return vocabulary.slice(0, 20); // New learner gets first 20
     
     const now = new Date();
     const progressMap = new Map(userProgress.map(p => [p.vocabulary_id, p]));
     
-    return vocabulary
+    const wordsWithPriority = vocabulary
       .map(word => {
         const progress = progressMap.get(word.id);
         if (!progress) return { word, priority: 1000 }; // New words highest priority
@@ -116,8 +114,11 @@ export default function SpacedRepetition() {
         return { word, priority: daysDue };
       })
       .filter(({ priority }) => priority >= 0)
-      .sort((a, b) => b.priority - a.priority)
-      .map(({ word }) => word);
+      .sort((a, b) => b.priority - a.priority);
+
+    return wordsWithPriority.length > 0 
+      ? wordsWithPriority.map(({ word }) => word)
+      : vocabulary.slice(0, 20);
   }, [vocabulary, userProgress]);
 
   const totalAnswered = correctCount + incorrectCount;
@@ -199,8 +200,8 @@ export default function SpacedRepetition() {
     return (
       <div className="h-screen flex items-center justify-center p-4">
         <div className="text-center space-y-4">
-          <p className="text-xl text-slate-600">No words due for review!</p>
-          <p className="text-sm text-slate-500">Come back later or try flash study mode</p>
+          <p className="text-xl text-slate-600">No words available for {level}</p>
+          <p className="text-sm text-slate-500">Add vocabulary words in the Dashboard or try another level</p>
           <button
             onClick={() => navigate(createPageUrl('Home'))}
             className="text-indigo-600 hover:text-indigo-700 font-medium"
