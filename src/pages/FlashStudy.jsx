@@ -30,10 +30,14 @@ export default function FlashStudy() {
     return Math.floor(Math.random() * 60000) + 90000; // in milliseconds
   });
 
-  const { data: vocabulary = [], isLoading } = useQuery({
-    queryKey: ['vocabulary', level],
-    queryFn: () => base44.entities.Vocabulary.filter({ level }),
+  const { data: allVocabulary = [], isLoading: isLoadingAll } = useQuery({
+    queryKey: ['allVocabulary'],
+    queryFn: () => base44.entities.Vocabulary.list(),
   });
+
+  const vocabulary = React.useMemo(() => {
+    return allVocabulary.filter(v => v.level === level);
+  }, [allVocabulary, level]);
 
   const { data: user } = useQuery({
     queryKey: ['user'],
@@ -145,7 +149,7 @@ export default function FlashStudy() {
     moveToNext();
   };
 
-  if (isLoading) {
+  if (isLoadingAll) {
     return (
       <div className="h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -161,7 +165,7 @@ export default function FlashStudy() {
       <div className="h-screen flex items-center justify-center p-4">
         <div className="text-center space-y-4">
           <p className="text-xl text-slate-600">No vocabulary found for {level}</p>
-          <p className="text-sm text-slate-500">Please add vocabulary words in the Dashboard</p>
+          <p className="text-sm text-slate-500">Total in database: {allVocabulary.length} | For {level}: {vocabulary.length}</p>
           <button
             onClick={() => navigate(createPageUrl('Home'))}
             className="text-indigo-600 hover:text-indigo-700 font-medium"
