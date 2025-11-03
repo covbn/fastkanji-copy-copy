@@ -15,7 +15,8 @@ export default function SpacedRepetition() {
   
   const urlParams = new URLSearchParams(window.location.search);
   const mode = urlParams.get('mode') || 'kanji_to_meaning';
-  const level = urlParams.get('level') || 'N5';
+  const levelParam = urlParams.get('level') || 'N5';
+  const level = levelParam.toUpperCase(); // Ensure uppercase
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);

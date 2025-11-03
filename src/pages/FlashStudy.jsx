@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tantml:react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
@@ -15,7 +15,8 @@ export default function FlashStudy() {
   
   const urlParams = new URLSearchParams(window.location.search);
   const mode = urlParams.get('mode') || 'kanji_to_meaning';
-  const level = urlParams.get('level') || 'N5';
+  const levelParam = urlParams.get('level') || 'N5';
+  const level = levelParam.toUpperCase(); // Ensure uppercase
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
