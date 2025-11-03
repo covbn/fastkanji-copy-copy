@@ -1,10 +1,11 @@
+
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, X, Eye } from "lucide-react";
 
-export default function FlashCard({ vocabulary, mode, onAnswer }) {
+export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSentences = true }) {
   const [revealed, setRevealed] = useState(false);
 
   const getQuestion = () => {
@@ -37,6 +38,8 @@ export default function FlashCard({ vocabulary, mode, onAnswer }) {
     onAnswer(correct);
     setRevealed(false);
   };
+
+  const shouldShowExample = showExampleSentences && vocabulary.example_sentence;
 
   return (
     <motion.div
@@ -72,17 +75,20 @@ export default function FlashCard({ vocabulary, mode, onAnswer }) {
                   {vocabulary.hiragana}
                 </motion.p>
               )}
-              {/* Show example sentence for reading_to_meaning mode when revealed */}
-              {mode === 'reading_to_meaning' && revealed && vocabulary.example_sentence && (
+              {/* Show example sentence when revealed */}
+              {revealed && shouldShowExample && (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   className="text-sm md:text-base text-slate-500 mt-4 p-4 bg-slate-50 rounded-lg"
                 >
-                  <p className="font-medium mb-1">Example:</p>
-                  <p className="text-slate-700">{vocabulary.example_sentence}</p>
+                  <p className="font-medium mb-1 text-indigo-600">Example:</p>
+                  <p className="text-slate-700 text-base md:text-lg mb-2">{vocabulary.example_sentence}</p>
+                  {vocabulary.example_sentence_kana && (
+                    <p className="text-slate-500 text-sm mb-1">{vocabulary.example_sentence_kana}</p>
+                  )}
                   {vocabulary.example_sentence_meaning && (
-                    <p className="text-slate-500 text-xs mt-2 italic">{vocabulary.example_sentence_meaning}</p>
+                    <p className="text-slate-600 text-xs md:text-sm italic">{vocabulary.example_sentence_meaning}</p>
                   )}
                 </motion.div>
               )}

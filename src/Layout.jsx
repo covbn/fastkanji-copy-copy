@@ -1,7 +1,9 @@
+
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Zap, Brain, TrendingUp, Home } from "lucide-react";
+import { Settings as SettingsIcon, Wind } from "lucide-react"; // Added imports
 import {
   Sidebar,
   SidebarContent,
@@ -37,6 +39,20 @@ const navigationItems = [
     title: "Progress",
     url: createPageUrl("Progress"),
     icon: TrendingUp,
+  },
+];
+
+// New navigation items
+const bottomNavigationItems = [
+  {
+    title: "Focus Exercise",
+    url: createPageUrl("Focus"),
+    icon: Wind,
+  },
+  {
+    title: "Settings",
+    url: createPageUrl("Settings"),
+    icon: SettingsIcon,
   },
 ];
 
@@ -79,6 +95,34 @@ export default function Layout({ children, currentPageName }) {
               <SidebarGroupContent>
                 <SidebarMenu>
                   {navigationItems.map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton 
+                        asChild 
+                        className={`hover:bg-indigo-50 hover:text-indigo-700 transition-all duration-200 rounded-xl mb-1 ${
+                          location.pathname === item.url 
+                            ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md' 
+                            : ''
+                        }`}
+                      >
+                        <Link to={item.url} className="flex items-center gap-3 px-4 py-3">
+                          <item.icon className="w-5 h-5" />
+                          <span className="font-medium">{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            {/* New SidebarGroup for "Tools" */}
+            <SidebarGroup className="mt-4">
+              <SidebarGroupLabel className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-3 py-2">
+                Tools
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {bottomNavigationItems.map((item) => (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton 
                         asChild 
