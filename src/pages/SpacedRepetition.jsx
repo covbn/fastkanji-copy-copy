@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { BookOpen, Brain, Clock } from "lucide-react";
 
 import FlashCard from "../components/flash/FlashCard";
 import AccuracyMeter from "../components/flash/AccuracyMeter";
@@ -73,81 +74,176 @@ export default function SpacedRepetition() {
         user_email: user.email
       });
 
+      const now = new Date();
+
       if (existing.length > 0) {
         const progress = existing[0];
+        
         // Anki-like SRS algorithm
-        let newInterval = progress.interval_days;
-        let newEaseFactor = progress.ease_factor;
+        let newState = progress.card_state || 'new';
+        let newStep = progress.learning_step || 0;
+        let newInterval = progress.interval_days || 1;
+        let newEaseFactor = progress.ease_factor || 2.5;
+        let newNextReview = now;
+        let newLapses = progress.lapses || 0;
 
-        if (correct) {
-          // Good answer - increase interval
-          newInterval = Math.round(progress.interval_days * progress.ease_factor);
-          newEaseFactor = Math.max(1.3, progress.ease_factor + 0.1);
-        } else {
-          // Wrong answer - reset to 1 day
-          newInterval = 1;
-          newEaseFactor = Math.max(1.3, progress.ease_factor - 0.2);
+        if (progress.card_state === 'new' || !progress.card_state) {
+          // New card
+          if (correct) {
+            newState = 'learning';
+            newStep = 1;
+            newNextReview = new Date(now.getTime() + 10 * 60000); // 10 minutes
+          } else {
+            newState = 'learning';
+            newStep = 0;
+            newNextReview = new Date(now.getTime() + 1 * 60000); // 1 minute
+          }
+        } else if (progress.card_state === 'learning') {
+          // Learning card
+          if (correct) {
+            if (newStep >= 2) {
+              // Graduate to review
+              newState = 'review';
+              newInterval = 1;
+              newNextReview = new Date(now.getTime() + 1 * 86400000); // 1 day
+            } else {
+              // Move to next learning step
+              newStep++;
+              const minutes = newStep === 1 ? 10 : 1440; // 10 min or 1 day
+              newNextReview = new Date(now.getTime() + minutes * 60000);
+            }
+          } else {
+            // Reset to first learning step
+            newStep = 0;
+            newNextReview = new Date(now.getTime() + 1 * 60000); // 1 minute
+          }
+        } else if (progress.card_state === 'review') {
+          // Review card
+          if (correct) {
+            // Increase interval using ease factor
+            newInterval = Math.round(progress.interval_days * newEaseFactor);
+            newEaseFactor = Math.min(2.5 + 1.0, newEaseFactor + 0.15); // Max 3.5
+            newNextReview = new Date(now.getTime() + newInterval * 86400000);
+          } else {
+            // Lapse - back to learning
+            newState = 'learning';
+            newStep = 0;
+            newLapses++;
+            newEaseFactor = Math.max(1.3, newEaseFactor - 0.2);
+            newInterval = 1;
+            newNextReview = new Date(now.getTime() + 10 * 60000); // 10 minutes
+          }
         }
 
         return base44.entities.UserProgress.update(progress.id, {
           correct_count: progress.correct_count + (correct ? 1 : 0),
           incorrect_count: progress.incorrect_count + (correct ? 0 : 1),
-          last_reviewed: new Date().toISOString(),
-          next_review: new Date(Date.now() + newInterval * 86400000).toISOString(),
+          last_reviewed: now.toISOString(),
+          next_review: newNextReview.toISOString(),
           ease_factor: newEaseFactor,
           interval_days: newInterval,
+          card_state: newState,
+          learning_step: newStep,
+          lapses: newLapses,
         });
       } else {
-        // New card
+        // Brand new card
+        const nextReview = correct 
+          ? new Date(now.getTime() + 10 * 60000) // 10 minutes
+          : new Date(now.getTime() + 1 * 60000); // 1 minute
+
         return base44.entities.UserProgress.create({
           vocabulary_id: vocabularyId,
           user_email: user.email,
           correct_count: correct ? 1 : 0,
           incorrect_count: correct ? 0 : 1,
-          last_reviewed: new Date().toISOString(),
-          next_review: new Date(Date.now() + 86400000).toISOString(),
+          last_reviewed: now.toISOString(),
+          next_review: nextReview.toISOString(),
           ease_factor: 2.5,
           interval_days: 1,
+          card_state: 'learning',
+          learning_step: correct ? 1 : 0,
+          lapses: 0,
         });
       }
     },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['userProgress'] });
+    },
   });
 
-  // Get words due for review with priority
-  const dueWords = React.useMemo(() => {
-    if (!vocabulary.length) return [];
+  // Categorize cards (Anki-style: New, Learning, Due)
+  const cardCategories = React.useMemo(() => {
+    if (!vocabulary.length) return { newCards: [], learningCards: [], dueCards: [] };
     
     const now = new Date();
     const progressMap = new Map(userProgress.map(p => [p.vocabulary_id, p]));
     
-    const wordsWithPriority = vocabulary
-      .map(word => {
-        const progress = progressMap.get(word.id);
-        if (!progress) return { word, priority: 1000, overdue: 0 }; // New words
-        
+    const newCards = [];
+    const learningCards = [];
+    const dueCards = [];
+    
+    vocabulary.forEach(word => {
+      const progress = progressMap.get(word.id);
+      
+      if (!progress || progress.card_state === 'new') {
+        newCards.push(word);
+      } else if (progress.card_state === 'learning') {
         const nextReview = new Date(progress.next_review);
-        const daysOverdue = Math.floor((now - nextReview) / 86400000);
-        
-        return { 
-          word, 
-          priority: daysOverdue >= 0 ? 1000 + daysOverdue : daysOverdue,
-          overdue: daysOverdue 
-        };
-      })
-      .filter(({ priority }) => priority >= 0)
-      .sort((a, b) => b.priority - a.priority)
-      .map(({ word }) => word);
+        if (nextReview <= now) {
+          learningCards.push({ word, progress });
+        }
+      } else if (progress.card_state === 'review') {
+        const nextReview = new Date(progress.next_review);
+        if (nextReview <= now) {
+          dueCards.push({ word, progress });
+        }
+      }
+    });
 
-    return wordsWithPriority.slice(0, Math.min(sessionSize, wordsWithPriority.length));
-  }, [vocabulary, userProgress, sessionSize]);
+    // Sort by priority
+    learningCards.sort((a, b) => 
+      new Date(a.progress.next_review) - new Date(b.progress.next_review)
+    );
+    dueCards.sort((a, b) => 
+      new Date(a.progress.next_review) - new Date(b.progress.next_review)
+    );
+
+    return { newCards, learningCards, dueCards };
+  }, [vocabulary, userProgress]);
+
+  // Build study queue based on Anki's algorithm
+  const buildQueue = React.useMemo(() => {
+    const { newCards, learningCards, dueCards } = cardCategories;
+    const queue = [];
+    
+    // Add cards in Anki order: Due cards, Learning cards, then New cards
+    // But interleave them intelligently
+    const dueWords = dueCards.map(d => d.word);
+    const learningWords = learningCards.map(l => l.word);
+    
+    // Add due cards first (most important)
+    queue.push(...dueWords);
+    
+    // Add learning cards
+    queue.push(...learningWords);
+    
+    // Add new cards (fill up to session size)
+    const remaining = sessionSize - queue.length;
+    if (remaining > 0) {
+      queue.push(...newCards.slice(0, remaining));
+    }
+    
+    return queue.slice(0, sessionSize);
+  }, [cardCategories, sessionSize]);
 
   // Initialize study queue
   useEffect(() => {
-    if (dueWords.length > 0 && studyQueue.length === 0) {
-      setStudyQueue(dueWords);
-      setCurrentCard(dueWords[0]);
+    if (buildQueue.length > 0 && studyQueue.length === 0) {
+      setStudyQueue(buildQueue);
+      setCurrentCard(buildQueue[0]);
     }
-  }, [dueWords]);
+  }, [buildQueue]);
 
   const totalAnswered = correctCount + incorrectCount;
   const accuracy = totalAnswered > 0 ? (correctCount / totalAnswered) * 100 : 0;
@@ -183,24 +279,9 @@ export default function SpacedRepetition() {
 
     // Remove current card from queue
     const newQueue = studyQueue.slice(1);
-    
-    // If wrong, add back to queue (SRS will handle scheduling for future)
-    // But we still want to review it again in this session
-    if (!correct) {
-      const insertPosition = Math.min(
-        Math.floor(Math.random() * 3) + 3, // 3-5 cards ahead
-        newQueue.length
-      );
-      newQueue.splice(insertPosition, 0, currentCard);
-    }
 
     // Check if session is complete
-    if (cardsStudied + 1 >= sessionSize) {
-      completeSession();
-      return;
-    }
-
-    if (newQueue.length === 0) {
+    if (cardsStudied + 1 >= sessionSize || newQueue.length === 0) {
       completeSession();
       return;
     }
@@ -242,11 +323,11 @@ export default function SpacedRepetition() {
     );
   }
 
-  if (dueWords.length === 0) {
+  if (buildQueue.length === 0) {
     return (
       <div className="h-screen flex items-center justify-center p-4">
         <div className="text-center space-y-4">
-          <p className="text-xl text-slate-600">No words due for review!</p>
+          <p className="text-xl text-slate-600">No cards due for review!</p>
           <p className="text-sm text-slate-500">Come back later or try flash study mode</p>
           <button
             onClick={() => navigate(createPageUrl('Home'))}
@@ -288,6 +369,29 @@ export default function SpacedRepetition() {
 
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-slate-900 via-indigo-900 to-purple-900 overflow-hidden">
+      {/* Anki-style card counts */}
+      <div className="bg-white/10 backdrop-blur-md border-b border-white/20 px-6 py-3">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2 text-white">
+              <BookOpen className="w-4 h-4 text-blue-400" />
+              <span className="text-sm opacity-75">New:</span>
+              <span className="font-bold text-blue-400">{cardCategories.newCards.length}</span>
+            </div>
+            <div className="flex items-center gap-2 text-white">
+              <Brain className="w-4 h-4 text-orange-400" />
+              <span className="text-sm opacity-75">Learning:</span>
+              <span className="font-bold text-orange-400">{cardCategories.learningCards.length}</span>
+            </div>
+            <div className="flex items-center gap-2 text-white">
+              <Clock className="w-4 h-4 text-green-400" />
+              <span className="text-sm opacity-75">Due:</span>
+              <span className="font-bold text-green-400">{cardCategories.dueCards.length}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <AccuracyMeter
         accuracy={accuracy}
         correctCount={correctCount}

@@ -5,22 +5,22 @@ import { motion } from "framer-motion";
 
 const modes = [
   {
-    id: "kanji_to_hiragana",
-    label: "Kanji → Hiragana",
-    description: "Practice reading kanji",
-    example: "食べる → たべる",
-  },
-  {
     id: "kanji_to_meaning",
     label: "Kanji → Meaning",
     description: "Learn word meanings",
     example: "食べる → to eat",
   },
   {
-    id: "meaning_to_hiragana",
-    label: "Meaning → Hiragana",
-    description: "Recall pronunciations",
-    example: "to eat → たべる",
+    id: "kanji_to_reading",
+    label: "Kanji → Reading",
+    description: "Practice reading kanji",
+    example: "食べる → たべる",
+  },
+  {
+    id: "reading_to_meaning",
+    label: "Reading → Meaning",
+    description: "Test comprehension",
+    example: "たべる → to eat",
   },
 ];
 

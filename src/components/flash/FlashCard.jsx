@@ -9,12 +9,12 @@ export default function FlashCard({ vocabulary, mode, onAnswer }) {
 
   const getQuestion = () => {
     switch (mode) {
-      case 'kanji_to_hiragana':
+      case 'kanji_to_reading':
         return vocabulary.kanji;
       case 'kanji_to_meaning':
         return vocabulary.kanji;
-      case 'meaning_to_hiragana':
-        return vocabulary.meaning;
+      case 'reading_to_meaning':
+        return vocabulary.hiragana;
       default:
         return vocabulary.kanji;
     }
@@ -22,12 +22,12 @@ export default function FlashCard({ vocabulary, mode, onAnswer }) {
 
   const getAnswer = () => {
     switch (mode) {
-      case 'kanji_to_hiragana':
+      case 'kanji_to_reading':
         return vocabulary.hiragana;
       case 'kanji_to_meaning':
         return vocabulary.meaning;
-      case 'meaning_to_hiragana':
-        return vocabulary.hiragana;
+      case 'reading_to_meaning':
+        return vocabulary.meaning;
       default:
         return vocabulary.meaning;
     }
@@ -62,7 +62,7 @@ export default function FlashCard({ vocabulary, mode, onAnswer }) {
               >
                 {getQuestion()}
               </motion.div>
-              {/* Show reading for kanji_to_meaning mode */}
+              {/* Show reading for kanji_to_meaning mode when revealed */}
               {mode === 'kanji_to_meaning' && revealed && (
                 <motion.p
                   initial={{ opacity: 0 }}
@@ -71,6 +71,20 @@ export default function FlashCard({ vocabulary, mode, onAnswer }) {
                 >
                   {vocabulary.hiragana}
                 </motion.p>
+              )}
+              {/* Show example sentence for reading_to_meaning mode when revealed */}
+              {mode === 'reading_to_meaning' && revealed && vocabulary.example_sentence && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-sm md:text-base text-slate-500 mt-4 p-4 bg-slate-50 rounded-lg"
+                >
+                  <p className="font-medium mb-1">Example:</p>
+                  <p className="text-slate-700">{vocabulary.example_sentence}</p>
+                  {vocabulary.example_sentence_meaning && (
+                    <p className="text-slate-500 text-xs mt-2 italic">{vocabulary.example_sentence_meaning}</p>
+                  )}
+                </motion.div>
               )}
             </div>
 
