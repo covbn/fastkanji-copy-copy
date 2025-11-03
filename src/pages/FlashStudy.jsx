@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -17,9 +16,12 @@ export default function FlashStudy() {
   const urlParams = new URLSearchParams(window.location.search);
   const mode = urlParams.get('mode') || 'kanji_to_meaning';
   const levelParam = urlParams.get('level') || 'N5';
-  const level = levelParam.toUpperCase(); // Ensure uppercase
+  const level = levelParam.toUpperCase();
+  const sessionSize = parseInt(urlParams.get('size')) || 20;
 
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [studyQueue, setStudyQueue] = useState([]);
+  const [currentCard, setCurrentCard] = useState(null);
+  const [cardsStudied, setCardsStudied] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
   const [incorrectCount, setIncorrectCount] = useState(0);
   const [showRest, setShowRest] = useState(false);
@@ -28,8 +30,7 @@ export default function FlashStudy() {
   const [reviewAfterRest, setReviewAfterRest] = useState([]);
   const [lastRestTime, setLastRestTime] = useState(Date.now());
   const [nextRestDuration, setNextRestDuration] = useState(() => {
-    // Random between 1.5 min (90s) and 2.5 min (150s)
-    return Math.floor(Math.random() * 60000) + 90000; // in milliseconds
+    return Math.floor(Math.random() * 60000) + 90000;
   });
 
   const { data: allVocabulary = [], isLoading: isLoadingAll } = useQuery({
@@ -83,9 +84,15 @@ export default function FlashStudy() {
     },
   });
 
-  const shuffledVocab = React.useMemo(() => {
-    return [...vocabulary].sort(() => Math.random() - 0.5);
-  }, [vocabulary]);
+  // Initialize study queue
+  useEffect(() => {
+    if (vocabulary.length > 0 && studyQueue.length === 0) {
+      const shuffled = [...vocabulary].sort(() => Math.random() - 0.5);
+      const initial = shuffled.slice(0, Math.min(sessionSize, shuffled.length));
+      setStudyQueue(initial);
+      setCurrentCard(initial[0]);
+    }
+  }, [vocabulary, sessionSize]);
 
   const totalAnswered = correctCount + incorrectCount;
   const accuracy = totalAnswered > 0 ? (correctCount / totalAnswered) * 100 : 0;
@@ -94,38 +101,56 @@ export default function FlashStudy() {
   useEffect(() => {
     const checkRestTime = setInterval(() => {
       const timeSinceLastRest = Date.now() - lastRestTime;
-      if (timeSinceLastRest >= nextRestDuration && !showRest && !sessionComplete) {
+      if (timeSinceLastRest >= nextRestDuration && !showRest && !sessionComplete && cardsStudied > 0) {
         setShowRest(true);
       }
     }, 1000);
 
     return () => clearInterval(checkRestTime);
-  }, [lastRestTime, nextRestDuration, showRest, sessionComplete]);
+  }, [lastRestTime, nextRestDuration, showRest, sessionComplete, cardsStudied]);
 
   const handleAnswer = (correct) => {
-    const currentVocab = shuffledVocab[currentIndex];
+    if (!currentCard) return;
+    
+    setCardsStudied(prev => prev + 1);
     
     if (correct) {
       setCorrectCount(prev => prev + 1);
     } else {
       setIncorrectCount(prev => prev + 1);
-      setReviewAfterRest(prev => [...prev, currentVocab]);
+      setReviewAfterRest(prev => [...prev, currentCard]);
     }
 
     updateProgressMutation.mutate({
-      vocabularyId: currentVocab.id,
+      vocabularyId: currentCard.id,
       correct
     });
 
-    moveToNext();
-  };
-
-  const moveToNext = () => {
-    if (currentIndex < shuffledVocab.length - 1) {
-      setCurrentIndex(prev => prev + 1);
-    } else {
-      completeSession();
+    // Remove current card from queue
+    const newQueue = studyQueue.slice(1);
+    
+    // If wrong, add back to queue at a random position (between 2-5 cards ahead)
+    if (!correct) {
+      const insertPosition = Math.min(
+        Math.floor(Math.random() * 4) + 2,
+        newQueue.length
+      );
+      newQueue.splice(insertPosition, 0, currentCard);
     }
+
+    // Check if session is complete
+    if (cardsStudied + 1 >= sessionSize) {
+      completeSession();
+      return;
+    }
+
+    if (newQueue.length === 0) {
+      completeSession();
+      return;
+    }
+
+    setStudyQueue(newQueue);
+    setCurrentCard(newQueue[0]);
   };
 
   const completeSession = () => {
@@ -147,8 +172,7 @@ export default function FlashStudy() {
   const continueAfterRest = () => {
     setShowRest(false);
     setLastRestTime(Date.now());
-    setNextRestDuration(Math.floor(Math.random() * 60000) + 90000); // New random duration
-    moveToNext();
+    setNextRestDuration(Math.floor(Math.random() * 60000) + 90000);
   };
 
   if (isLoadingAll) {
@@ -162,12 +186,11 @@ export default function FlashStudy() {
     );
   }
 
-  if (shuffledVocab.length === 0) {
+  if (vocabulary.length === 0) {
     return (
       <div className="h-screen flex items-center justify-center p-4">
         <div className="text-center space-y-4">
           <p className="text-xl text-slate-600">No vocabulary found for {level}</p>
-          <p className="text-sm text-slate-500">Total in database: {allVocabulary.length} | For {level}: {vocabulary.length}</p>
           <button
             onClick={() => navigate(createPageUrl('Home'))}
             className="text-indigo-600 hover:text-indigo-700 font-medium"
@@ -195,19 +218,30 @@ export default function FlashStudy() {
     return <RestInterval onContinue={continueAfterRest} />;
   }
 
+  if (!currentCard) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="text-slate-600">Preparing cards...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-slate-900 via-indigo-900 to-purple-900 overflow-hidden">
       <AccuracyMeter
         accuracy={accuracy}
         correctCount={correctCount}
         incorrectCount={incorrectCount}
-        currentCard={currentIndex + 1}
-        totalCards={shuffledVocab.length}
+        currentCard={cardsStudied + 1}
+        totalCards={sessionSize}
       />
 
       <div className="flex-1 flex items-center justify-center p-4 overflow-hidden">
         <FlashCard
-          vocabulary={shuffledVocab[currentIndex]}
+          vocabulary={currentCard}
           mode={mode}
           onAnswer={handleAnswer}
         />

@@ -16,9 +16,12 @@ export default function SpacedRepetition() {
   const urlParams = new URLSearchParams(window.location.search);
   const mode = urlParams.get('mode') || 'kanji_to_meaning';
   const levelParam = urlParams.get('level') || 'N5';
-  const level = levelParam.toUpperCase(); // Ensure uppercase
+  const level = levelParam.toUpperCase();
+  const sessionSize = parseInt(urlParams.get('size')) || 20;
 
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [studyQueue, setStudyQueue] = useState([]);
+  const [currentCard, setCurrentCard] = useState(null);
+  const [cardsStudied, setCardsStudied] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
   const [incorrectCount, setIncorrectCount] = useState(0);
   const [showRest, setShowRest] = useState(false);
@@ -72,10 +75,19 @@ export default function SpacedRepetition() {
 
       if (existing.length > 0) {
         const progress = existing[0];
-        const newInterval = correct ? progress.interval_days * 2 : 1;
-        const newEaseFactor = correct 
-          ? Math.max(1.3, progress.ease_factor + 0.1)
-          : Math.max(1.3, progress.ease_factor - 0.2);
+        // Anki-like SRS algorithm
+        let newInterval = progress.interval_days;
+        let newEaseFactor = progress.ease_factor;
+
+        if (correct) {
+          // Good answer - increase interval
+          newInterval = Math.round(progress.interval_days * progress.ease_factor);
+          newEaseFactor = Math.max(1.3, progress.ease_factor + 0.1);
+        } else {
+          // Wrong answer - reset to 1 day
+          newInterval = 1;
+          newEaseFactor = Math.max(1.3, progress.ease_factor - 0.2);
+        }
 
         return base44.entities.UserProgress.update(progress.id, {
           correct_count: progress.correct_count + (correct ? 1 : 0),
@@ -86,6 +98,7 @@ export default function SpacedRepetition() {
           interval_days: newInterval,
         });
       } else {
+        // New card
         return base44.entities.UserProgress.create({
           vocabulary_id: vocabularyId,
           user_email: user.email,
@@ -100,10 +113,9 @@ export default function SpacedRepetition() {
     },
   });
 
-  // Get words due for review
+  // Get words due for review with priority
   const dueWords = React.useMemo(() => {
-    if (!vocabulary.length) return vocabulary;
-    if (!userProgress.length) return vocabulary.slice(0, 20); // New learner gets first 20
+    if (!vocabulary.length) return [];
     
     const now = new Date();
     const progressMap = new Map(userProgress.map(p => [p.vocabulary_id, p]));
@@ -111,20 +123,31 @@ export default function SpacedRepetition() {
     const wordsWithPriority = vocabulary
       .map(word => {
         const progress = progressMap.get(word.id);
-        if (!progress) return { word, priority: 1000 }; // New words highest priority
+        if (!progress) return { word, priority: 1000, overdue: 0 }; // New words
         
         const nextReview = new Date(progress.next_review);
-        const daysDue = Math.floor((now - nextReview) / 86400000);
+        const daysOverdue = Math.floor((now - nextReview) / 86400000);
         
-        return { word, priority: daysDue };
+        return { 
+          word, 
+          priority: daysOverdue >= 0 ? 1000 + daysOverdue : daysOverdue,
+          overdue: daysOverdue 
+        };
       })
       .filter(({ priority }) => priority >= 0)
-      .sort((a, b) => b.priority - a.priority);
+      .sort((a, b) => b.priority - a.priority)
+      .map(({ word }) => word);
 
-    return wordsWithPriority.length > 0 
-      ? wordsWithPriority.map(({ word }) => word)
-      : vocabulary.slice(0, 20);
-  }, [vocabulary, userProgress]);
+    return wordsWithPriority.slice(0, Math.min(sessionSize, wordsWithPriority.length));
+  }, [vocabulary, userProgress, sessionSize]);
+
+  // Initialize study queue
+  useEffect(() => {
+    if (dueWords.length > 0 && studyQueue.length === 0) {
+      setStudyQueue(dueWords);
+      setCurrentCard(dueWords[0]);
+    }
+  }, [dueWords]);
 
   const totalAnswered = correctCount + incorrectCount;
   const accuracy = totalAnswered > 0 ? (correctCount / totalAnswered) * 100 : 0;
@@ -133,38 +156,57 @@ export default function SpacedRepetition() {
   useEffect(() => {
     const checkRestTime = setInterval(() => {
       const timeSinceLastRest = Date.now() - lastRestTime;
-      if (timeSinceLastRest >= nextRestDuration && !showRest && !sessionComplete) {
+      if (timeSinceLastRest >= nextRestDuration && !showRest && !sessionComplete && cardsStudied > 0) {
         setShowRest(true);
       }
     }, 1000);
 
     return () => clearInterval(checkRestTime);
-  }, [lastRestTime, nextRestDuration, showRest, sessionComplete]);
+  }, [lastRestTime, nextRestDuration, showRest, sessionComplete, cardsStudied]);
 
   const handleAnswer = (correct) => {
-    const currentVocab = dueWords[currentIndex];
+    if (!currentCard) return;
+    
+    setCardsStudied(prev => prev + 1);
     
     if (correct) {
       setCorrectCount(prev => prev + 1);
     } else {
       setIncorrectCount(prev => prev + 1);
-      setReviewAfterRest(prev => [...prev, currentVocab]);
+      setReviewAfterRest(prev => [...prev, currentCard]);
     }
 
     updateProgressMutation.mutate({
-      vocabularyId: currentVocab.id,
+      vocabularyId: currentCard.id,
       correct
     });
 
-    moveToNext();
-  };
-
-  const moveToNext = () => {
-    if (currentIndex < dueWords.length - 1) {
-      setCurrentIndex(prev => prev + 1);
-    } else {
-      completeSession();
+    // Remove current card from queue
+    const newQueue = studyQueue.slice(1);
+    
+    // If wrong, add back to queue (SRS will handle scheduling for future)
+    // But we still want to review it again in this session
+    if (!correct) {
+      const insertPosition = Math.min(
+        Math.floor(Math.random() * 3) + 3, // 3-5 cards ahead
+        newQueue.length
+      );
+      newQueue.splice(insertPosition, 0, currentCard);
     }
+
+    // Check if session is complete
+    if (cardsStudied + 1 >= sessionSize) {
+      completeSession();
+      return;
+    }
+
+    if (newQueue.length === 0) {
+      completeSession();
+      return;
+    }
+
+    setStudyQueue(newQueue);
+    setCurrentCard(newQueue[0]);
   };
 
   const completeSession = () => {
@@ -187,7 +229,6 @@ export default function SpacedRepetition() {
     setShowRest(false);
     setLastRestTime(Date.now());
     setNextRestDuration(Math.floor(Math.random() * 60000) + 90000);
-    moveToNext();
   };
 
   if (isLoadingAll) {
@@ -205,8 +246,8 @@ export default function SpacedRepetition() {
     return (
       <div className="h-screen flex items-center justify-center p-4">
         <div className="text-center space-y-4">
-          <p className="text-xl text-slate-600">No words available for {level}</p>
-          <p className="text-sm text-slate-500">Total in database: {allVocabulary.length} | For {level}: {vocabulary.length}</p>
+          <p className="text-xl text-slate-600">No words due for review!</p>
+          <p className="text-sm text-slate-500">Come back later or try flash study mode</p>
           <button
             onClick={() => navigate(createPageUrl('Home'))}
             className="text-indigo-600 hover:text-indigo-700 font-medium"
@@ -234,19 +275,30 @@ export default function SpacedRepetition() {
     return <RestInterval onContinue={continueAfterRest} />;
   }
 
+  if (!currentCard) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="text-slate-600">Preparing cards...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-slate-900 via-indigo-900 to-purple-900 overflow-hidden">
       <AccuracyMeter
         accuracy={accuracy}
         correctCount={correctCount}
         incorrectCount={incorrectCount}
-        currentCard={currentIndex + 1}
-        totalCards={dueWords.length}
+        currentCard={cardsStudied + 1}
+        totalCards={sessionSize}
       />
 
       <div className="flex-1 flex items-center justify-center p-4 overflow-hidden">
         <FlashCard
-          vocabulary={dueWords[currentIndex]}
+          vocabulary={currentCard}
           mode={mode}
           onAnswer={handleAnswer}
         />

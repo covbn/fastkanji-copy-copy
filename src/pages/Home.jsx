@@ -12,11 +12,13 @@ import { motion } from "framer-motion";
 import ModeSelector from "../components/home/ModeSelector";
 import LevelSelector from "../components/home/LevelSelector";
 import QuickStats from "../components/home/QuickStats";
+import SessionSizeSelector from "../components/home/SessionSizeSelector";
 
 export default function Home() {
   const navigate = useNavigate();
   const [selectedMode, setSelectedMode] = useState("kanji_to_meaning");
   const [selectedLevel, setSelectedLevel] = useState("N5");
+  const [sessionSize, setSessionSize] = useState(20);
 
   const { data: recentSessions = [] } = useQuery({
     queryKey: ['recentSessions'],
@@ -29,11 +31,11 @@ export default function Home() {
   });
 
   const startFlashStudy = () => {
-    navigate(createPageUrl(`FlashStudy?mode=${selectedMode}&level=${selectedLevel}`));
+    navigate(createPageUrl(`FlashStudy?mode=${selectedMode}&level=${selectedLevel}&size=${sessionSize}`));
   };
 
   const startSpacedRepetition = () => {
-    navigate(createPageUrl(`SpacedRepetition?mode=${selectedMode}&level=${selectedLevel}`));
+    navigate(createPageUrl(`SpacedRepetition?mode=${selectedMode}&level=${selectedLevel}&size=${sessionSize}`));
   };
 
   const getStreak = () => {
@@ -105,6 +107,11 @@ export default function Home() {
                 onSelectMode={setSelectedMode}
               />
             </div>
+
+            <SessionSizeSelector
+              sessionSize={sessionSize}
+              onSelectSize={setSessionSize}
+            />
 
             <div className="grid md:grid-cols-2 gap-4 pt-4">
               <Button
