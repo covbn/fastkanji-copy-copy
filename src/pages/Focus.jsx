@@ -9,7 +9,42 @@ export default function Focus() {
   const [breathCount, setBreathCount] = useState(0);
   const [holdTime, setHoldTime] = useState(0);
   const [isActive, setIsActive] = useState(false);
+  const [breathPhase, setBreathPhase] = useState('inhale'); // inhale, exhale
+  const [breathTimer, setBreathTimer] = useState(4);
 
+  // Automatic breathing cycle
+  useEffect(() => {
+    if (phase === 'breathing' && isActive) {
+      const interval = setInterval(() => {
+        setBreathTimer(prev => {
+          if (prev <= 0) {
+            if (breathPhase === 'inhale') {
+              setBreathPhase('exhale');
+              return 4;
+            } else {
+              setBreathPhase('inhale');
+              setBreathCount(prev => prev + 1);
+              return 4;
+            }
+          }
+          return prev - 0.1;
+        });
+      }, 100);
+
+      return () => clearInterval(interval);
+    }
+  }, [phase, isActive, breathPhase]);
+
+  // Check if we've reached 25 breaths
+  useEffect(() => {
+    if (breathCount >= 25 && phase === 'breathing') {
+      setPhase('hold_empty');
+      setHoldTime(0);
+      setIsActive(true);
+    }
+  }, [breathCount, phase]);
+
+  // Hold timers
   useEffect(() => {
     let interval = null;
 
@@ -31,17 +66,9 @@ export default function Focus() {
   const startExercise = () => {
     setPhase('breathing');
     setBreathCount(0);
+    setBreathPhase('inhale');
+    setBreathTimer(4);
     setIsActive(true);
-  };
-
-  const handleBreath = () => {
-    const newCount = breathCount + 1;
-    setBreathCount(newCount);
-    
-    if (newCount >= 25) {
-      setPhase('hold_empty');
-      setHoldTime(0);
-    }
   };
 
   const finishEmptyHold = () => {
@@ -59,6 +86,8 @@ export default function Focus() {
     setBreathCount(0);
     setHoldTime(0);
     setIsActive(false);
+    setBreathPhase('inhale');
+    setBreathTimer(4);
   };
 
   return (
@@ -107,7 +136,7 @@ export default function Focus() {
                   <div className="space-y-2">
                     <p className="font-semibold text-lg">The Protocol:</p>
                     <ol className="list-decimal list-inside space-y-2 text-white/80">
-                      <li><strong>25-30 Deep Breaths:</strong> Inhale through nose, exhale through mouth</li>
+                      <li><strong>25-30 Deep Breaths:</strong> 4 seconds in, 4 seconds out (automatic)</li>
                       <li><strong>Hold Empty:</strong> Exhale fully and hold with empty lungs for 15-60 seconds</li>
                       <li><strong>Inhale & Hold:</strong> Take one deep breath and hold briefly</li>
                       <li><strong>Resume Normal Breathing:</strong> Don't force it - breathe when you feel the urge</li>
@@ -144,11 +173,10 @@ export default function Focus() {
           >
             <motion.div
               animate={{ 
-                scale: [1, 1.1, 1],
+                scale: breathPhase === 'inhale' ? [1, 1.2] : [1.2, 1],
               }}
               transition={{ 
                 duration: 4,
-                repeat: Infinity,
                 ease: "easeInOut"
               }}
               className="w-48 h-48 mx-auto rounded-full bg-gradient-to-br from-indigo-400 to-purple-400 flex items-center justify-center shadow-2xl"
@@ -157,22 +185,22 @@ export default function Focus() {
             </motion.div>
 
             <div className="space-y-4">
-              <p className="text-white/70 text-lg">Breath Count</p>
-              <p className="text-7xl font-bold text-white">{breathCount}</p>
-              <p className="text-white/60">/ 25-30 breaths</p>
+              <motion.p
+                key={breathPhase}
+                initial={{ scale: 1.2, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="text-white text-2xl font-bold uppercase"
+              >
+                {breathPhase === 'inhale' ? '👃 Inhale' : '👄 Exhale'}
+              </motion.p>
+              <p className="text-5xl font-bold text-white">{breathTimer.toFixed(1)}s</p>
+              <p className="text-white/70 text-lg">Breath {breathCount} / 25</p>
             </div>
 
             <div className="space-y-3">
-              <p className="text-white text-lg">
-                <strong>Inhale</strong> through nose • <strong>Exhale</strong> through mouth
+              <p className="text-white text-base">
+                Follow the breathing rhythm automatically
               </p>
-              <Button
-                onClick={handleBreath}
-                size="lg"
-                className="w-64 h-16 text-xl bg-white text-indigo-900 hover:bg-white/90"
-              >
-                Breath {breathCount + 1}
-              </Button>
             </div>
           </motion.div>
         )}

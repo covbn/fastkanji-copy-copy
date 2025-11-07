@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -368,25 +369,25 @@ export default function SpacedRepetition() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-slate-900 via-indigo-900 to-purple-900 overflow-hidden">
+    <div className="h-screen flex flex-col bg-gradient-to-br from-slate-900 via-indigo-900 to-purple-900">
       {/* Anki-style card counts */}
-      <div className="bg-white/10 backdrop-blur-md border-b border-white/20 px-6 py-3">
+      <div className="bg-white/10 backdrop-blur-md border-b border-white/20 px-3 md:px-6 py-2 md:py-3">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2 text-white">
-              <BookOpen className="w-4 h-4 text-blue-400" />
-              <span className="text-sm opacity-75">New:</span>
-              <span className="font-bold text-blue-400">{cardCategories.newCards.length}</span>
+          <div className="flex items-center gap-3 md:gap-6">
+            <div className="flex items-center gap-1.5 md:gap-2 text-white">
+              <BookOpen className="w-3 h-3 md:w-4 md:h-4 text-blue-400" />
+              <span className="text-xs md:text-sm opacity-75">New:</span>
+              <span className="font-bold text-blue-400 text-sm md:text-base">{cardCategories.newCards.length}</span>
             </div>
-            <div className="flex items-center gap-2 text-white">
-              <Brain className="w-4 h-4 text-orange-400" />
-              <span className="text-sm opacity-75">Learning:</span>
-              <span className="font-bold text-orange-400">{cardCategories.learningCards.length}</span>
+            <div className="flex items-center gap-1.5 md:gap-2 text-white">
+              <Brain className="w-3 h-3 md:w-4 md:h-4 text-orange-400" />
+              <span className="text-xs md:text-sm opacity-75">Learning:</span>
+              <span className="font-bold text-orange-400 text-sm md:text-base">{cardCategories.learningCards.length}</span>
             </div>
-            <div className="flex items-center gap-2 text-white">
-              <Clock className="w-4 h-4 text-green-400" />
-              <span className="text-sm opacity-75">Due:</span>
-              <span className="font-bold text-green-400">{cardCategories.dueCards.length}</span>
+            <div className="flex items-center gap-1.5 md:gap-2 text-white">
+              <Clock className="w-3 h-3 md:w-4 md:h-4 text-green-400" />
+              <span className="text-xs md:text-sm opacity-75">Due:</span>
+              <span className="font-bold text-green-400 text-sm md:text-base">{cardCategories.dueCards.length}</span>
             </div>
           </div>
         </div>
@@ -400,7 +401,7 @@ export default function SpacedRepetition() {
         totalCards={sessionSize}
       />
 
-      <div className="flex-1 flex items-center justify-center p-4 overflow-hidden">
+      <div className="flex-1 flex items-center justify-center p-2 md:p-4 overflow-y-auto">
         <FlashCard
           vocabulary={currentCard}
           mode={mode}
