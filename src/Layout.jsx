@@ -97,6 +97,11 @@ export default function Layout({ children, currentPageName }) {
           h1, h2, h3, h4, h5, h6 {
             font-family: 'Crimson Pro', serif;
           }
+          
+          b, strong {
+            font-weight: 700;
+            color: inherit;
+          }
         `}
       </style>
       <div className={`min-h-screen flex w-full ${nightMode ? 'bg-slate-900' : 'bg-stone-50'}`}>

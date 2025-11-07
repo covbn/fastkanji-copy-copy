@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -82,9 +81,16 @@ export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSente
                   className="text-xs md:text-sm text-slate-600 mt-4 p-4 md:p-5 bg-stone-50 rounded-lg border border-stone-200 max-h-36 overflow-y-auto"
                 >
                   <p className="font-medium mb-2 text-teal-700 text-sm">Example</p>
-                  <p className="text-slate-700 text-sm md:text-base mb-2 break-words" style={{fontFamily: "'Crimson Pro', serif"}}>{vocabulary.example_sentence}</p>
+                  <p 
+                    className="text-slate-700 text-sm md:text-base mb-2 break-words" 
+                    style={{fontFamily: "'Crimson Pro', serif"}}
+                    dangerouslySetInnerHTML={{ __html: vocabulary.example_sentence }}
+                  />
                   {vocabulary.example_sentence_kana && (
-                    <p className="text-slate-500 text-xs mb-2 break-words">{vocabulary.example_sentence_kana}</p>
+                    <p 
+                      className="text-slate-500 text-xs mb-2 break-words"
+                      dangerouslySetInnerHTML={{ __html: vocabulary.example_sentence_kana }}
+                    />
                   )}
                   {vocabulary.example_sentence_meaning && (
                     <p className="text-slate-600 text-xs italic break-words">{vocabulary.example_sentence_meaning}</p>
