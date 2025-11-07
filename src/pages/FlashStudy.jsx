@@ -58,7 +58,7 @@ export default function FlashStudy() {
   // Use settings for rest intervals
   const restMinSeconds = settings?.rest_min_seconds || 90;
   const restMaxSeconds = settings?.rest_max_seconds || 150;
-  const restDurationSeconds = settings?.rest_duration_seconds || 600;
+  const restDurationSeconds = settings?.rest_duration_seconds || 10;
 
   // Update initial rest duration based on settings
   const [nextRestDuration, setNextRestDuration] = useState(() => {
@@ -248,7 +248,7 @@ export default function FlashStudy() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-slate-900 via-indigo-900 to-purple-900 overflow-hidden">
+    <div className="h-screen flex flex-col bg-gradient-to-br from-stone-100 via-teal-50 to-cyan-50">
       <AccuracyMeter
         accuracy={accuracy}
         correctCount={correctCount}

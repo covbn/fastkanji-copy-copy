@@ -386,25 +386,25 @@ export default function SpacedRepetition() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-slate-900 via-indigo-900 to-purple-900">
+    <div className="h-screen flex flex-col bg-gradient-to-br from-stone-100 via-teal-50 to-cyan-50">
       {/* Anki-style card counts */}
-      <div className="bg-white/10 backdrop-blur-md border-b border-white/20 px-3 md:px-6 py-2 md:py-3">
+      <div className="bg-white/80 backdrop-blur-sm border-b border-stone-200 px-3 md:px-6 py-2 md:py-3">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3 md:gap-6">
-            <div className="flex items-center gap-1.5 md:gap-2 text-white">
-              <BookOpen className="w-3 h-3 md:w-4 md:h-4 text-blue-400" />
-              <span className="text-xs md:text-sm opacity-75">New:</span>
-              <span className="font-bold text-blue-400 text-sm md:text-base">{cardCategories.newCards.length}</span>
+            <div className="flex items-center gap-1.5 md:gap-2">
+              <BookOpen className="w-3 h-3 md:w-4 md:h-4 text-cyan-600" />
+              <span className="text-xs md:text-sm text-slate-600">New:</span>
+              <span className="font-semibold text-cyan-700 text-sm md:text-base">{cardCategories.newCards.length}</span>
             </div>
-            <div className="flex items-center gap-1.5 md:gap-2 text-white">
-              <Brain className="w-3 h-3 md:w-4 md:h-4 text-orange-400" />
-              <span className="text-xs md:text-sm opacity-75">Learning:</span>
-              <span className="font-bold text-orange-400 text-sm md:text-base">{cardCategories.learningCards.length}</span>
+            <div className="flex items-center gap-1.5 md:gap-2">
+              <Brain className="w-3 h-3 md:w-4 md:h-4 text-amber-600" />
+              <span className="text-xs md:text-sm text-slate-600">Learning:</span>
+              <span className="font-semibold text-amber-700 text-sm md:text-base">{cardCategories.learningCards.length}</span>
             </div>
-            <div className="flex items-center gap-1.5 md:gap-2 text-white">
-              <Clock className="w-3 h-3 md:w-4 md:h-4 text-green-400" />
-              <span className="text-xs md:text-sm opacity-75">Due:</span>
-              <span className="font-bold text-green-400 text-sm md:text-base">{cardCategories.dueCards.length}</span>
+            <div className="flex items-center gap-1.5 md:gap-2">
+              <Clock className="w-3 h-3 md:w-4 md:h-4 text-emerald-600" />
+              <span className="text-xs md:text-sm text-slate-600">Due:</span>
+              <span className="font-semibold text-emerald-700 text-sm md:text-base">{cardCategories.dueCards.length}</span>
             </div>
           </div>
         </div>

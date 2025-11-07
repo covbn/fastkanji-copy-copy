@@ -32,7 +32,7 @@ export default function Settings() {
     night_mode: false,
     rest_min_seconds: 90,
     rest_max_seconds: 150,
-    rest_duration_seconds: 600,
+    rest_duration_seconds: 10, // Changed from 600 to 10
     show_example_sentences: true,
     daily_target: 20,
   });
@@ -43,7 +43,7 @@ export default function Settings() {
         night_mode: settings.night_mode || false,
         rest_min_seconds: settings.rest_min_seconds || 90,
         rest_max_seconds: settings.rest_max_seconds || 150,
-        rest_duration_seconds: settings.rest_duration_seconds || 600,
+        rest_duration_seconds: settings.rest_duration_seconds || 10, // Changed from 600 to 10
         show_example_sentences: settings.show_example_sentences !== false,
         daily_target: settings.daily_target || 20,
       });

@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -80,33 +81,43 @@ export default function Layout({ children, currentPageName }) {
     <SidebarProvider>
       <style>
         {`
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Crimson+Pro:wght@400;600&display=swap');
+          
           :root {
-            --primary: 263 70% 50%;
+            --primary: 180 35% 55%;
             --primary-foreground: 0 0% 100%;
-            --accent: 142 76% 36%;
-            --destructive: 0 84% 60%;
+            --accent: 25 75% 65%;
+            --destructive: 0 60% 60%;
+          }
+          
+          body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+          }
+          
+          h1, h2, h3, h4, h5, h6 {
+            font-family: 'Crimson Pro', serif;
           }
         `}
       </style>
-      <div className={`min-h-screen flex w-full ${nightMode ? 'bg-slate-900' : 'bg-gradient-to-br from-slate-50 via-indigo-50 to-purple-50'}`}>
-        <Sidebar className={`border-r ${nightMode ? 'border-slate-700 bg-slate-800/95' : 'border-indigo-100/50 bg-white/80'} backdrop-blur-sm`}>
-          <SidebarHeader className={`border-b ${nightMode ? 'border-slate-700' : 'border-indigo-100/50'} p-6`}>
+      <div className={`min-h-screen flex w-full ${nightMode ? 'bg-slate-900' : 'bg-stone-50'}`}>
+        <Sidebar className={`border-r ${nightMode ? 'border-slate-700 bg-slate-800/95' : 'border-stone-200 bg-white/95'} backdrop-blur-sm`}>
+          <SidebarHeader className={`border-b ${nightMode ? 'border-slate-700' : 'border-stone-200'} p-6`}>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+              <div className="w-10 h-10 bg-teal-500 rounded-lg flex items-center justify-center shadow-sm">
                 <span className="text-2xl">速</span>
               </div>
               <div>
-                <h2 className="font-bold text-xl bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                <h2 className="font-semibold text-xl text-slate-800" style={{fontFamily: "'Crimson Pro', serif"}}>
                   FastKanji
                 </h2>
-                <p className={`text-xs ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>速く学ぶ • Learn Fast</p>
+                <p className={`text-xs ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>速く学ぶ</p>
               </div>
             </div>
           </SidebarHeader>
           
           <SidebarContent className="p-3">
             <SidebarGroup>
-              <SidebarGroupLabel className={`text-xs font-semibold ${nightMode ? 'text-slate-400' : 'text-slate-500'} uppercase tracking-wider px-3 py-2`}>
+              <SidebarGroupLabel className={`text-xs font-medium ${nightMode ? 'text-slate-400' : 'text-slate-500'} uppercase tracking-wider px-3 py-2`}>
                 Study
               </SidebarGroupLabel>
               <SidebarGroupContent>
@@ -115,15 +126,15 @@ export default function Layout({ children, currentPageName }) {
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton 
                         asChild 
-                        className={`${nightMode ? 'hover:bg-slate-700 hover:text-indigo-400' : 'hover:bg-indigo-50 hover:text-indigo-700'} transition-all duration-200 rounded-xl mb-1 ${
+                        className={`${nightMode ? 'hover:bg-slate-700 hover:text-teal-400' : 'hover:bg-stone-100 hover:text-teal-700'} transition-all duration-200 rounded-lg mb-1 ${
                           location.pathname === item.url 
-                            ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md' 
-                            : nightMode ? 'text-slate-300' : ''
+                            ? 'bg-teal-500 text-white shadow-sm' 
+                            : nightMode ? 'text-slate-300' : 'text-slate-700'
                         }`}
                       >
-                        <Link to={item.url} className="flex items-center gap-3 px-4 py-3">
-                          <item.icon className="w-5 h-5" />
-                          <span className="font-medium">{item.title}</span>
+                        <Link to={item.url} className="flex items-center gap-3 px-4 py-2.5">
+                          <item.icon className="w-4 h-4" />
+                          <span className="font-medium text-sm">{item.title}</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -133,7 +144,7 @@ export default function Layout({ children, currentPageName }) {
             </SidebarGroup>
 
             <SidebarGroup className="mt-4">
-              <SidebarGroupLabel className={`text-xs font-semibold ${nightMode ? 'text-slate-400' : 'text-slate-500'} uppercase tracking-wider px-3 py-2`}>
+              <SidebarGroupLabel className={`text-xs font-medium ${nightMode ? 'text-slate-400' : 'text-slate-500'} uppercase tracking-wider px-3 py-2`}>
                 Tools
               </SidebarGroupLabel>
               <SidebarGroupContent>
@@ -142,15 +153,15 @@ export default function Layout({ children, currentPageName }) {
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton 
                         asChild 
-                        className={`${nightMode ? 'hover:bg-slate-700 hover:text-indigo-400' : 'hover:bg-indigo-50 hover:text-indigo-700'} transition-all duration-200 rounded-xl mb-1 ${
+                        className={`${nightMode ? 'hover:bg-slate-700 hover:text-teal-400' : 'hover:bg-stone-100 hover:text-teal-700'} transition-all duration-200 rounded-lg mb-1 ${
                           location.pathname === item.url 
-                            ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md' 
-                            : nightMode ? 'text-slate-300' : ''
+                            ? 'bg-teal-500 text-white shadow-sm' 
+                            : nightMode ? 'text-slate-300' : 'text-slate-700'
                         }`}
                       >
-                        <Link to={item.url} className="flex items-center gap-3 px-4 py-3">
-                          <item.icon className="w-5 h-5" />
-                          <span className="font-medium">{item.title}</span>
+                        <Link to={item.url} className="flex items-center gap-3 px-4 py-2.5">
+                          <item.icon className="w-4 h-4" />
+                          <span className="font-medium text-sm">{item.title}</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -160,24 +171,24 @@ export default function Layout({ children, currentPageName }) {
             </SidebarGroup>
           </SidebarContent>
 
-          <SidebarFooter className={`border-t ${nightMode ? 'border-slate-700' : 'border-indigo-100/50'} p-4`}>
+          <SidebarFooter className={`border-t ${nightMode ? 'border-slate-700' : 'border-stone-200'} p-4`}>
             <div className="flex items-center gap-3 px-2">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${nightMode ? 'bg-slate-700' : 'bg-gradient-to-br from-indigo-100 to-purple-100'}`}>
-                <span className={`${nightMode ? 'text-indigo-400' : 'text-indigo-600'} font-bold text-sm`}>学</span>
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${nightMode ? 'bg-slate-700' : 'bg-stone-100'}`}>
+                <span className={`${nightMode ? 'text-teal-400' : 'text-teal-600'} font-semibold text-sm`}>学</span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className={`font-medium text-sm truncate ${nightMode ? 'text-slate-200' : 'text-slate-900'}`}>Learner</p>
-                <p className={`text-xs truncate ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Keep pushing! 頑張って</p>
+                <p className={`font-medium text-sm truncate ${nightMode ? 'text-slate-200' : 'text-slate-800'}`}>Learner</p>
+                <p className={`text-xs truncate ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>頑張って</p>
               </div>
             </div>
           </SidebarFooter>
         </Sidebar>
 
         <main className="flex-1 flex flex-col">
-          <header className={`${nightMode ? 'bg-slate-800/95 border-slate-700' : 'bg-white/80 border-indigo-100/50'} backdrop-blur-sm border-b px-6 py-4 md:hidden`}>
+          <header className={`${nightMode ? 'bg-slate-800/95 border-slate-700' : 'bg-white/95 border-stone-200'} backdrop-blur-sm border-b px-6 py-4 md:hidden`}>
             <div className="flex items-center gap-4">
-              <SidebarTrigger className={`${nightMode ? 'hover:bg-slate-700' : 'hover:bg-indigo-50'} p-2 rounded-lg transition-colors duration-200`} />
-              <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              <SidebarTrigger className={`${nightMode ? 'hover:bg-slate-700' : 'hover:bg-stone-100'} p-2 rounded-lg transition-colors duration-200`} />
+              <h1 className="text-xl font-semibold text-slate-800" style={{fontFamily: "'Crimson Pro', serif"}}>
                 FastKanji
               </h1>
             </div>

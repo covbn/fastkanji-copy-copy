@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -113,7 +114,7 @@ export default function Welcome() {
               <div className="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-sm font-bold flex-shrink-0 mt-1">
                 2
               </div>
-              <p className="text-slate-700">10-minute rest breaks to consolidate learning</p>
+              <p className="text-slate-700">10-second rest breaks to consolidate learning</p>
             </div>
             <div className="flex items-start gap-3">
               <div className="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-sm font-bold flex-shrink-0 mt-1">

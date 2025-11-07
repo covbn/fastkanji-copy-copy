@@ -76,7 +76,7 @@ export default function Home() {
   };
 
   return (
-    <div className={`min-h-screen p-4 md:p-8 ${nightMode ? 'bg-slate-900' : ''}`}>
+    <div className={`min-h-screen p-4 md:p-8 ${nightMode ? 'bg-slate-900' : 'bg-stone-50'}`}>
       <div className="max-w-6xl mx-auto space-y-8">
         {/* Hero Section */}
         <motion.div
@@ -85,15 +85,15 @@ export default function Home() {
           transition={{ duration: 0.5 }}
           className="text-center space-y-4 py-8"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium mb-4">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-700 rounded-full text-sm font-medium mb-4 border border-amber-200">
             <Flame className="w-4 h-4" />
             {getStreak()} Day Streak
           </div>
-          <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+          <h1 className="text-4xl md:text-6xl font-semibold text-slate-800" style={{fontFamily: "'Crimson Pro', serif"}}>
             Master Japanese Vocabulary
           </h1>
-          <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-            Lightning-fast flashcards with spaced repetition. Learn smarter, not harder.
+          <p className="text-lg text-slate-600 max-w-2xl mx-auto font-light">
+            Lightning-fast flashcards with spaced repetition
           </p>
         </motion.div>
 
@@ -105,10 +105,10 @@ export default function Home() {
         />
 
         {/* Study Setup */}
-        <Card className={`border-none shadow-xl ${nightMode ? 'bg-slate-800/80' : 'bg-white/80'} backdrop-blur-sm`}>
-          <CardHeader className={`border-b ${nightMode ? 'border-slate-700' : 'border-slate-100'}`}>
-            <CardTitle className={`text-2xl flex items-center gap-2 ${nightMode ? 'text-slate-100' : ''}`}>
-              <Target className="w-6 h-6 text-indigo-600" />
+        <Card className={`border ${nightMode ? 'border-slate-700 bg-slate-800/80' : 'border-stone-200 bg-white'} shadow-sm`}>
+          <CardHeader className={`border-b ${nightMode ? 'border-slate-700' : 'border-stone-200'}`}>
+            <CardTitle className={`text-2xl font-semibold flex items-center gap-2 ${nightMode ? 'text-slate-100' : 'text-slate-800'}`} style={{fontFamily: "'Crimson Pro', serif"}}>
+              <Target className="w-6 h-6 text-teal-600" />
               Start Your Study Session
             </CardTitle>
           </CardHeader>
@@ -135,7 +135,7 @@ export default function Home() {
               <Button
                 onClick={startFlashStudy}
                 size="lg"
-                className="h-16 text-lg font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-300"
+                className="h-14 text-base font-medium bg-teal-500 hover:bg-teal-600 text-white shadow-sm transition-all duration-200"
               >
                 <Zap className="w-5 h-5 mr-2" />
                 Flash Study Mode
@@ -145,7 +145,7 @@ export default function Home() {
                 onClick={startSpacedRepetition}
                 size="lg"
                 variant="outline"
-                className="h-16 text-lg font-semibold border-2 border-indigo-200 hover:bg-indigo-50 hover:border-indigo-300 transition-all duration-300"
+                className="h-14 text-base font-medium border-2 border-teal-200 text-teal-700 hover:bg-teal-50 hover:border-teal-300 transition-all duration-200"
               >
                 <Brain className="w-5 h-5 mr-2" />
                 Spaced Repetition
@@ -156,10 +156,10 @@ export default function Home() {
 
         {/* Recent Activity */}
         {recentSessions.length > 0 && (
-          <Card className={`border-none shadow-xl ${nightMode ? 'bg-slate-800/80' : 'bg-white/80'} backdrop-blur-sm`}>
-            <CardHeader className={`border-b ${nightMode ? 'border-slate-700' : 'border-slate-100'}`}>
-              <CardTitle className={`flex items-center gap-2 ${nightMode ? 'text-slate-100' : ''}`}>
-                <TrendingUp className="w-5 h-5 text-indigo-600" />
+          <Card className={`border ${nightMode ? 'border-slate-700 bg-slate-800/80' : 'border-stone-200 bg-white'} shadow-sm`}>
+            <CardHeader className={`border-b ${nightMode ? 'border-slate-700' : 'border-stone-200'}`}>
+              <CardTitle className={`flex items-center gap-2 font-semibold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`} style={{fontFamily: "'Crimson Pro', serif"}}>
+                <TrendingUp className="w-5 h-5 text-teal-600" />
                 Recent Sessions
               </CardTitle>
             </CardHeader>
@@ -170,16 +170,16 @@ export default function Home() {
                     key={session.id}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className={`flex items-center justify-between p-4 rounded-xl ${nightMode ? 'bg-slate-700/50 hover:bg-slate-700' : 'bg-slate-50 hover:bg-slate-100'} transition-colors`}
+                    className={`flex items-center justify-between p-4 rounded-lg ${nightMode ? 'bg-slate-700/50 hover:bg-slate-700' : 'bg-stone-50 hover:bg-stone-100'} transition-colors border ${nightMode ? 'border-slate-600' : 'border-stone-200'}`}
                   >
                     <div className="flex items-center gap-4">
                       {session.session_type === 'flash' ? (
-                        <Zap className="w-5 h-5 text-indigo-600" />
+                        <Zap className="w-5 h-5 text-teal-600" />
                       ) : (
-                        <Brain className="w-5 h-5 text-purple-600" />
+                        <Brain className="w-5 h-5 text-coral-600" />
                       )}
                       <div>
-                        <p className={`font-medium ${nightMode ? 'text-slate-200' : 'text-slate-900'}`}>
+                        <p className={`font-medium ${nightMode ? 'text-slate-200' : 'text-slate-800'}`}>
                           {session.mode.replace(/_/g, ' → ').replace(/to/g, '').toUpperCase()}
                         </p>
                         <p className={`text-sm ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>
@@ -190,12 +190,12 @@ export default function Home() {
                     <div className="flex items-center gap-4">
                       <Badge 
                         variant={session.accuracy >= 85 ? "default" : "secondary"}
-                        className={session.accuracy >= 85 ? "bg-green-500" : "bg-orange-500"}
+                        className={session.accuracy >= 85 ? "bg-emerald-500 text-white" : "bg-amber-500 text-white"}
                       >
-                        {session.accuracy.toFixed(0)}% Accuracy
+                        {session.accuracy.toFixed(0)}%
                       </Badge>
                       {session.accuracy >= 85 && (
-                        <Award className="w-5 h-5 text-yellow-500" />
+                        <Award className="w-5 h-5 text-amber-500" />
                       )}
                     </div>
                   </motion.div>
