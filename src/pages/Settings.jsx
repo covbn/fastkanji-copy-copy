@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -29,9 +30,9 @@ export default function Settings() {
 
   const [formData, setFormData] = useState({
     night_mode: false,
-    rest_min_minutes: 1.5,
-    rest_max_minutes: 2.5,
-    rest_duration_minutes: 10,
+    rest_min_seconds: 90,
+    rest_max_seconds: 150,
+    rest_duration_seconds: 600,
     show_example_sentences: true,
     daily_target: 20,
   });
@@ -40,14 +41,16 @@ export default function Settings() {
     if (settings) {
       setFormData({
         night_mode: settings.night_mode || false,
-        rest_min_minutes: settings.rest_min_minutes || 1.5,
-        rest_max_minutes: settings.rest_max_minutes || 2.5,
-        rest_duration_minutes: settings.rest_duration_minutes || 10,
+        rest_min_seconds: settings.rest_min_seconds || 90,
+        rest_max_seconds: settings.rest_max_seconds || 150,
+        rest_duration_seconds: settings.rest_duration_seconds || 600,
         show_example_sentences: settings.show_example_sentences !== false,
         daily_target: settings.daily_target || 20,
       });
     }
   }, [settings]);
+
+  const nightMode = settings?.night_mode || false;
 
   const saveSettingsMutation = useMutation({
     mutationFn: async (data) => {
@@ -83,7 +86,7 @@ export default function Settings() {
   }
 
   return (
-    <div className="min-h-screen p-4 md:p-8">
+    <div className={`min-h-screen p-4 md:p-8 ${nightMode ? 'bg-slate-900' : ''}`}>
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Header */}
         <motion.div
@@ -97,23 +100,23 @@ export default function Settings() {
               Settings
             </h1>
           </div>
-          <p className="text-slate-600">Customize your learning experience</p>
+          <p className={nightMode ? 'text-slate-400' : 'text-slate-600'}>Customize your learning experience</p>
         </motion.div>
 
         {/* Appearance */}
-        <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm">
-          <CardHeader className="border-b border-slate-100">
-            <CardTitle className="flex items-center gap-2">
+        <Card className={`border-none shadow-xl ${nightMode ? 'bg-slate-800/80' : 'bg-white/80'} backdrop-blur-sm`}>
+          <CardHeader className={`border-b ${nightMode ? 'border-slate-700' : 'border-slate-100'}`}>
+            <CardTitle className={`flex items-center gap-2 ${nightMode ? 'text-slate-100' : ''}`}>
               {formData.night_mode ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
               Appearance
             </CardTitle>
-            <CardDescription>Adjust visual preferences</CardDescription>
+            <CardDescription className={nightMode ? 'text-slate-400' : ''}>Adjust visual preferences</CardDescription>
           </CardHeader>
           <CardContent className="p-6 space-y-6">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
-                <Label className="text-base font-medium">Night Mode</Label>
-                <p className="text-sm text-slate-500">Enable dark theme for studying</p>
+                <Label className={`text-base font-medium ${nightMode ? 'text-slate-200' : ''}`}>Night Mode</Label>
+                <p className={`text-sm ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Enable dark theme for studying</p>
               </div>
               <Switch
                 checked={formData.night_mode}
@@ -123,8 +126,8 @@ export default function Settings() {
 
             <div className="flex items-center justify-between">
               <div className="space-y-1">
-                <Label className="text-base font-medium">Show Example Sentences</Label>
-                <p className="text-sm text-slate-500">Display context sentences on flashcards</p>
+                <Label className={`text-base font-medium ${nightMode ? 'text-slate-200' : ''}`}>Show Example Sentences</Label>
+                <p className={`text-sm ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Display context sentences on flashcards</p>
               </div>
               <Switch
                 checked={formData.show_example_sentences}
@@ -135,57 +138,57 @@ export default function Settings() {
         </Card>
 
         {/* Rest Intervals */}
-        <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm">
-          <CardHeader className="border-b border-slate-100">
-            <CardTitle className="flex items-center gap-2">
+        <Card className={`border-none shadow-xl ${nightMode ? 'bg-slate-800/80' : 'bg-white/80'} backdrop-blur-sm`}>
+          <CardHeader className={`border-b ${nightMode ? 'border-slate-700' : 'border-slate-100'}`}>
+            <CardTitle className={`flex items-center gap-2 ${nightMode ? 'text-slate-100' : ''}`}>
               <Clock className="w-5 h-5" />
               Random Rest Intervals
             </CardTitle>
-            <CardDescription>
+            <CardDescription className={nightMode ? 'text-slate-400' : ''}>
               Science-backed random breaks activate neuroplasticity 10x more effectively
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6 space-y-6">
             <div className="grid md:grid-cols-3 gap-6">
               <div className="space-y-2">
-                <Label>Min Interval (minutes)</Label>
+                <Label className={nightMode ? 'text-slate-200' : ''}>Min Interval (seconds)</Label>
                 <Input
                   type="number"
-                  step="0.5"
-                  min="0.5"
-                  value={formData.rest_min_minutes}
-                  onChange={(e) => setFormData({ ...formData, rest_min_minutes: parseFloat(e.target.value) })}
+                  step="10"
+                  min="30"
+                  value={formData.rest_min_seconds}
+                  onChange={(e) => setFormData({ ...formData, rest_min_seconds: parseInt(e.target.value) })}
                 />
-                <p className="text-xs text-slate-500">Minimum time before rest</p>
+                <p className={`text-xs ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Minimum time before rest</p>
               </div>
 
               <div className="space-y-2">
-                <Label>Max Interval (minutes)</Label>
+                <Label className={nightMode ? 'text-slate-200' : ''}>Max Interval (seconds)</Label>
                 <Input
                   type="number"
-                  step="0.5"
-                  min="0.5"
-                  value={formData.rest_max_minutes}
-                  onChange={(e) => setFormData({ ...formData, rest_max_minutes: parseFloat(e.target.value) })}
+                  step="10"
+                  min="30"
+                  value={formData.rest_max_seconds}
+                  onChange={(e) => setFormData({ ...formData, rest_max_seconds: parseInt(e.target.value) })}
                 />
-                <p className="text-xs text-slate-500">Maximum time before rest</p>
+                <p className={`text-xs ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Maximum time before rest</p>
               </div>
 
               <div className="space-y-2">
-                <Label>Rest Duration (minutes)</Label>
+                <Label className={nightMode ? 'text-slate-200' : ''}>Rest Duration (seconds)</Label>
                 <Input
                   type="number"
-                  step="1"
-                  min="1"
-                  value={formData.rest_duration_minutes}
-                  onChange={(e) => setFormData({ ...formData, rest_duration_minutes: parseInt(e.target.value) })}
+                  step="30"
+                  min="60"
+                  value={formData.rest_duration_seconds}
+                  onChange={(e) => setFormData({ ...formData, rest_duration_seconds: parseInt(e.target.value) })}
                 />
-                <p className="text-xs text-slate-500">How long to rest</p>
+                <p className={`text-xs ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>How long to rest</p>
               </div>
             </div>
 
-            <div className="bg-indigo-50 p-4 rounded-lg">
-              <p className="text-sm text-slate-600">
+            <div className={`${nightMode ? 'bg-slate-700' : 'bg-indigo-50'} p-4 rounded-lg`}>
+              <p className={`text-sm ${nightMode ? 'text-slate-300' : 'text-slate-600'}`}>
                 <strong>Why random?</strong> Research shows that unpredictable rest intervals trigger heightened alertness 
                 and attention, activating neural pathways 10x more effectively than scheduled breaks.
               </p>
@@ -194,14 +197,14 @@ export default function Settings() {
         </Card>
 
         {/* Learning Goals */}
-        <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm">
-          <CardHeader className="border-b border-slate-100">
-            <CardTitle>Learning Goals</CardTitle>
-            <CardDescription>Set your daily targets</CardDescription>
+        <Card className={`border-none shadow-xl ${nightMode ? 'bg-slate-800/80' : 'bg-white/80'} backdrop-blur-sm`}>
+          <CardHeader className={`border-b ${nightMode ? 'border-slate-700' : 'border-slate-100'}`}>
+            <CardTitle className={nightMode ? 'text-slate-100' : ''}>Learning Goals</CardTitle>
+            <CardDescription className={nightMode ? 'text-slate-400' : ''}>Set your daily targets</CardDescription>
           </CardHeader>
           <CardContent className="p-6 space-y-4">
             <div className="space-y-2">
-              <Label>Daily Target (cards)</Label>
+              <Label className={nightMode ? 'text-slate-200' : ''}>Daily Target (cards)</Label>
               <Input
                 type="number"
                 min="5"
@@ -209,7 +212,7 @@ export default function Settings() {
                 value={formData.daily_target}
                 onChange={(e) => setFormData({ ...formData, daily_target: parseInt(e.target.value) })}
               />
-              <p className="text-xs text-slate-500">How many cards you want to study daily</p>
+              <p className={`text-xs ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>How many cards you want to study daily</p>
             </div>
           </CardContent>
         </Card>

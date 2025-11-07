@@ -31,10 +31,7 @@ export default function SpacedRepetition() {
   const [sessionStartTime] = useState(Date.now());
   const [reviewAfterRest, setReviewAfterRest] = useState([]);
   const [lastRestTime, setLastRestTime] = useState(Date.now());
-  const [nextRestDuration, setNextRestDuration] = useState(() => {
-    return Math.floor(Math.random() * 60000) + 90000;
-  });
-
+  
   const { data: allVocabulary = [], isLoading: isLoadingAll } = useQuery({
     queryKey: ['allVocabulary'],
     queryFn: () => base44.entities.Vocabulary.list(),
@@ -47,6 +44,26 @@ export default function SpacedRepetition() {
   const { data: user } = useQuery({
     queryKey: ['user'],
     queryFn: () => base44.auth.me(),
+  });
+
+  const { data: settings } = useQuery({
+    queryKey: ['userSettings', user?.email],
+    queryFn: async () => {
+      if (!user) return null;
+      const existing = await base44.entities.UserSettings.filter({ user_email: user.email });
+      return existing.length > 0 ? existing[0] : null;
+    },
+    enabled: !!user,
+  });
+
+  // Use settings for rest intervals
+  const restMinSeconds = settings?.rest_min_seconds || 90;
+  const restMaxSeconds = settings?.rest_max_seconds || 150;
+  const restDurationSeconds = settings?.rest_duration_seconds || 600;
+
+  // Update initial rest duration based on settings
+  const [nextRestDuration, setNextRestDuration] = useState(() => {
+    return Math.floor(Math.random() * (restMaxSeconds - restMinSeconds) * 1000) + (restMinSeconds * 1000);
   });
 
   const { data: userProgress = [] } = useQuery({
@@ -310,7 +327,7 @@ export default function SpacedRepetition() {
   const continueAfterRest = () => {
     setShowRest(false);
     setLastRestTime(Date.now());
-    setNextRestDuration(Math.floor(Math.random() * 60000) + 90000);
+    setNextRestDuration(Math.floor(Math.random() * (restMaxSeconds - restMinSeconds) * 1000) + (restMinSeconds * 1000));
   };
 
   if (isLoadingAll) {
@@ -354,7 +371,7 @@ export default function SpacedRepetition() {
   }
 
   if (showRest) {
-    return <RestInterval onContinue={continueAfterRest} />;
+    return <RestInterval onContinue={continueAfterRest} duration={restDurationSeconds} />;
   }
 
   if (!currentCard) {

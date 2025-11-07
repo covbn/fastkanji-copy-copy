@@ -9,8 +9,8 @@ const restMessages = [
   { icon: Sparkles, message: "Recharge time! ✨", color: "from-blue-500 to-cyan-500" },
 ];
 
-export default function RestInterval({ onContinue }) {
-  const [countdown, setCountdown] = useState(600); // 10 minutes = 600 seconds
+export default function RestInterval({ onContinue, duration = 600 }) {
+  const [countdown, setCountdown] = useState(duration);
   const randomRest = restMessages[Math.floor(Math.random() * restMessages.length)];
 
   useEffect(() => {

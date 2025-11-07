@@ -1,3 +1,4 @@
+
 import React from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -19,6 +20,23 @@ export default function Progress() {
       return base44.entities.UserProgress.filter({ user_email: user.email });
     },
   });
+
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  const { data: settings } = useQuery({
+    queryKey: ['userSettings', user?.email],
+    queryFn: async () => {
+      if (!user) return null;
+      const existing = await base44.entities.UserSettings.filter({ user_email: user.email });
+      return existing.length > 0 ? existing[0] : null;
+    },
+    enabled: !!user,
+  });
+
+  const nightMode = settings?.night_mode || false;
 
   // Calculate stats
   const totalCards = sessions.reduce((sum, s) => sum + s.total_cards, 0);
@@ -62,14 +80,14 @@ export default function Progress() {
   }
 
   return (
-    <div className="min-h-screen p-4 md:p-8">
+    <div className={`min-h-screen p-4 md:p-8 ${nightMode ? 'bg-slate-900' : ''}`}>
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="text-center space-y-2">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
             Your Progress
           </h1>
-          <p className="text-slate-600">Track your learning journey</p>
+          <p className={nightMode ? 'text-slate-400' : 'text-slate-600'}>Track your learning journey</p>
         </div>
 
         {/* Stats Grid */}
@@ -118,7 +136,7 @@ export default function Progress() {
         {/* Charts */}
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Accuracy Over Time */}
-          <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm">
+          <Card className={`border-none shadow-xl ${nightMode ? 'bg-slate-800/80' : 'bg-white/80'} backdrop-blur-sm`}>
             <CardHeader className="border-b border-slate-100">
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-indigo-600" />
@@ -159,7 +177,7 @@ export default function Progress() {
           </Card>
 
           {/* Performance by Mode */}
-          <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm">
+          <Card className={`border-none shadow-xl ${nightMode ? 'bg-slate-800/80' : 'bg-white/80'} backdrop-blur-sm`}>
             <CardHeader className="border-b border-slate-100">
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="w-5 h-5 text-purple-600" />
@@ -195,16 +213,16 @@ export default function Progress() {
 
         {/* Recent Sessions Detail */}
         {sessions.length > 0 && (
-          <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm">
-            <CardHeader className="border-b border-slate-100">
-              <CardTitle>Recent Study Sessions</CardTitle>
+          <Card className={`border-none shadow-xl ${nightMode ? 'bg-slate-800/80' : 'bg-white/80'} backdrop-blur-sm`}>
+            <CardHeader className={`border-b ${nightMode ? 'border-slate-700' : 'border-slate-100'}`}>
+              <CardTitle className={nightMode ? 'text-slate-100' : ''}>Recent Study Sessions</CardTitle>
             </CardHeader>
             <CardContent className="p-6">
               <div className="space-y-3">
                 {sessions.slice(0, 10).map((session) => (
                   <div
                     key={session.id}
-                    className="flex items-center justify-between p-4 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors"
+                    className={`flex items-center justify-between p-4 rounded-xl ${nightMode ? 'bg-slate-700/50 hover:bg-slate-700' : 'bg-slate-50 hover:bg-slate-100'} transition-colors`}
                   >
                     <div className="flex items-center gap-4">
                       {session.session_type === 'flash' ? (
@@ -213,19 +231,19 @@ export default function Progress() {
                         <Brain className="w-5 h-5 text-purple-600" />
                       )}
                       <div>
-                        <p className="font-medium text-slate-900">
+                        <p className={`font-medium ${nightMode ? 'text-slate-200' : 'text-slate-900'}`}>
                           {session.mode.replace(/_/g, ' → ').toUpperCase()}
                         </p>
-                        <p className="text-sm text-slate-500">
+                        <p className={`text-sm ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>
                           {format(new Date(session.created_date), 'MMM d, yyyy h:mm a')} • {session.level}
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-2xl font-bold text-slate-900">
+                      <p className={`text-2xl font-bold ${nightMode ? 'text-slate-100' : 'text-slate-900'}`}>
                         {session.accuracy.toFixed(0)}%
                       </p>
-                      <p className="text-sm text-slate-500">
+                      <p className={`text-sm ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>
                         {session.correct_answers}/{session.total_cards} correct
                       </p>
                     </div>

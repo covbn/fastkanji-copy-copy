@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -30,6 +31,23 @@ export default function Home() {
     queryFn: () => base44.entities.Vocabulary.list(),
   });
 
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  const { data: settings } = useQuery({
+    queryKey: ['userSettings', user?.email],
+    queryFn: async () => {
+      if (!user) return null;
+      const existing = await base44.entities.UserSettings.filter({ user_email: user.email });
+      return existing.length > 0 ? existing[0] : null;
+    },
+    enabled: !!user,
+  });
+
+  const nightMode = settings?.night_mode || false;
+
   const startFlashStudy = () => {
     navigate(createPageUrl(`FlashStudy?mode=${selectedMode}&level=${selectedLevel}&size=${sessionSize}`));
   };
@@ -58,7 +76,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen p-4 md:p-8">
+    <div className={`min-h-screen p-4 md:p-8 ${nightMode ? 'bg-slate-900' : ''}`}>
       <div className="max-w-6xl mx-auto space-y-8">
         {/* Hero Section */}
         <motion.div
@@ -87,9 +105,9 @@ export default function Home() {
         />
 
         {/* Study Setup */}
-        <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm">
-          <CardHeader className="border-b border-slate-100">
-            <CardTitle className="text-2xl flex items-center gap-2">
+        <Card className={`border-none shadow-xl ${nightMode ? 'bg-slate-800/80' : 'bg-white/80'} backdrop-blur-sm`}>
+          <CardHeader className={`border-b ${nightMode ? 'border-slate-700' : 'border-slate-100'}`}>
+            <CardTitle className={`text-2xl flex items-center gap-2 ${nightMode ? 'text-slate-100' : ''}`}>
               <Target className="w-6 h-6 text-indigo-600" />
               Start Your Study Session
             </CardTitle>
@@ -138,9 +156,9 @@ export default function Home() {
 
         {/* Recent Activity */}
         {recentSessions.length > 0 && (
-          <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm">
-            <CardHeader className="border-b border-slate-100">
-              <CardTitle className="flex items-center gap-2">
+          <Card className={`border-none shadow-xl ${nightMode ? 'bg-slate-800/80' : 'bg-white/80'} backdrop-blur-sm`}>
+            <CardHeader className={`border-b ${nightMode ? 'border-slate-700' : 'border-slate-100'}`}>
+              <CardTitle className={`flex items-center gap-2 ${nightMode ? 'text-slate-100' : ''}`}>
                 <TrendingUp className="w-5 h-5 text-indigo-600" />
                 Recent Sessions
               </CardTitle>
@@ -152,7 +170,7 @@ export default function Home() {
                     key={session.id}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className="flex items-center justify-between p-4 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors"
+                    className={`flex items-center justify-between p-4 rounded-xl ${nightMode ? 'bg-slate-700/50 hover:bg-slate-700' : 'bg-slate-50 hover:bg-slate-100'} transition-colors`}
                   >
                     <div className="flex items-center gap-4">
                       {session.session_type === 'flash' ? (
@@ -161,10 +179,10 @@ export default function Home() {
                         <Brain className="w-5 h-5 text-purple-600" />
                       )}
                       <div>
-                        <p className="font-medium text-slate-900">
+                        <p className={`font-medium ${nightMode ? 'text-slate-200' : 'text-slate-900'}`}>
                           {session.mode.replace(/_/g, ' → ').replace(/to/g, '').toUpperCase()}
                         </p>
-                        <p className="text-sm text-slate-500">
+                        <p className={`text-sm ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>
                           {session.level} • {session.total_cards} cards
                         </p>
                       </div>
