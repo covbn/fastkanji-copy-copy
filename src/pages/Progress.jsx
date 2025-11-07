@@ -72,7 +72,7 @@ export default function Progress() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
           <p className="text-slate-600">Loading your progress...</p>
         </div>
       </div>
@@ -80,11 +80,11 @@ export default function Progress() {
   }
 
   return (
-    <div className={`min-h-screen p-4 md:p-8 ${nightMode ? 'bg-slate-900' : ''}`}>
+    <div className={`min-h-screen p-4 md:p-8 ${nightMode ? 'bg-slate-900' : 'bg-stone-50'}`}>
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="text-center space-y-2">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-semibold text-slate-800" style={{fontFamily: "'Crimson Pro', serif"}}>
             Your Progress
           </h1>
           <p className={nightMode ? 'text-slate-400' : 'text-slate-600'}>Track your learning journey</p>
@@ -92,43 +92,51 @@ export default function Progress() {
 
         {/* Stats Grid */}
         <div className="grid md:grid-cols-4 gap-4">
-          <Card className="border-none shadow-lg bg-gradient-to-br from-indigo-500 to-purple-600 text-white">
+          <Card className="border border-stone-200 shadow-sm bg-white">
             <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <Zap className="w-8 h-8" />
-                <span className="text-3xl font-bold">{sessions.length}</span>
+              <div className="flex items-start justify-between mb-3">
+                <div className="w-12 h-12 rounded-lg bg-teal-500 flex items-center justify-center shadow-sm">
+                  <Zap className="w-6 h-6 text-white" />
+                </div>
               </div>
-              <p className="text-sm opacity-90">Total Sessions</p>
+              <p className="text-2xl font-semibold text-slate-800">{sessions.length}</p>
+              <p className="text-sm text-slate-500 mt-1">Total Sessions</p>
             </CardContent>
           </Card>
 
-          <Card className="border-none shadow-lg bg-gradient-to-br from-green-500 to-emerald-600 text-white">
+          <Card className="border border-stone-200 shadow-sm bg-white">
             <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <Target className="w-8 h-8" />
-                <span className="text-3xl font-bold">{totalCards}</span>
+              <div className="flex items-start justify-between mb-3">
+                <div className="w-12 h-12 rounded-lg bg-emerald-500 flex items-center justify-center shadow-sm">
+                  <Target className="w-6 h-6 text-white" />
+                </div>
               </div>
-              <p className="text-sm opacity-90">Cards Studied</p>
+              <p className="text-2xl font-semibold text-slate-800">{totalCards}</p>
+              <p className="text-sm text-slate-500 mt-1">Cards Studied</p>
             </CardContent>
           </Card>
 
-          <Card className="border-none shadow-lg bg-gradient-to-br from-blue-500 to-cyan-600 text-white">
+          <Card className="border border-stone-200 shadow-sm bg-white">
             <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <Award className="w-8 h-8" />
-                <span className="text-3xl font-bold">{avgAccuracy.toFixed(0)}%</span>
+              <div className="flex items-start justify-between mb-3">
+                <div className="w-12 h-12 rounded-lg bg-cyan-500 flex items-center justify-center shadow-sm">
+                  <Award className="w-6 h-6 text-white" />
+                </div>
               </div>
-              <p className="text-sm opacity-90">Avg Accuracy</p>
+              <p className="text-2xl font-semibold text-slate-800">{avgAccuracy.toFixed(0)}%</p>
+              <p className="text-sm text-slate-500 mt-1">Avg Accuracy</p>
             </CardContent>
           </Card>
 
-          <Card className="border-none shadow-lg bg-gradient-to-br from-orange-500 to-red-600 text-white">
+          <Card className="border border-stone-200 shadow-sm bg-white">
             <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <Brain className="w-8 h-8" />
-                <span className="text-3xl font-bold">{progress.length}</span>
+              <div className="flex items-start justify-between mb-3">
+                <div className="w-12 h-12 rounded-lg bg-amber-500 flex items-center justify-center shadow-sm">
+                  <Brain className="w-6 h-6 text-white" />
+                </div>
               </div>
-              <p className="text-sm opacity-90">Words Learned</p>
+              <p className="text-2xl font-semibold text-slate-800">{progress.length}</p>
+              <p className="text-sm text-slate-500 mt-1">Words Learned</p>
             </CardContent>
           </Card>
         </div>
@@ -136,10 +144,10 @@ export default function Progress() {
         {/* Charts */}
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Accuracy Over Time */}
-          <Card className={`border-none shadow-xl ${nightMode ? 'bg-slate-800/80' : 'bg-white/80'} backdrop-blur-sm`}>
-            <CardHeader className="border-b border-slate-100">
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-indigo-600" />
+          <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
+            <CardHeader className={`border-b ${nightMode ? 'border-slate-700' : 'border-stone-200'}`}>
+              <CardTitle className={`flex items-center gap-2 ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>
+                <TrendingUp className="w-5 h-5 text-teal-600" />
                 Accuracy Trend
               </CardTitle>
             </CardHeader>
@@ -161,9 +169,9 @@ export default function Progress() {
                     <Line 
                       type="monotone" 
                       dataKey="accuracy" 
-                      stroke="#6366f1" 
+                      stroke="#14b8a6" 
                       strokeWidth={3}
-                      dot={{ fill: '#6366f1', r: 4 }}
+                      dot={{ fill: '#14b8a6', r: 4 }}
                       activeDot={{ r: 6 }}
                     />
                   </LineChart>
@@ -177,10 +185,10 @@ export default function Progress() {
           </Card>
 
           {/* Performance by Mode */}
-          <Card className={`border-none shadow-xl ${nightMode ? 'bg-slate-800/80' : 'bg-white/80'} backdrop-blur-sm`}>
-            <CardHeader className="border-b border-slate-100">
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-purple-600" />
+          <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
+            <CardHeader className={`border-b ${nightMode ? 'border-slate-700' : 'border-stone-200'}`}>
+              <CardTitle className={`flex items-center gap-2 ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>
+                <Calendar className="w-5 h-5 text-cyan-600" />
                 Performance by Mode
               </CardTitle>
             </CardHeader>
@@ -199,7 +207,7 @@ export default function Progress() {
                         boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
                       }}
                     />
-                    <Bar dataKey="avgAccuracy" fill="#8b5cf6" radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="avgAccuracy" fill="#06b6d4" radius={[8, 8, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
@@ -213,26 +221,26 @@ export default function Progress() {
 
         {/* Recent Sessions Detail */}
         {sessions.length > 0 && (
-          <Card className={`border-none shadow-xl ${nightMode ? 'bg-slate-800/80' : 'bg-white/80'} backdrop-blur-sm`}>
-            <CardHeader className={`border-b ${nightMode ? 'border-slate-700' : 'border-slate-100'}`}>
-              <CardTitle className={nightMode ? 'text-slate-100' : ''}>Recent Study Sessions</CardTitle>
+          <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
+            <CardHeader className={`border-b ${nightMode ? 'border-slate-700' : 'border-stone-200'}`}>
+              <CardTitle className={nightMode ? 'text-slate-100' : 'text-slate-800'}>Recent Study Sessions</CardTitle>
             </CardHeader>
             <CardContent className="p-6">
               <div className="space-y-3">
                 {sessions.slice(0, 10).map((session) => (
                   <div
                     key={session.id}
-                    className={`flex items-center justify-between p-4 rounded-xl ${nightMode ? 'bg-slate-700/50 hover:bg-slate-700' : 'bg-slate-50 hover:bg-slate-100'} transition-colors`}
+                    className={`flex items-center justify-between p-4 rounded-lg border ${nightMode ? 'bg-slate-700/50 hover:bg-slate-700 border-slate-600' : 'bg-stone-50 hover:bg-stone-100 border-stone-200'} transition-colors`}
                   >
                     <div className="flex items-center gap-4">
                       {session.session_type === 'flash' ? (
-                        <Zap className="w-5 h-5 text-indigo-600" />
+                        <Zap className="w-5 h-5 text-teal-600" />
                       ) : (
-                        <Brain className="w-5 h-5 text-purple-600" />
+                        <Brain className="w-5 h-5 text-cyan-600" />
                       )}
                       <div>
-                        <p className={`font-medium ${nightMode ? 'text-slate-200' : 'text-slate-900'}`}>
-                          {session.mode.replace(/_/g, ' → ').toUpperCase()}
+                        <p className={`font-medium ${nightMode ? 'text-slate-200' : 'text-slate-800'}`}>
+                          {session.mode.replace(/_/g, ' ').replace('to', '→').toUpperCase()}
                         </p>
                         <p className={`text-sm ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>
                           {format(new Date(session.created_date), 'MMM d, yyyy h:mm a')} • {session.level}
@@ -240,7 +248,7 @@ export default function Progress() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className={`text-2xl font-bold ${nightMode ? 'text-slate-100' : 'text-slate-900'}`}>
+                      <p className={`text-2xl font-bold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>
                         {session.accuracy.toFixed(0)}%
                       </p>
                       <p className={`text-sm ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>

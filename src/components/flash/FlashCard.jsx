@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,10 @@ export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSente
     setRevealed(false);
   };
 
+  const getModeDisplay = () => {
+    return mode.replace(/_/g, ' ').replace('to', '→');
+  };
+
   const shouldShowExample = showExampleSentences && vocabulary.example_sentence;
 
   return (
@@ -55,7 +60,7 @@ export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSente
             {/* Question */}
             <div className="text-center space-y-4">
               <p className="text-xs md:text-sm font-medium text-slate-500 uppercase tracking-wider">
-                {mode.replace(/_/g, ' → ').replace(/to/g, '')}
+                {getModeDisplay()}
               </p>
               <motion.div
                 className="text-5xl sm:text-6xl md:text-7xl font-light text-slate-800 min-h-[80px] md:min-h-[120px] flex items-center justify-center px-2 break-all"

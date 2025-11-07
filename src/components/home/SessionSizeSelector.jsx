@@ -23,15 +23,15 @@ export default function SessionSizeSelector({ sessionSize, onSelectSize }) {
           >
             <Card
               onClick={() => onSelectSize(size.value)}
-              className={`cursor-pointer transition-all duration-300 ${
+              className={`cursor-pointer transition-all duration-300 border ${
                 sessionSize === size.value
-                  ? 'border-2 border-indigo-500 bg-indigo-50 shadow-lg'
-                  : 'border border-slate-200 hover:border-indigo-300 hover:shadow-md'
+                  ? 'border-2 border-teal-500 bg-teal-50 shadow-md'
+                  : 'border-stone-200 hover:border-teal-300 hover:shadow-sm'
               }`}
             >
               <CardContent className="p-4 text-center">
-                <p className="text-3xl font-bold text-indigo-600 mb-1">{size.value}</p>
-                <p className="font-semibold text-slate-900 text-sm">{size.label}</p>
+                <p className="text-3xl font-bold text-teal-700 mb-1">{size.value}</p>
+                <p className="font-semibold text-slate-800 text-sm">{size.label}</p>
                 <p className="text-xs text-slate-500 mt-1">{size.description}</p>
               </CardContent>
             </Card>

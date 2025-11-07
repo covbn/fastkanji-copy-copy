@@ -59,15 +59,15 @@ export default function Welcome() {
           </p>
           
           <div className="grid md:grid-cols-2 gap-4">
-            <div className="p-4 bg-indigo-50 rounded-xl">
-              <Zap className="w-8 h-8 text-indigo-600 mb-2" />
-              <h3 className="font-bold mb-1">Lightning Fast</h3>
+            <div className="p-4 bg-teal-50 rounded-xl border border-teal-200">
+              <Zap className="w-8 h-8 text-teal-600 mb-2" />
+              <h3 className="font-bold mb-1 text-slate-800">Lightning Fast</h3>
               <p className="text-sm text-slate-600">Study efficiently with optimized flashcards</p>
             </div>
             
-            <div className="p-4 bg-purple-50 rounded-xl">
-              <Brain className="w-8 h-8 text-purple-600 mb-2" />
-              <h3 className="font-bold mb-1">Science-Backed</h3>
+            <div className="p-4 bg-cyan-50 rounded-xl border border-cyan-200">
+              <Brain className="w-8 h-8 text-cyan-600 mb-2" />
+              <h3 className="font-bold mb-1 text-slate-800">Science-Backed</h3>
               <p className="text-sm text-slate-600">Anki-style SRS for long-term retention</p>
             </div>
           </div>
@@ -75,7 +75,7 @@ export default function Welcome() {
           <Button
             onClick={() => setStep(1)}
             size="lg"
-            className="w-full h-14 text-lg bg-gradient-to-r from-indigo-600 to-purple-600"
+            className="w-full h-14 text-lg bg-teal-600 hover:bg-teal-700 text-white"
           >
             Get Started
             <ArrowRight className="w-5 h-5 ml-2" />
@@ -90,8 +90,8 @@ export default function Welcome() {
       subtitle: "Activate 10x More Neural Pathways",
       content: (
         <div className="space-y-6">
-          <div className="bg-gradient-to-r from-orange-50 to-red-50 p-6 rounded-xl">
-            <Coffee className="w-10 h-10 text-orange-600 mb-3" />
+          <div className="bg-amber-50 p-6 rounded-xl border border-amber-200">
+            <Coffee className="w-10 h-10 text-amber-600 mb-3" />
             <p className="text-slate-700 leading-relaxed mb-4">
               Research shows that <strong>unpredictable rest intervals</strong> trigger heightened 
               alertness and attention, activating neural pathways 10x more effectively than 
@@ -105,19 +105,19 @@ export default function Welcome() {
 
           <div className="space-y-3">
             <div className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-sm font-bold flex-shrink-0 mt-1">
+              <div className="w-6 h-6 rounded-full bg-teal-600 text-white flex items-center justify-center text-sm font-bold flex-shrink-0 mt-1">
                 1
               </div>
               <p className="text-slate-700">Random intervals between 1.5-2.5 minutes</p>
             </div>
             <div className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-sm font-bold flex-shrink-0 mt-1">
+              <div className="w-6 h-6 rounded-full bg-teal-600 text-white flex items-center justify-center text-sm font-bold flex-shrink-0 mt-1">
                 2
               </div>
               <p className="text-slate-700">10-second rest breaks to consolidate learning</p>
             </div>
             <div className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-sm font-bold flex-shrink-0 mt-1">
+              <div className="w-6 h-6 rounded-full bg-teal-600 text-white flex items-center justify-center text-sm font-bold flex-shrink-0 mt-1">
                 3
               </div>
               <p className="text-slate-700">Your brain stays primed and focused</p>
@@ -127,7 +127,7 @@ export default function Welcome() {
           <Button
             onClick={() => setStep(2)}
             size="lg"
-            className="w-full h-14 text-lg bg-gradient-to-r from-indigo-600 to-purple-600"
+            className="w-full h-14 text-lg bg-teal-600 hover:bg-teal-700 text-white"
           >
             Continue
             <ArrowRight className="w-5 h-5 ml-2" />
@@ -142,8 +142,8 @@ export default function Welcome() {
       subtitle: "The Focus Exercise",
       content: (
         <div className="space-y-6">
-          <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-6 rounded-xl">
-            <Brain className="w-10 h-10 text-purple-600 mb-3" />
+          <div className="bg-cyan-50 p-6 rounded-xl border border-cyan-200">
+            <Brain className="w-10 h-10 text-cyan-600 mb-3" />
             <p className="text-slate-700 leading-relaxed mb-4">
               To trigger <strong>neuroplasticity</strong> (the brain's ability to form new connections), 
               you must be alert. Our breathing exercise releases epinephrine (adrenaline), 
@@ -161,14 +161,14 @@ export default function Welcome() {
             </ol>
           </div>
 
-          <p className="text-sm text-slate-600 bg-yellow-50 p-3 rounded-lg">
+          <p className="text-sm text-slate-600 bg-amber-50 p-3 rounded-lg border border-amber-200">
             💡 Do this before each study session to maximize retention and focus!
           </p>
 
           <Button
             onClick={() => setStep(3)}
             size="lg"
-            className="w-full h-14 text-lg bg-gradient-to-r from-indigo-600 to-purple-600"
+            className="w-full h-14 text-lg bg-teal-600 hover:bg-teal-700 text-white"
           >
             Continue
             <ArrowRight className="w-5 h-5 ml-2" />
@@ -208,7 +208,7 @@ export default function Welcome() {
                     type="button"
                     variant={formData.daily_target === target ? "default" : "outline"}
                     onClick={() => setFormData({ ...formData, daily_target: target })}
-                    className={formData.daily_target === target ? "bg-indigo-600" : ""}
+                    className={formData.daily_target === target ? "bg-teal-600 hover:bg-teal-700" : ""}
                   >
                     {target}
                   </Button>
@@ -222,7 +222,7 @@ export default function Welcome() {
             onClick={handleComplete}
             size="lg"
             disabled={createSettingsMutation.isPending}
-            className="w-full h-14 text-lg bg-gradient-to-r from-indigo-600 to-purple-600"
+            className="w-full h-14 text-lg bg-teal-600 hover:bg-teal-700 text-white"
           >
             {createSettingsMutation.isPending ? (
               'Setting up...'
@@ -239,7 +239,7 @@ export default function Welcome() {
   ];
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-indigo-50 to-purple-50 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-stone-50 p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -262,7 +262,7 @@ export default function Welcome() {
                     <div
                       key={index}
                       className={`h-2 flex-1 rounded-full transition-colors ${
-                        index <= step ? 'bg-indigo-600' : 'bg-slate-200'
+                        index <= step ? 'bg-teal-600' : 'bg-stone-200'
                       }`}
                     />
                   ))}
@@ -270,7 +270,7 @@ export default function Welcome() {
 
                 {/* Content */}
                 <div className="text-center space-y-2 mb-8">
-                  <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                  <h1 className="text-3xl md:text-4xl font-semibold text-slate-800" style={{fontFamily: "'Crimson Pro', serif"}}>
                     {steps[step].title}
                   </h1>
                   <p className="text-slate-600">{steps[step].subtitle}</p>

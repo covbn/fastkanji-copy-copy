@@ -176,11 +176,11 @@ export default function Home() {
                       {session.session_type === 'flash' ? (
                         <Zap className="w-5 h-5 text-teal-600" />
                       ) : (
-                        <Brain className="w-5 h-5 text-coral-600" />
+                        <Brain className="w-5 h-5 text-cyan-600" />
                       )}
                       <div>
                         <p className={`font-medium ${nightMode ? 'text-slate-200' : 'text-slate-800'}`}>
-                          {session.mode.replace(/_/g, ' → ').replace(/to/g, '').toUpperCase()}
+                          {session.mode.replace(/_/g, ' ').replace('to', '→').toUpperCase()}
                         </p>
                         <p className={`text-sm ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>
                           {session.level} • {session.total_cards} cards
