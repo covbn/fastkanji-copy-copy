@@ -59,6 +59,7 @@ export default function FlashStudy() {
   const restMinSeconds = settings?.rest_min_seconds || 90;
   const restMaxSeconds = settings?.rest_max_seconds || 150;
   const restDurationSeconds = settings?.rest_duration_seconds || 10;
+  const nightMode = settings?.night_mode || false; // New: Get night_mode from settings
 
   // Update initial rest duration based on settings
   const [nextRestDuration, setNextRestDuration] = useState(() => {
@@ -197,7 +198,7 @@ export default function FlashStudy() {
     return (
       <div className="h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
           <p className="text-slate-600">Loading vocabulary...</p>
         </div>
       </div>
@@ -211,7 +212,7 @@ export default function FlashStudy() {
           <p className="text-xl text-slate-600">No vocabulary found for {level}</p>
           <button
             onClick={() => navigate(createPageUrl('Home'))}
-            className="text-indigo-600 hover:text-indigo-700 font-medium"
+            className="text-teal-600 hover:text-teal-700 font-medium"
           >
             ← Back to Home
           </button>
@@ -240,7 +241,7 @@ export default function FlashStudy() {
     return (
       <div className="h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
           <p className="text-slate-600">Preparing cards...</p>
         </div>
       </div>
@@ -248,20 +249,22 @@ export default function FlashStudy() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-stone-100 via-teal-50 to-cyan-50">
+    <div className={`h-screen flex flex-col ${nightMode ? 'bg-slate-900' : 'bg-gradient-to-br from-stone-100 via-teal-50 to-cyan-50'}`}>
       <AccuracyMeter
         accuracy={accuracy}
         correctCount={correctCount}
         incorrectCount={incorrectCount}
         currentCard={cardsStudied + 1}
         totalCards={sessionSize}
+        nightMode={nightMode}
       />
 
-      <div className="flex-1 flex items-center justify-center p-2 md:p-4 overflow-y-auto">
+      <div className="flex-1 flex items-center justify-center p-2 md:p-4">
         <FlashCard
           vocabulary={currentCard}
           mode={mode}
           onAnswer={handleAnswer}
+          showExampleSentences={settings?.show_example_sentences !== false}
         />
       </div>
     </div>

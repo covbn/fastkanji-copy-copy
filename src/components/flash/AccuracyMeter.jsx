@@ -2,32 +2,32 @@ import React from "react";
 import { motion } from "framer-motion";
 import { Target, TrendingUp, TrendingDown } from "lucide-react";
 
-export default function AccuracyMeter({ accuracy, correctCount, incorrectCount, currentCard, totalCards }) {
+export default function AccuracyMeter({ accuracy, correctCount, incorrectCount, currentCard, totalCards, nightMode = false }) {
   const targetAccuracy = 85;
   const isOnTarget = accuracy >= targetAccuracy;
 
   return (
-    <div className="bg-white/80 backdrop-blur-sm border-b border-stone-200 px-3 md:px-6 py-3">
+    <div className={`border-b px-3 md:px-6 py-3 ${nightMode ? 'bg-slate-800/80 backdrop-blur-sm border-slate-700' : 'bg-white/80 backdrop-blur-sm border-stone-200'}`}>
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between gap-3">
           {/* Progress - Mobile optimized */}
           <div className="flex items-center gap-2 md:gap-4">
-            <div className="text-slate-700">
-              <p className="text-xs font-medium text-slate-500">Progress</p>
+            <div className={nightMode ? 'text-slate-200' : 'text-slate-700'}>
+              <p className={`text-xs font-medium ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Progress</p>
               <p className="text-lg md:text-2xl font-semibold whitespace-nowrap">
                 {currentCard}/{totalCards}
               </p>
             </div>
 
-            <div className="h-8 md:h-12 w-px bg-stone-300"></div>
+            <div className={`h-8 md:h-12 w-px ${nightMode ? 'bg-slate-600' : 'bg-stone-300'}`}></div>
 
-            <div className="text-slate-700">
-              <p className="text-xs font-medium text-slate-500">✓</p>
+            <div className={nightMode ? 'text-slate-200' : 'text-slate-700'}>
+              <p className={`text-xs font-medium ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>✓</p>
               <p className="text-lg md:text-2xl font-semibold text-emerald-600">{correctCount}</p>
             </div>
 
-            <div className="text-slate-700">
-              <p className="text-xs font-medium text-slate-500">✗</p>
+            <div className={nightMode ? 'text-slate-200' : 'text-slate-700'}>
+              <p className={`text-xs font-medium ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>✗</p>
               <p className="text-lg md:text-2xl font-semibold text-rose-600">{incorrectCount}</p>
             </div>
           </div>
@@ -35,7 +35,7 @@ export default function AccuracyMeter({ accuracy, correctCount, incorrectCount, 
           {/* Accuracy Gauge - Mobile optimized */}
           <div className="flex items-center gap-2 md:gap-4">
             <div className="text-right hidden sm:block">
-              <p className="text-xs font-medium text-slate-500 flex items-center justify-end gap-1.5">
+              <p className={`text-xs font-medium flex items-center justify-end gap-1.5 ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>
                 <Target className="w-3 h-3" />
                 {targetAccuracy}%
               </p>
@@ -73,7 +73,7 @@ export default function AccuracyMeter({ accuracy, correctCount, incorrectCount, 
             </div>
 
             {/* Visual Meter */}
-            <div className="w-16 md:w-32 h-2 md:h-3 bg-stone-200 rounded-full overflow-hidden hidden sm:block">
+            <div className={`w-16 md:w-32 h-2 md:h-3 rounded-full overflow-hidden hidden sm:block ${nightMode ? 'bg-slate-700' : 'bg-stone-200'}`}>
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${accuracy}%` }}

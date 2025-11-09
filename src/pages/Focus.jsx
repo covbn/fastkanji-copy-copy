@@ -1,325 +1,325 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion, AnimatePresence } from "framer-motion";
-import { Wind, Play, Pause, RotateCcw, Brain, Zap } from "lucide-react";
+import { Wind, Play, Pause, RotateCcw, Home, Sparkles, Brain } from "lucide-react";
 
 export default function Focus() {
-  const [phase, setPhase] = useState('ready'); // ready, breathing, hold_empty, inhale_hold, complete
+  const navigate = useNavigate();
+  const [phase, setPhase] = useState("ready"); // ready, breathing, hold_empty, inhale_hold, complete
   const [breathCount, setBreathCount] = useState(0);
-  const [holdTime, setHoldTime] = useState(0);
+  const [holdTimer, setHoldTimer] = useState(0);
   const [isActive, setIsActive] = useState(false);
-  const [breathPhase, setBreathPhase] = useState('inhale'); // inhale, exhale
-  const [breathTimer, setBreathTimer] = useState(4);
 
-  // Automatic breathing cycle
-  useEffect(() => {
-    if (phase === 'breathing' && isActive) {
-      const interval = setInterval(() => {
-        setBreathTimer(prev => {
-          if (prev <= 0) {
-            if (breathPhase === 'inhale') {
-              setBreathPhase('exhale');
-              return 4;
-            } else {
-              setBreathPhase('inhale');
-              setBreathCount(prev => prev + 1);
-              return 4;
-            }
-          }
-          return prev - 0.1;
-        });
-      }, 100);
+  const totalBreaths = 30;
 
-      return () => clearInterval(interval);
-    }
-  }, [phase, isActive, breathPhase]);
-
-  // Check if we've reached 25 breaths
-  useEffect(() => {
-    if (breathCount >= 25 && phase === 'breathing') {
-      setPhase('hold_empty');
-      setHoldTime(0);
-      setIsActive(true);
-    }
-  }, [breathCount, phase]);
-
-  // Hold timers
+  // Timer for hold phases
   useEffect(() => {
     let interval = null;
-
-    if (isActive && phase === 'hold_empty') {
+    if (isActive && (phase === "hold_empty" || phase === "inhale_hold")) {
       interval = setInterval(() => {
-        setHoldTime(prev => prev + 1);
-      }, 1000);
-    } else if (isActive && phase === 'inhale_hold') {
-      interval = setInterval(() => {
-        setHoldTime(prev => prev + 1);
+        setHoldTimer((prev) => prev + 1);
       }, 1000);
     }
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
+    return () => clearInterval(interval);
   }, [isActive, phase]);
 
   const startExercise = () => {
-    setPhase('breathing');
+    setPhase("breathing");
     setBreathCount(0);
-    setBreathPhase('inhale');
-    setBreathTimer(4);
     setIsActive(true);
   };
 
+  const handleBreath = () => {
+    const newCount = breathCount + 1;
+    setBreathCount(newCount);
+    
+    if (newCount >= totalBreaths) {
+      setPhase("hold_empty");
+      setHoldTimer(0);
+    }
+  };
+
   const finishEmptyHold = () => {
-    setPhase('inhale_hold');
-    setHoldTime(0);
+    setPhase("inhale_hold");
+    setHoldTimer(0);
   };
 
   const finishInhaleHold = () => {
-    setPhase('complete');
+    setPhase("complete");
     setIsActive(false);
   };
 
   const reset = () => {
-    setPhase('ready');
+    setPhase("ready");
     setBreathCount(0);
-    setHoldTime(0);
+    setHoldTimer(0);
     setIsActive(false);
-    setBreathPhase('inhale');
-    setBreathTimer(4);
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-indigo-900 to-purple-900 p-4">
-      <div className="max-w-3xl w-full space-y-8">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center space-y-4"
-        >
-          <div className="flex items-center justify-center gap-3">
-            <Brain className="w-10 h-10 text-purple-400" />
-            <h1 className="text-4xl md:text-5xl font-bold text-white">
-              Focus Exercise
-            </h1>
-          </div>
-          <p className="text-lg text-white/70 max-w-2xl mx-auto">
-            Activate neuroplasticity and prime your brain for optimal learning
-          </p>
-        </motion.div>
-
-        {/* Instructions Card */}
-        {phase === 'ready' && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-          >
-            <Card className="bg-white/10 backdrop-blur-md border-white/20 text-white">
-              <CardContent className="p-8 space-y-6">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-full bg-indigo-500/20 flex items-center justify-center flex-shrink-0">
-                    <Zap className="w-6 h-6 text-indigo-400" />
+    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-cyan-50 to-stone-50 flex items-center justify-center p-4">
+      <Card className="w-full max-w-2xl border-stone-200 shadow-lg">
+        <CardContent className="p-8 md:p-12">
+          <AnimatePresence mode="wait">
+            {/* Ready Phase */}
+            {phase === "ready" && (
+              <motion.div
+                key="ready"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="text-center space-y-8"
+              >
+                <div className="space-y-4">
+                  <div className="w-20 h-20 mx-auto bg-gradient-to-br from-teal-500 to-cyan-500 rounded-3xl flex items-center justify-center shadow-lg">
+                    <Wind className="w-10 h-10 text-white" />
                   </div>
-                  <div className="space-y-2">
-                    <h3 className="text-xl font-bold">Why This Works</h3>
-                    <p className="text-white/80 leading-relaxed">
-                      To trigger neuroplasticity, your brain needs to be alert. This breathing exercise 
-                      releases epinephrine (adrenaline) in your brain and body, creating the optimal 
-                      state for learning and memory formation.
-                    </p>
-                  </div>
+                  <h1 className="text-4xl font-semibold text-slate-800" style={{fontFamily: "'Crimson Pro', serif"}}>
+                    Focus Exercise
+                  </h1>
+                  <p className="text-slate-600 max-w-md mx-auto">
+                    Prime your brain for peak learning with this neuroplasticity-activating breathing protocol
+                  </p>
                 </div>
 
-                <div className="space-y-4 pl-16">
-                  <div className="space-y-2">
-                    <p className="font-semibold text-lg">The Protocol:</p>
-                    <ol className="list-decimal list-inside space-y-2 text-white/80">
-                      <li><strong>25-30 Deep Breaths:</strong> 4 seconds in, 4 seconds out (automatic)</li>
-                      <li><strong>Hold Empty:</strong> Exhale fully and hold with empty lungs for 15-60 seconds</li>
-                      <li><strong>Inhale & Hold:</strong> Take one deep breath and hold briefly</li>
-                      <li><strong>Resume Normal Breathing:</strong> Don't force it - breathe when you feel the urge</li>
-                    </ol>
-                  </div>
+                <div className="bg-teal-50 p-6 rounded-xl border border-teal-200 text-left space-y-3">
+                  <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                    <Brain className="w-5 h-5 text-teal-600" />
+                    The Protocol
+                  </h3>
+                  <ol className="space-y-2 text-slate-700">
+                    <li className="flex items-start gap-2">
+                      <span className="font-semibold text-teal-600">1.</span>
+                      <span>Take {totalBreaths} deep breaths (inhale through nose, exhale through mouth)</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="font-semibold text-teal-600">2.</span>
+                      <span>Hold your breath with empty lungs for 15-60 seconds</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="font-semibold text-teal-600">3.</span>
+                      <span>Take one deep breath and hold for 15 seconds</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="font-semibold text-teal-600">4.</span>
+                      <span>Resume normal breathing - you're ready!</span>
+                    </li>
+                  </ol>
+                </div>
 
-                  <div className="bg-yellow-500/10 border border-yellow-500/20 p-4 rounded-lg">
-                    <p className="text-sm text-yellow-200">
-                      <strong>Important:</strong> Never force the breath holds. This should feel energizing, not stressful.
-                      Stop immediately if you feel dizzy or uncomfortable.
-                    </p>
-                  </div>
+                <div className="space-y-3">
+                  <Button
+                    onClick={startExercise}
+                    size="lg"
+                    className="w-full h-14 text-lg bg-teal-600 hover:bg-teal-700"
+                  >
+                    <Play className="w-5 h-5 mr-2" />
+                    Start Exercise
+                  </Button>
+                  <Button
+                    onClick={() => navigate(createPageUrl("Home"))}
+                    variant="outline"
+                    size="lg"
+                    className="w-full"
+                  >
+                    <Home className="w-5 h-5 mr-2" />
+                    Back to Home
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Breathing Phase */}
+            {phase === "breathing" && (
+              <motion.div
+                key="breathing"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="text-center space-y-8"
+              >
+                <div className="space-y-4">
+                  <motion.div
+                    animate={{ 
+                      scale: [1, 1.2, 1],
+                      rotate: [0, 180, 360]
+                    }}
+                    transition={{ 
+                      duration: 4,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                    className="w-32 h-32 mx-auto bg-gradient-to-br from-teal-500 to-cyan-500 rounded-full flex items-center justify-center shadow-xl"
+                  >
+                    <Wind className="w-16 h-16 text-white" />
+                  </motion.div>
+                  
+                  <h2 className="text-5xl font-bold text-slate-800">
+                    {breathCount}/{totalBreaths}
+                  </h2>
+                  <p className="text-xl text-slate-600">
+                    Deep breaths
+                  </p>
+                  <p className="text-slate-500">
+                    Inhale through nose • Exhale through mouth
+                  </p>
                 </div>
 
                 <Button
-                  onClick={startExercise}
+                  onClick={handleBreath}
                   size="lg"
-                  className="w-full h-14 text-lg bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600"
+                  className="w-full h-16 text-xl bg-teal-600 hover:bg-teal-700"
                 >
-                  <Play className="w-5 h-5 mr-2" />
-                  Start Exercise
+                  Breath Complete
                 </Button>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
+              </motion.div>
+            )}
 
-        {/* Breathing Phase */}
-        {phase === 'breathing' && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="text-center space-y-8"
-          >
-            <motion.div
-              animate={{ 
-                scale: breathPhase === 'inhale' ? [1, 1.2] : [1.2, 1],
-              }}
-              transition={{ 
-                duration: 4,
-                ease: "easeInOut"
-              }}
-              className="w-48 h-48 mx-auto rounded-full bg-gradient-to-br from-indigo-400 to-purple-400 flex items-center justify-center shadow-2xl"
-            >
-              <Wind className="w-24 h-24 text-white" />
-            </motion.div>
-
-            <div className="space-y-4">
-              <motion.p
-                key={breathPhase}
-                initial={{ scale: 1.2, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className="text-white text-2xl font-bold uppercase"
+            {/* Hold Empty Phase */}
+            {phase === "hold_empty" && (
+              <motion.div
+                key="hold_empty"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="text-center space-y-8"
               >
-                {breathPhase === 'inhale' ? '👃 Inhale' : '👄 Exhale'}
-              </motion.p>
-              <p className="text-5xl font-bold text-white">{breathTimer.toFixed(1)}s</p>
-              <p className="text-white/70 text-lg">Breath {breathCount} / 25</p>
-            </div>
+                <div className="space-y-4">
+                  <div className="w-32 h-32 mx-auto bg-gradient-to-br from-amber-500 to-orange-500 rounded-full flex items-center justify-center shadow-xl">
+                    <Pause className="w-16 h-16 text-white" />
+                  </div>
+                  
+                  <h2 className="text-6xl font-bold text-slate-800">
+                    {holdTimer}s
+                  </h2>
+                  <p className="text-xl text-slate-600">
+                    Hold with empty lungs
+                  </p>
+                  <p className="text-slate-500">
+                    Feel the tension build... this activates your alertness
+                  </p>
+                </div>
 
-            <div className="space-y-3">
-              <p className="text-white text-base">
-                Follow the breathing rhythm automatically
-              </p>
-            </div>
-          </motion.div>
-        )}
+                <Button
+                  onClick={finishEmptyHold}
+                  size="lg"
+                  className="w-full h-16 text-xl bg-amber-600 hover:bg-amber-700"
+                >
+                  Ready to Inhale
+                </Button>
+              </motion.div>
+            )}
 
-        {/* Hold Empty Phase */}
-        {phase === 'hold_empty' && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="text-center space-y-8"
-          >
-            <div className="w-48 h-48 mx-auto rounded-full bg-gradient-to-br from-red-400 to-orange-400 flex items-center justify-center shadow-2xl">
-              <p className="text-6xl font-bold text-white">{holdTime}s</p>
-            </div>
-
-            <div className="space-y-4">
-              <p className="text-2xl font-bold text-white">Hold with Empty Lungs</p>
-              <p className="text-white/70 text-lg">15-60 seconds • Don't force it</p>
-            </div>
-
-            <Button
-              onClick={finishEmptyHold}
-              size="lg"
-              className="w-64 h-14 bg-white text-indigo-900 hover:bg-white/90"
-            >
-              Ready to Inhale
-            </Button>
-          </motion.div>
-        )}
-
-        {/* Inhale Hold Phase */}
-        {phase === 'inhale_hold' && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="text-center space-y-8"
-          >
-            <motion.div
-              animate={{ 
-                scale: [1, 1.05, 1],
-              }}
-              transition={{ 
-                duration: 2,
-                repeat: Infinity,
-              }}
-              className="w-48 h-48 mx-auto rounded-full bg-gradient-to-br from-green-400 to-emerald-400 flex items-center justify-center shadow-2xl"
-            >
-              <p className="text-6xl font-bold text-white">{holdTime}s</p>
-            </motion.div>
-
-            <div className="space-y-4">
-              <p className="text-2xl font-bold text-white">Hold After Inhale</p>
-              <p className="text-white/70 text-lg">Hold for 10-15 seconds</p>
-            </div>
-
-            <Button
-              onClick={finishInhaleHold}
-              size="lg"
-              className="w-64 h-14 bg-white text-indigo-900 hover:bg-white/90"
-            >
-              Finish Exercise
-            </Button>
-          </motion.div>
-        )}
-
-        {/* Complete Phase */}
-        {phase === 'complete' && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="text-center space-y-8"
-          >
-            <div className="w-48 h-48 mx-auto rounded-full bg-gradient-to-br from-yellow-400 to-orange-400 flex items-center justify-center shadow-2xl">
-              <Brain className="w-24 h-24 text-white" />
-            </div>
-
-            <div className="space-y-4">
-              <p className="text-3xl font-bold text-white">Exercise Complete! 🎉</p>
-              <p className="text-white/70 text-lg">
-                Your brain is now primed for optimal learning and focus
-              </p>
-            </div>
-
-            <div className="flex gap-4 justify-center">
-              <Button
-                onClick={reset}
-                size="lg"
-                variant="outline"
-                className="border-white/20 text-white hover:bg-white/10"
+            {/* Inhale Hold Phase */}
+            {phase === "inhale_hold" && (
+              <motion.div
+                key="inhale_hold"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="text-center space-y-8"
               >
-                <RotateCcw className="w-5 h-5 mr-2" />
-                Do Again
-              </Button>
-              <Button
-                onClick={() => window.location.href = '/'}
-                size="lg"
-                className="bg-white text-indigo-900 hover:bg-white/90"
-              >
-                Start Studying
-              </Button>
-            </div>
-          </motion.div>
-        )}
+                <div className="space-y-4">
+                  <motion.div
+                    animate={{ 
+                      scale: [1, 1.1, 1],
+                    }}
+                    transition={{ 
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                    className="w-32 h-32 mx-auto bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center shadow-xl"
+                  >
+                    <Sparkles className="w-16 h-16 text-white" />
+                  </motion.div>
+                  
+                  <h2 className="text-6xl font-bold text-slate-800">
+                    {holdTimer}s
+                  </h2>
+                  <p className="text-xl text-slate-600">
+                    Hold deep breath
+                  </p>
+                  <p className="text-slate-500">
+                    Hold for ~15 seconds, then release
+                  </p>
+                </div>
 
-        {/* Reset Button */}
-        {phase !== 'ready' && phase !== 'complete' && (
-          <div className="flex justify-center">
-            <Button
-              onClick={reset}
-              variant="outline"
-              size="sm"
-              className="border-white/20 text-white hover:bg-white/10"
-            >
-              <RotateCcw className="w-4 h-4 mr-2" />
-              Reset
-            </Button>
-          </div>
-        )}
-      </div>
+                <Button
+                  onClick={finishInhaleHold}
+                  size="lg"
+                  className="w-full h-16 text-xl bg-emerald-600 hover:bg-emerald-700"
+                >
+                  Complete Exercise
+                </Button>
+              </motion.div>
+            )}
+
+            {/* Complete Phase */}
+            {phase === "complete" && (
+              <motion.div
+                key="complete"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="text-center space-y-8"
+              >
+                <div className="space-y-4">
+                  <motion.div
+                    animate={{ 
+                      rotate: [0, 360],
+                    }}
+                    transition={{ 
+                      duration: 2,
+                      repeat: 3,
+                      ease: "easeInOut"
+                    }}
+                    className="w-24 h-24 mx-auto bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center shadow-xl"
+                  >
+                    <Sparkles className="w-12 h-12 text-white" />
+                  </motion.div>
+                  
+                  <h2 className="text-4xl font-semibold text-slate-800" style={{fontFamily: "'Crimson Pro', serif"}}>
+                    Exercise Complete!
+                  </h2>
+                  <p className="text-lg text-slate-600 max-w-md mx-auto">
+                    Your brain is now primed for maximum learning. Your alertness and focus are heightened - perfect time to study! 🧠
+                  </p>
+                </div>
+
+                <div className="bg-teal-50 p-6 rounded-xl border border-teal-200">
+                  <p className="text-slate-700">
+                    <strong>Pro tip:</strong> Do this exercise before each study session for best results. 
+                    The effects last 45-90 minutes.
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <Button
+                    onClick={() => navigate(createPageUrl("Home"))}
+                    size="lg"
+                    className="w-full h-14 text-lg bg-teal-600 hover:bg-teal-700"
+                  >
+                    Start Studying
+                  </Button>
+                  <Button
+                    onClick={reset}
+                    variant="outline"
+                    size="lg"
+                    className="w-full"
+                  >
+                    <RotateCcw className="w-5 h-5 mr-2" />
+                    Do Another Round
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -60,6 +60,7 @@ export default function SpacedRepetition() {
   const restMinSeconds = settings?.rest_min_seconds || 90;
   const restMaxSeconds = settings?.rest_max_seconds || 150;
   const restDurationSeconds = settings?.rest_duration_seconds || 600;
+  const nightMode = settings?.night_mode || false; // Added nightMode from settings
 
   // Update initial rest duration based on settings
   const [nextRestDuration, setNextRestDuration] = useState(() => {
@@ -261,7 +262,7 @@ export default function SpacedRepetition() {
       setStudyQueue(buildQueue);
       setCurrentCard(buildQueue[0]);
     }
-  }, [buildQueue]);
+  }, [buildQueue, studyQueue.length]); // Added studyQueue.length to dependencies
 
   const totalAnswered = correctCount + incorrectCount;
   const accuracy = totalAnswered > 0 ? (correctCount / totalAnswered) * 100 : 0;
@@ -334,7 +335,7 @@ export default function SpacedRepetition() {
     return (
       <div className="h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
           <p className="text-slate-600">Loading vocabulary...</p>
         </div>
       </div>
@@ -349,7 +350,7 @@ export default function SpacedRepetition() {
           <p className="text-sm text-slate-500">Come back later or try flash study mode</p>
           <button
             onClick={() => navigate(createPageUrl('Home'))}
-            className="text-indigo-600 hover:text-indigo-700 font-medium"
+            className="text-teal-600 hover:text-teal-700 font-medium"
           >
             ← Back to Home
           </button>
@@ -378,7 +379,7 @@ export default function SpacedRepetition() {
     return (
       <div className="h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
           <p className="text-slate-600">Preparing cards...</p>
         </div>
       </div>
@@ -386,25 +387,25 @@ export default function SpacedRepetition() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-stone-100 via-teal-50 to-cyan-50">
+    <div className={`h-screen flex flex-col ${nightMode ? 'bg-slate-900' : 'bg-gradient-to-br from-stone-100 via-teal-50 to-cyan-50'}`}>
       {/* Anki-style card counts */}
-      <div className="bg-white/80 backdrop-blur-sm border-b border-stone-200 px-3 md:px-6 py-2 md:py-3">
+      <div className={`border-b px-3 md:px-6 py-2 md:py-3 ${nightMode ? 'bg-slate-800/80 backdrop-blur-sm border-slate-700' : 'bg-white/80 backdrop-blur-sm border-stone-200'}`}>
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3 md:gap-6">
             <div className="flex items-center gap-1.5 md:gap-2">
               <BookOpen className="w-3 h-3 md:w-4 md:h-4 text-cyan-600" />
-              <span className="text-xs md:text-sm text-slate-600">New:</span>
-              <span className="font-semibold text-cyan-700 text-sm md:text-base">{cardCategories.newCards.length}</span>
+              <span className={`text-xs md:text-sm ${nightMode ? 'text-slate-300' : 'text-slate-600'}`}>New:</span>
+              <span className={`font-semibold text-cyan-700 text-sm md:text-base ${nightMode ? 'text-cyan-400' : ''}`}>{cardCategories.newCards.length}</span>
             </div>
             <div className="flex items-center gap-1.5 md:gap-2">
               <Brain className="w-3 h-3 md:w-4 md:h-4 text-amber-600" />
-              <span className="text-xs md:text-sm text-slate-600">Learning:</span>
-              <span className="font-semibold text-amber-700 text-sm md:text-base">{cardCategories.learningCards.length}</span>
+              <span className={`text-xs md:text-sm ${nightMode ? 'text-slate-300' : 'text-slate-600'}`}>Learning:</span>
+              <span className={`font-semibold text-amber-700 text-sm md:text-base ${nightMode ? 'text-amber-400' : ''}`}>{cardCategories.learningCards.length}</span>
             </div>
             <div className="flex items-center gap-1.5 md:gap-2">
               <Clock className="w-3 h-3 md:w-4 md:h-4 text-emerald-600" />
-              <span className="text-xs md:text-sm text-slate-600">Due:</span>
-              <span className="font-semibold text-emerald-700 text-sm md:text-base">{cardCategories.dueCards.length}</span>
+              <span className={`text-xs md:text-sm ${nightMode ? 'text-slate-300' : 'text-slate-600'}`}>Due:</span>
+              <span className={`font-semibold text-emerald-700 text-sm md:text-base ${nightMode ? 'text-emerald-400' : ''}`}>{cardCategories.dueCards.length}</span>
             </div>
           </div>
         </div>
@@ -416,6 +417,7 @@ export default function SpacedRepetition() {
         incorrectCount={incorrectCount}
         currentCard={cardsStudied + 1}
         totalCards={sessionSize}
+        nightMode={nightMode}
       />
 
       <div className="flex-1 flex items-center justify-center p-2 md:p-4 overflow-y-auto">
@@ -423,6 +425,7 @@ export default function SpacedRepetition() {
           vocabulary={currentCard}
           mode={mode}
           onAnswer={handleAnswer}
+          showExampleSentences={settings?.show_example_sentences !== false}
         />
       </div>
     </div>
