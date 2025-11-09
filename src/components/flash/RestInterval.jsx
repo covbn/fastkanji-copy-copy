@@ -52,23 +52,12 @@ export default function RestInterval({ onContinue, duration = 600 }) {
         animate={{ scale: 1, opacity: 1 }}
         className="text-center space-y-6 md:space-y-8 max-w-2xl"
       >
-        {/* Icon */}
-        <motion.div
-          animate={{ 
-            rotate: [0, 10, -10, 0],
-            scale: [1, 1.1, 1]
-          }}
-          transition={{ 
-            duration: 2,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-          className={`w-24 h-24 md:w-32 md:h-32 mx-auto rounded-3xl bg-gradient-to-br ${randomRest.color} flex items-center justify-center shadow-2xl`}
-        >
+        {/* Icon - Static, no animation */}
+        <div className={`w-24 h-24 md:w-32 md:h-32 mx-auto rounded-3xl bg-gradient-to-br ${randomRest.color} flex items-center justify-center shadow-2xl`}>
           <randomRest.icon className="w-12 h-12 md:w-16 md:h-16 text-white" />
-        </motion.div>
+        </div>
 
-        {/* Message */}
+        {/* Message - Static */}
         <div className="space-y-4">
           <h2 className={`text-3xl md:text-5xl font-bold px-4 ${nightMode ? 'text-slate-100' : 'text-slate-800'}`} style={{fontFamily: "'Crimson Pro', serif"}}>
             {randomRest.message}
@@ -78,15 +67,10 @@ export default function RestInterval({ onContinue, duration = 600 }) {
           </p>
         </div>
 
-        {/* Countdown */}
-        <motion.div
-          key={Math.floor(countdown / 10)}
-          initial={{ scale: 1.2, opacity: 0.8 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className={`text-6xl md:text-8xl font-bold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}
-        >
+        {/* Countdown - Only number changes */}
+        <div className={`text-6xl md:text-8xl font-bold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>
           {formatTime(countdown)}
-        </motion.div>
+        </div>
 
         <p className={`text-sm md:text-base px-4 ${nightMode ? 'text-slate-400' : 'text-slate-600'}`}>
           Take this time to rest your eyes, stretch, or have a drink of water

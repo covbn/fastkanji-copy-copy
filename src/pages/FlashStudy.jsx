@@ -259,7 +259,7 @@ export default function FlashStudy() {
         nightMode={nightMode}
       />
 
-      <div className="flex-1 flex items-center justify-center p-2 md:p-4">
+      <div className="flex-1 flex items-center justify-center p-4 overflow-y-auto">
         <FlashCard
           vocabulary={currentCard}
           mode={mode}
