@@ -102,6 +102,56 @@ export default function Layout({ children, currentPageName }) {
             font-weight: 700;
             color: inherit;
           }
+
+          /* Custom Scrollbar Styles */
+          .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+          }
+
+          .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+          }
+
+          .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            border-radius: 4px;
+          }
+
+          .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+          }
+
+          /* Firefox */
+          .custom-scrollbar {
+            scrollbar-width: thin;
+            scrollbar-color: #94a3b8 #f1f5f9;
+          }
+
+          /* Default scrollbar improvements */
+          ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+          }
+
+          ::-webkit-scrollbar-track {
+            background: #f8fafc;
+          }
+
+          ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 5px;
+          }
+
+          ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+          }
+
+          * {
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e1 #f8fafc;
+          }
         `}
       </style>
       <div className={`min-h-screen flex w-full ${nightMode ? 'bg-slate-900' : 'bg-stone-50'}`}>
