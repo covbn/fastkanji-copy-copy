@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -66,7 +67,6 @@ export default function SpacedRepetition() {
   const mode = urlParams.get('mode') || 'kanji_to_meaning';
   const levelParam = urlParams.get('level') || 'N5';
   const level = levelParam.toUpperCase();
-  const sessionSize = parseInt(urlParams.get('size')) || 20;
 
   const [studyQueue, setStudyQueue] = useState([]);
   const [currentCard, setCurrentCard] = useState(null);
@@ -369,17 +369,17 @@ export default function SpacedRepetition() {
     return { newCards, learningCards, dueCards };
   }, [vocabulary, userProgress]);
 
-  // Build study queue respecting daily limits
+  // Build study queue - NO SESSION SIZE LIMIT, continues until all cards are done
   const buildQueue = React.useMemo(() => {
     const { newCards, learningCards, dueCards } = cardCategories;
     const queue = [];
     
-    // Add due review cards first (most important)
+    // Add due review cards first (most important, NO LIMIT)
     const remainingReviews = maxReviewsPerDay - reviewsToday;
     const dueWords = dueCards.map(d => d.word).slice(0, Math.max(0, remainingReviews));
     queue.push(...dueWords);
     
-    // Add learning/relearning cards (always show these)
+    // Add ALL learning/relearning cards (always show these, NO LIMIT)
     const learningWords = learningCards.map(l => l.word);
     queue.push(...learningWords);
     
@@ -388,8 +388,9 @@ export default function SpacedRepetition() {
     const newWordsToAdd = newCards.slice(0, Math.max(0, remainingNew));
     queue.push(...newWordsToAdd);
     
-    return queue.slice(0, sessionSize);
-  }, [cardCategories, sessionSize, maxNewCardsPerDay, maxReviewsPerDay, newCardsToday, reviewsToday]);
+    // NO sessionSize limit - return all cards that need to be studied
+    return queue;
+  }, [cardCategories, maxNewCardsPerDay, maxReviewsPerDay, newCardsToday, reviewsToday]);
 
   // Initialize study queue
   useEffect(() => {
@@ -434,8 +435,8 @@ export default function SpacedRepetition() {
     // Remove current card from queue
     const newQueue = studyQueue.slice(1);
 
-    // Check if session is complete
-    if (cardsStudied + 1 >= sessionSize || newQueue.length === 0) {
+    // Session is complete only when queue is empty (no more cards to study)
+    if (newQueue.length === 0) {
       completeSession();
       return;
     }
@@ -540,6 +541,8 @@ export default function SpacedRepetition() {
     );
   }
 
+  const totalCards = buildQueue.length;
+
   return (
     <div className={`h-screen flex flex-col ${nightMode ? 'bg-slate-900' : 'bg-gradient-to-br from-stone-100 via-teal-50 to-cyan-50'}`}>
       {/* FSRS-4 card counts */}
@@ -574,7 +577,7 @@ export default function SpacedRepetition() {
         correctCount={correctCount}
         incorrectCount={incorrectCount}
         currentCard={cardsStudied + 1}
-        totalCards={sessionSize}
+        totalCards={totalCards}
         nightMode={nightMode}
       />
 

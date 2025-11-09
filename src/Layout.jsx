@@ -1,10 +1,9 @@
-
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { Zap, Brain, TrendingUp, Home } from "lucide-react";
+import { Zap, Brain, TrendingUp, Home, BookOpen } from "lucide-react";
 import { Settings as SettingsIcon, Wind } from "lucide-react";
 import {
   Sidebar,
@@ -36,6 +35,11 @@ const navigationItems = [
     title: "Spaced Repetition",
     url: createPageUrl("SpacedRepetition"),
     icon: Brain,
+  },
+  {
+    title: "Card Browser",
+    url: createPageUrl("CardBrowser"),
+    icon: BookOpen,
   },
   {
     title: "Progress",

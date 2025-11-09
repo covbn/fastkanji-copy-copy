@@ -1,19 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Coffee, Brain, Sparkles } from "lucide-react";
+import { Coffee } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 
-const restMessages = [
-  { icon: Coffee, message: "Quick break! お疲れ様です", color: "from-amber-500 to-orange-500" },
-  { icon: Brain, message: "Let your brain rest 🧠", color: "from-teal-500 to-cyan-500" },
-  { icon: Sparkles, message: "Recharge time! ✨", color: "from-emerald-500 to-teal-500" },
-];
-
 export default function RestInterval({ onContinue, duration = 600 }) {
   const [countdown, setCountdown] = useState(duration);
-  const randomRest = restMessages[Math.floor(Math.random() * restMessages.length)];
 
   const { data: user } = useQuery({
     queryKey: ['user'],
@@ -53,14 +46,14 @@ export default function RestInterval({ onContinue, duration = 600 }) {
         className="text-center space-y-6 md:space-y-8 max-w-2xl"
       >
         {/* Icon - Static, no animation */}
-        <div className={`w-24 h-24 md:w-32 md:h-32 mx-auto rounded-3xl bg-gradient-to-br ${randomRest.color} flex items-center justify-center shadow-2xl`}>
-          <randomRest.icon className="w-12 h-12 md:w-16 md:h-16 text-white" />
+        <div className="w-24 h-24 md:w-32 md:h-32 mx-auto rounded-3xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-2xl">
+          <Coffee className="w-12 h-12 md:w-16 md:h-16 text-white" />
         </div>
 
-        {/* Message - Static */}
+        {/* Message - Static, never changes */}
         <div className="space-y-4">
           <h2 className={`text-3xl md:text-5xl font-bold px-4 ${nightMode ? 'text-slate-100' : 'text-slate-800'}`} style={{fontFamily: "'Crimson Pro', serif"}}>
-            {randomRest.message}
+            Quick break! お疲れ様です
           </h2>
           <p className={`text-lg md:text-xl px-4 ${nightMode ? 'text-slate-400' : 'text-slate-600'}`}>
             Random rest interval - scientifically proven to boost learning

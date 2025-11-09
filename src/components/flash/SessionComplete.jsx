@@ -1,124 +1,153 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { Trophy, Target, Zap, TrendingUp, Award, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Trophy, TrendingUp, Target, CheckCircle, Home } from "lucide-react";
+import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
 
 export default function SessionComplete({ correctCount, incorrectCount, accuracy, onContinue, reviewWords = [] }) {
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  const { data: settings } = useQuery({
+    queryKey: ['userSettings', user?.email],
+    queryFn: async () => {
+      if (!user) return null;
+      const existing = await base44.entities.UserSettings.filter({ user_email: user.email });
+      return existing.length > 0 ? existing[0] : null;
+    },
+    enabled: !!user,
+  });
+
+  const nightMode = settings?.night_mode || false;
+
   const totalCards = correctCount + incorrectCount;
-  const isExcellent = accuracy >= 85;
-  const isGood = accuracy >= 70;
+  const isExcellent = accuracy >= 90;
+  const isGood = accuracy >= 75;
 
   return (
-    <div className="h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-indigo-900 to-purple-900 p-4 overflow-y-auto">
+    <div className={`h-screen flex items-center justify-center p-4 overflow-y-auto ${nightMode ? 'bg-slate-900' : 'bg-gradient-to-br from-teal-50 via-cyan-50 to-stone-50'}`}>
       <motion.div
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="w-full max-w-2xl space-y-6 md:space-y-8 my-8"
+        className="w-full max-w-2xl space-y-6"
       >
-        {/* Trophy Icon */}
+        {/* Celebration Icon */}
         <motion.div
           animate={{ 
             rotate: [0, -10, 10, -10, 0],
-            y: [0, -10, 0]
+            scale: [1, 1.1, 1]
           }}
           transition={{ 
-            duration: 2,
-            repeat: Infinity,
+            duration: 1,
+            repeat: 2,
             ease: "easeInOut"
           }}
-          className="text-center"
+          className={`w-24 h-24 mx-auto rounded-3xl bg-gradient-to-br ${
+            isExcellent ? 'from-emerald-500 to-teal-500' : 
+            isGood ? 'from-cyan-500 to-teal-500' : 
+            'from-amber-500 to-orange-500'
+          } flex items-center justify-center shadow-2xl`}
         >
-          <div className={`w-24 h-24 md:w-32 md:h-32 mx-auto rounded-full bg-gradient-to-br ${
-            isExcellent ? 'from-yellow-400 to-orange-500' : 
-            isGood ? 'from-blue-400 to-indigo-500' : 
-            'from-gray-400 to-gray-600'
-          } flex items-center justify-center shadow-2xl`}>
-            {isExcellent ? (
-              <Trophy className="w-12 h-12 md:w-16 md:h-16 text-white" />
-            ) : (
-              <Award className="w-12 h-12 md:w-16 md:h-16 text-white" />
-            )}
-          </div>
+          <Trophy className="w-12 h-12 text-white" />
         </motion.div>
 
         {/* Title */}
-        <div className="text-center space-y-2 px-4">
-          <h2 className="text-3xl md:text-5xl font-bold text-white">
-            {isExcellent ? 'Excellent Work!' : isGood ? 'Good Job!' : 'Keep Practicing!'}
-          </h2>
-          <p className="text-lg md:text-xl text-white/70">
-            {isExcellent ? 'You hit the optimal learning zone! 🎯' : 
-             isGood ? 'You\'re on the right track!' : 
-             'Every session makes you better!'}
+        <div className="text-center space-y-2">
+          <h1 className={`text-4xl md:text-5xl font-semibold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`} style={{fontFamily: "'Crimson Pro', serif"}}>
+            {isExcellent ? "Excellent Work!" : isGood ? "Great Job!" : "Session Complete!"}
+          </h1>
+          <p className={`text-lg ${nightMode ? 'text-slate-400' : 'text-slate-600'}`}>
+            You studied {totalCards} cards
           </p>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-3 gap-3 md:gap-4 px-4">
-          <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+        <div className="grid grid-cols-3 gap-3 md:gap-4">
+          <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
             <CardContent className="p-4 md:p-6 text-center">
-              <Zap className="w-6 h-6 md:w-8 md:h-8 text-indigo-400 mx-auto mb-2" />
-              <p className="text-2xl md:text-3xl font-bold text-white">{totalCards}</p>
-              <p className="text-xs md:text-sm text-white/70">Cards</p>
+              <div className={`w-10 h-10 md:w-12 md:h-12 mx-auto rounded-full flex items-center justify-center mb-2 ${
+                isExcellent ? 'bg-emerald-500' : isGood ? 'bg-cyan-500' : 'bg-amber-500'
+              }`}>
+                <Target className="w-5 h-5 md:w-6 md:h-6 text-white" />
+              </div>
+              <p className={`text-2xl md:text-3xl font-bold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>
+                {accuracy.toFixed(0)}%
+              </p>
+              <p className={`text-xs md:text-sm ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Accuracy</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+          <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
             <CardContent className="p-4 md:p-6 text-center">
-              <Target className="w-6 h-6 md:w-8 md:h-8 text-green-400 mx-auto mb-2" />
-              <p className="text-2xl md:text-3xl font-bold text-white">{accuracy.toFixed(0)}%</p>
-              <p className="text-xs md:text-sm text-white/70">Accuracy</p>
-              {isExcellent && (
-                <Badge className="mt-2 bg-green-500 text-xs">Target Hit! 🎯</Badge>
-              )}
+              <div className="w-10 h-10 md:w-12 md:h-12 mx-auto rounded-full bg-emerald-500 flex items-center justify-center mb-2">
+                <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-white" />
+              </div>
+              <p className={`text-2xl md:text-3xl font-bold text-emerald-600 ${nightMode ? 'text-emerald-400' : ''}`}>
+                {correctCount}
+              </p>
+              <p className={`text-xs md:text-sm ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Correct</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+          <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
             <CardContent className="p-4 md:p-6 text-center">
-              <TrendingUp className="w-6 h-6 md:w-8 md:h-8 text-yellow-400 mx-auto mb-2" />
-              <p className="text-2xl md:text-3xl font-bold text-white">{correctCount}</p>
-              <p className="text-xs md:text-sm text-white/70">Correct</p>
+              <div className="w-10 h-10 md:w-12 md:h-12 mx-auto rounded-full bg-rose-500 flex items-center justify-center mb-2">
+                <TrendingUp className="w-5 h-5 md:w-6 md:h-6 text-white" />
+              </div>
+              <p className={`text-2xl md:text-3xl font-bold text-rose-600 ${nightMode ? 'text-rose-400' : ''}`}>
+                {incorrectCount}
+              </p>
+              <p className={`text-xs md:text-sm ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>To Review</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Review Words */}
         {reviewWords.length > 0 && (
-          <Card className="bg-white/10 backdrop-blur-sm border-white/20 mx-4">
+          <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
             <CardContent className="p-4 md:p-6">
-              <h3 className="text-lg md:text-xl font-bold text-white mb-4">Words to Review</h3>
-              <div className="space-y-2 max-h-40 overflow-y-auto">
-                {reviewWords.slice(0, 10).map((word, index) => (
-                  <div key={index} className="flex items-center justify-between p-2 md:p-3 bg-white/5 rounded-lg gap-2">
-                    <span className="text-xl md:text-2xl text-white">{word.kanji}</span>
-                    <span className="text-base md:text-lg text-white/70">{word.hiragana}</span>
-                    <span className="text-xs md:text-sm text-white/50 truncate max-w-[120px]">{word.meaning}</span>
+              <h3 className={`text-lg font-semibold mb-3 ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>
+                Words to Review
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-32 overflow-y-auto custom-scrollbar">
+                {reviewWords.map((word, idx) => (
+                  <div
+                    key={idx}
+                    className={`p-2 rounded-lg border text-center ${nightMode ? 'bg-slate-700 border-slate-600' : 'bg-stone-50 border-stone-200'}`}
+                  >
+                    <p className={`font-medium text-sm ${nightMode ? 'text-slate-200' : 'text-slate-800'}`}>{word.kanji}</p>
+                    <p className={`text-xs ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>{word.meaning}</p>
                   </div>
                 ))}
               </div>
-              {reviewWords.length > 10 && (
-                <p className="text-sm text-white/50 mt-2 text-center">
-                  + {reviewWords.length - 10} more words
-                </p>
-              )}
             </CardContent>
           </Card>
         )}
 
-        {/* Actions */}
-        <div className="px-4">
-          <Button
-            onClick={onContinue}
-            size="lg"
-            className="w-full h-12 md:h-14 text-base md:text-lg font-semibold bg-white text-indigo-900 hover:bg-white/90"
-          >
-            <Home className="w-5 h-5 mr-2" />
-            Back to Home
-          </Button>
-        </div>
+        {/* Encouragement Message */}
+        <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-teal-200 bg-teal-50'}`}>
+          <CardContent className="p-4 md:p-6 text-center">
+            <p className={`text-sm md:text-base ${nightMode ? 'text-slate-300' : 'text-slate-700'}`}>
+              {isExcellent ? "🎯 Outstanding! Your retention is excellent. Keep up the amazing work!" :
+               isGood ? "💪 Great progress! You're building strong memories." :
+               "📚 Every review makes you stronger. Keep practicing!"}
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Action Button */}
+        <Button
+          onClick={onContinue}
+          size="lg"
+          className="w-full h-14 text-lg font-medium bg-teal-600 hover:bg-teal-700 text-white"
+        >
+          <Home className="w-5 h-5 mr-2" />
+          Back to Home
+        </Button>
       </motion.div>
     </div>
   );

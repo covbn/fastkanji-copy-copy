@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -31,6 +30,9 @@ export default function FlashStudy() {
   const [reviewAfterRest, setReviewAfterRest] = useState([]);
   const [lastRestTime, setLastRestTime] = useState(Date.now());
   
+  // Track streak for each card (need 2 correct in a row to be "learned")
+  const [cardStreaks, setCardStreaks] = useState(new Map());
+  
   const { data: allVocabulary = [], isLoading: isLoadingAll } = useQuery({
     queryKey: ['allVocabulary'],
     queryFn: () => base44.entities.Vocabulary.list(),
@@ -55,13 +57,11 @@ export default function FlashStudy() {
     enabled: !!user,
   });
 
-  // Use settings for rest intervals
   const restMinSeconds = settings?.rest_min_seconds || 90;
   const restMaxSeconds = settings?.rest_max_seconds || 150;
   const restDurationSeconds = settings?.rest_duration_seconds || 10;
-  const nightMode = settings?.night_mode || false; // New: Get night_mode from settings
+  const nightMode = settings?.night_mode || false;
 
-  // Update initial rest duration based on settings
   const [nextRestDuration, setNextRestDuration] = useState(() => {
     return Math.floor(Math.random() * (restMaxSeconds - restMinSeconds) * 1000) + (restMinSeconds * 1000);
   });
@@ -110,6 +110,11 @@ export default function FlashStudy() {
       const initial = shuffled.slice(0, Math.min(sessionSize, shuffled.length));
       setStudyQueue(initial);
       setCurrentCard(initial[0]);
+      
+      // Initialize streaks
+      const streaks = new Map();
+      initial.forEach(card => streaks.set(card.id, 0));
+      setCardStreaks(streaks);
     }
   }, [vocabulary, sessionSize, studyQueue.length]);
 
@@ -145,17 +150,26 @@ export default function FlashStudy() {
       correct
     });
 
+    // Update streak for this card
+    const currentStreak = cardStreaks.get(currentCard.id) || 0;
+    const newStreak = correct ? currentStreak + 1 : 0;
+    const newStreaks = new Map(cardStreaks);
+    newStreaks.set(currentCard.id, newStreak);
+    setCardStreaks(newStreaks);
+
     // Remove current card from queue
-    const newQueue = studyQueue.slice(1);
+    let newQueue = studyQueue.slice(1);
     
-    // If wrong, add back to queue at a random position (between 2-5 cards ahead)
-    if (!correct) {
+    // If wrong OR not yet 2 correct in a row, add back to queue
+    if (!correct || newStreak < 2) {
+      // Add back at a random position (between 2-5 cards ahead)
       const insertPosition = Math.min(
         Math.floor(Math.random() * 4) + 2,
         newQueue.length
       );
       newQueue.splice(insertPosition, 0, currentCard);
     }
+    // else: card has 2 correct in a row, it's "learned" and removed from queue
 
     // Check if session is complete
     if (cardsStudied + 1 >= sessionSize) {
