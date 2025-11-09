@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Settings as SettingsIcon, Moon, Sun, Clock, Save } from "lucide-react";
+import { Settings as SettingsIcon, Moon, Sun, Clock, Save, Brain } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function Settings() {
@@ -35,6 +35,13 @@ export default function Settings() {
     rest_duration_seconds: 10,
     show_example_sentences: true,
     daily_target: 20,
+    max_new_cards_per_day: 20,
+    max_reviews_per_day: 200,
+    desired_retention: 0.9,
+    learning_steps: [1, 10], // Default for FSRS-4 learning steps
+    relearning_steps: [10], // Default for FSRS-4 relearning steps
+    graduating_interval: 1, // Default for FSRS-4 graduating interval
+    easy_interval: 4, // Default for FSRS-4 easy interval
   });
 
   useEffect(() => {
@@ -46,6 +53,13 @@ export default function Settings() {
         rest_duration_seconds: settings.rest_duration_seconds || 10,
         show_example_sentences: settings.show_example_sentences !== false,
         daily_target: settings.daily_target || 20,
+        max_new_cards_per_day: settings.max_new_cards_per_day || 20,
+        max_reviews_per_day: settings.max_reviews_per_day || 200,
+        desired_retention: settings.desired_retention || 0.9,
+        learning_steps: settings.learning_steps || [1, 10],
+        relearning_steps: settings.relearning_steps || [10],
+        graduating_interval: settings.graduating_interval || 1,
+        easy_interval: settings.easy_interval || 4,
       });
     }
   }, [settings]);
@@ -56,11 +70,25 @@ export default function Settings() {
     mutationFn: async (data) => {
       if (!user) return;
       
+      // Ensure integer values are actually integers, especially after parsing from input
+      const dataToSave = {
+        ...data,
+        rest_min_seconds: parseInt(data.rest_min_seconds),
+        rest_max_seconds: parseInt(data.rest_max_seconds),
+        rest_duration_seconds: parseInt(data.rest_duration_seconds),
+        daily_target: parseInt(data.daily_target),
+        max_new_cards_per_day: parseInt(data.max_new_cards_per_day),
+        max_reviews_per_day: parseInt(data.max_reviews_per_day),
+        graduating_interval: parseInt(data.graduating_interval),
+        easy_interval: parseInt(data.easy_interval),
+        // desired_retention is already a float
+      };
+
       if (settings) {
-        return base44.entities.UserSettings.update(settings.id, data);
+        return base44.entities.UserSettings.update(settings.id, dataToSave);
       } else {
         return base44.entities.UserSettings.create({
-          ...data,
+          ...dataToSave,
           user_email: user.email,
         });
       }
@@ -133,6 +161,82 @@ export default function Settings() {
                 checked={formData.show_example_sentences}
                 onCheckedChange={(checked) => setFormData({ ...formData, show_example_sentences: checked })}
               />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* FSRS-4 Settings */}
+        <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
+          <CardHeader className={`border-b ${nightMode ? 'border-slate-700' : 'border-stone-200'}`}>
+            <CardTitle className={`flex items-center gap-2 ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>
+              <Brain className="w-5 h-5" />
+              Spaced Repetition (FSRS-4)
+            </CardTitle>
+            <CardDescription className={nightMode ? 'text-slate-400' : 'text-slate-600'}>
+              Advanced algorithm for optimal memory retention
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-6 space-y-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label className={nightMode ? 'text-slate-200' : 'text-slate-800'}>Max New Cards/Day</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={formData.max_new_cards_per_day}
+                  onChange={(e) => setFormData({ ...formData, max_new_cards_per_day: parseInt(e.target.value) })}
+                  className={nightMode ? 'bg-slate-700 border-slate-600 text-slate-100' : ''}
+                />
+                <p className={`text-xs ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Maximum new words to learn daily</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label className={nightMode ? 'text-slate-200' : 'text-slate-800'}>Max Reviews/Day</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="1000"
+                  value={formData.max_reviews_per_day}
+                  onChange={(e) => setFormData({ ...formData, max_reviews_per_day: parseInt(e.target.value) })}
+                  className={nightMode ? 'bg-slate-700 border-slate-600 text-slate-100' : ''}
+                />
+                <p className={`text-xs ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Maximum reviews per day</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label className={nightMode ? 'text-slate-200' : 'text-slate-800'}>Desired Retention (%)</Label>
+                <Input
+                  type="number"
+                  min="80"
+                  max="95"
+                  step="1"
+                  value={Math.round(formData.desired_retention * 100)}
+                  onChange={(e) => setFormData({ ...formData, desired_retention: parseInt(e.target.value) / 100 })}
+                  className={nightMode ? 'bg-slate-700 border-slate-600 text-slate-100' : ''}
+                />
+                <p className={`text-xs ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Target recall rate (80-95%)</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label className={nightMode ? 'text-slate-200' : 'text-slate-800'}>Graduating Interval (days)</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="7"
+                  value={formData.graduating_interval}
+                  onChange={(e) => setFormData({ ...formData, graduating_interval: parseInt(e.target.value) })}
+                  className={nightMode ? 'bg-slate-700 border-slate-600 text-slate-100' : ''}
+                />
+                <p className={`text-xs ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Days after completing learning</p>
+              </div>
+            </div>
+
+            <div className={`${nightMode ? 'bg-slate-700' : 'bg-teal-50'} p-4 rounded-lg border ${nightMode ? 'border-slate-600' : 'border-teal-200'}`}>
+              <p className={`text-sm ${nightMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                <strong>FSRS-4</strong> is the latest algorithm used by Anki, optimizing review timing based on memory stability and difficulty. 
+                Higher retention means more reviews but better memory.
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -216,7 +320,7 @@ export default function Settings() {
                 onChange={(e) => setFormData({ ...formData, daily_target: parseInt(e.target.value) })}
                 className={nightMode ? 'bg-slate-700 border-slate-600 text-slate-100' : ''}
               />
-              <p className={`text-xs ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>How many cards you want to study daily</p>
+              <p className={`text-xs ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>How many cards you want to study daily (for flash mode)</p>
             </div>
           </CardContent>
         </Card>
