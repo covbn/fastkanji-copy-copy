@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -37,7 +38,7 @@ export default function Home() {
     queryFn: () => base44.auth.me(),
   });
 
-  const { data: settings } = useQuery({
+  const { data: settings, refetch: refetchSettings } = useQuery({
     queryKey: ['userSettings', user?.email],
     queryFn: async () => {
       if (!user) return null;
@@ -48,6 +49,16 @@ export default function Home() {
   });
 
   const nightMode = settings?.night_mode || false;
+  const isPremium = settings?.subscription_status === 'premium';
+  
+  // Check daily usage limit for free users
+  const dailyLimit = 7.5 * 60; // 7.5 minutes in seconds
+  const usageToday = settings?.daily_usage_seconds || 0;
+  const usageDate = settings?.last_usage_date;
+  const today = new Date().toISOString().split('T')[0];
+  const isNewDay = usageDate !== today;
+  const remainingTime = isNewDay ? dailyLimit : Math.max(0, dailyLimit - usageToday);
+  const hasReachedLimit = !isPremium && remainingTime <= 0 && !isNewDay;
 
   // Check if user should see focus exercise prompt
   useEffect(() => {
@@ -69,6 +80,12 @@ export default function Home() {
   }, [recentSessions]);
 
   const handleStartStudy = (url) => {
+    if (hasReachedLimit) {
+      alert("You've reached your daily study limit (7.5 minutes). Upgrade to Premium for unlimited access!");
+      navigate(createPageUrl('Subscription'));
+      return;
+    }
+
     const lastPrompt = localStorage.getItem('lastFocusPrompt');
     const shouldShowPrompt = !lastPrompt || (new Date().getTime() - new Date(lastPrompt).getTime()) >= (6 * 60 * 60 * 1000);
     
@@ -120,6 +137,12 @@ export default function Home() {
     return streak;
   };
 
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   return (
     <div className={`min-h-screen p-4 md:p-8 ${nightMode ? 'bg-slate-900' : 'bg-stone-50'}`}>
       <div className="max-w-6xl mx-auto space-y-8">
@@ -130,17 +153,51 @@ export default function Home() {
           transition={{ duration: 0.5 }}
           className="text-center space-y-4 py-8"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-700 rounded-full text-sm font-medium mb-4 border border-amber-200">
-            <Flame className="w-4 h-4" />
-            {getStreak()} Day Streak
+          <div className="flex items-center justify-center gap-3 flex-wrap">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-700 rounded-full text-sm font-medium border border-amber-200">
+              <Flame className="w-4 h-4" />
+              {getStreak()} Day Streak
+            </div>
+            {!isPremium && (
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-teal-50 text-teal-700 rounded-full text-sm font-medium border border-teal-200">
+                ⏱️ {formatTime(remainingTime)} remaining today
+              </div>
+            )}
           </div>
-          <h1 className="text-4xl md:text-6xl font-semibold text-slate-800" style={{fontFamily: "'Crimson Pro', serif"}}>
+          <h1 className={`text-4xl md:text-6xl font-semibold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`} style={{fontFamily: "'Crimson Pro', serif"}}>
             Master Japanese Vocabulary
           </h1>
-          <p className="text-lg text-slate-600 max-w-2xl mx-auto font-light">
+          <p className={`text-lg max-w-2xl mx-auto font-light ${nightMode ? 'text-slate-400' : 'text-slate-600'}`}>
             Lightning-fast flashcards with spaced repetition
           </p>
         </motion.div>
+
+        {/* Free user limit warning */}
+        {!isPremium && hasReachedLimit && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-2xl mx-auto"
+          >
+            <Card className="border-2 border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50">
+              <CardContent className="p-6 text-center">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-500 flex items-center justify-center">
+                  <Award className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-xl font-semibold text-slate-800 mb-2">Daily Limit Reached</h3>
+                <p className="text-slate-600 mb-4">
+                  You've used your 7.5 minutes today. Upgrade to Premium for unlimited study time and access to all JLPT levels!
+                </p>
+                <Button
+                  onClick={() => navigate(createPageUrl('Subscription'))}
+                  className="bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white"
+                >
+                  Upgrade to Premium
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
 
         {/* Quick Stats */}
         <QuickStats 
@@ -150,7 +207,7 @@ export default function Home() {
         />
 
         {/* Study Setup */}
-        <Card className={`border ${nightMode ? 'border-slate-700 bg-slate-800/80' : 'border-stone-200 bg-white'} shadow-sm`}>
+        <Card className={`border ${nightMode ? 'border-slate-700 bg-slate-800/80' : 'border-stone-200 bg-white'} shadow-sm ${hasReachedLimit ? 'opacity-50' : ''}`}>
           <CardHeader className={`border-b ${nightMode ? 'border-slate-700' : 'border-stone-200'}`}>
             <CardTitle className={`text-2xl font-semibold flex items-center gap-2 ${nightMode ? 'text-slate-100' : 'text-slate-800'}`} style={{fontFamily: "'Crimson Pro', serif"}}>
               <Target className="w-6 h-6 text-teal-600" />
@@ -163,6 +220,7 @@ export default function Home() {
                 selectedLevel={selectedLevel}
                 onSelectLevel={setSelectedLevel}
                 vocabularyCount={vocabularyCount}
+                isPremium={isPremium}
               />
               
               <ModeSelector 
@@ -189,7 +247,8 @@ export default function Home() {
               <Button
                 onClick={startFlashStudy}
                 size="lg"
-                className="h-14 text-base font-medium bg-teal-500 hover:bg-teal-600 text-white shadow-sm transition-all duration-200"
+                disabled={hasReachedLimit}
+                className="h-14 text-base font-medium bg-teal-500 hover:bg-teal-600 text-white shadow-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Zap className="w-5 h-5 mr-2" />
                 Flash Study Mode
@@ -199,7 +258,8 @@ export default function Home() {
                 onClick={startSpacedRepetition}
                 size="lg"
                 variant="outline"
-                className="h-14 text-base font-medium border-2 border-teal-200 text-teal-700 hover:bg-teal-50 hover:border-teal-300 transition-all duration-200"
+                disabled={hasReachedLimit}
+                className="h-14 text-base font-medium border-2 border-teal-200 text-teal-700 hover:bg-teal-50 hover:border-teal-300 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Brain className="w-5 h-5 mr-2" />
                 Spaced Repetition

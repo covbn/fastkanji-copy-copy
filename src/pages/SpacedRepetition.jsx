@@ -109,8 +109,9 @@ export default function SpacedRepetition() {
   // Use settings for rest intervals and FSRS parameters
   const restMinSeconds = settings?.rest_min_seconds || 90;
   const restMaxSeconds = settings?.rest_max_seconds || 150;
-  const restDurationSeconds = settings?.rest_duration_seconds || 600;
+  const restDurationSeconds = settings?.rest_duration_seconds || 10;
   const nightMode = settings?.night_mode || false;
+  const isPremium = settings?.subscription_status === 'premium';
   
   // FSRS settings
   const maxNewCardsPerDay = settings?.max_new_cards_per_day || 20;
@@ -133,6 +134,36 @@ export default function SpacedRepetition() {
     },
     enabled: !!user,
   });
+
+  // Track usage time and enforce limits
+  useEffect(() => {
+    if (!settings || !user || isPremium) return;
+
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const elapsedSeconds = Math.floor((now - sessionStartTime) / 1000);
+      const today = new Date().toISOString().split('T')[0];
+      const usageDate = settings.last_usage_date;
+      const dailyLimit = 7.5 * 60; // 7.5 minutes
+
+      // Determine current total usage for the day
+      let currentTotalUsage;
+      if (usageDate === today) {
+        currentTotalUsage = (settings.daily_usage_seconds || 0) + elapsedSeconds;
+      } else {
+        // If it's a new day, reset daily usage
+        currentTotalUsage = elapsedSeconds;
+      }
+      
+      if (currentTotalUsage >= dailyLimit) {
+        completeSession(); // This will trigger the updateUsageMutation
+        alert("Daily study limit reached (7.5 minutes). Upgrade to Premium for unlimited access!");
+      }
+    }, 5000); // Check every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [settings, user, isPremium, sessionStartTime]);
+
 
   // Count today's new cards and reviews
   useEffect(() => {
@@ -330,6 +361,30 @@ export default function SpacedRepetition() {
     },
   });
 
+  const updateUsageMutation = useMutation({
+    mutationFn: async (elapsedSeconds) => {
+      if (!settings || !user) return;
+      
+      const today = new Date().toISOString().split('T')[0];
+      const usageDate = settings.last_usage_date;
+      
+      let newUsage;
+      if (usageDate === today) {
+        newUsage = (settings.daily_usage_seconds || 0) + elapsedSeconds;
+      } else {
+        newUsage = elapsedSeconds; // Reset for a new day
+      }
+      
+      return base44.entities.UserSettings.update(settings.id, {
+        daily_usage_seconds: newUsage,
+        last_usage_date: today
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['userSettings'] });
+    },
+  });
+
   // Categorize cards with FSRS-4
   const cardCategories = React.useMemo(() => {
     if (!vocabulary.length) return { newCards: [], learningCards: [], dueCards: [] };
@@ -448,6 +503,11 @@ export default function SpacedRepetition() {
 
   const completeSession = () => {
     const duration = Math.floor((Date.now() - sessionStartTime) / 1000);
+    
+    // Update usage time for free users
+    if (!isPremium) {
+      updateUsageMutation.mutate(duration);
+    }
     
     createSessionMutation.mutate({
       mode,

@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge"; // Added Badge import
 import { Settings as SettingsIcon, Moon, Sun, Clock, Save, Brain } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -65,6 +66,7 @@ export default function Settings() {
   }, [settings]);
 
   const nightMode = settings?.night_mode || false;
+  const isPremium = settings?.subscription_status === 'premium'; // Added isPremium calculation
 
   const saveSettingsMutation = useMutation({
     mutationFn: async (data) => {
@@ -242,11 +244,16 @@ export default function Settings() {
         </Card>
 
         {/* Rest Intervals */}
-        <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
+        <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'} ${!isPremium ? 'opacity-50' : ''}`}>
           <CardHeader className={`border-b ${nightMode ? 'border-slate-700' : 'border-stone-200'}`}>
             <CardTitle className={`flex items-center gap-2 ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>
               <Clock className="w-5 h-5" />
               Random Rest Intervals
+              {!isPremium && (
+                <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-300 ml-2">
+                  Premium Only
+                </Badge>
+              )}
             </CardTitle>
             <CardDescription className={nightMode ? 'text-slate-400' : 'text-slate-600'}>
               Science-backed random breaks activate neuroplasticity 10x more effectively
@@ -263,6 +270,7 @@ export default function Settings() {
                   value={formData.rest_min_seconds}
                   onChange={(e) => setFormData({ ...formData, rest_min_seconds: parseInt(e.target.value) })}
                   className={nightMode ? 'bg-slate-700 border-slate-600 text-slate-100' : ''}
+                  disabled={!isPremium}
                 />
                 <p className={`text-xs ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Minimum time before rest</p>
               </div>
@@ -276,6 +284,7 @@ export default function Settings() {
                   value={formData.rest_max_seconds}
                   onChange={(e) => setFormData({ ...formData, rest_max_seconds: parseInt(e.target.value) })}
                   className={nightMode ? 'bg-slate-700 border-slate-600 text-slate-100' : ''}
+                  disabled={!isPremium}
                 />
                 <p className={`text-xs ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Maximum time before rest</p>
               </div>
@@ -289,10 +298,19 @@ export default function Settings() {
                   value={formData.rest_duration_seconds}
                   onChange={(e) => setFormData({ ...formData, rest_duration_seconds: parseInt(e.target.value) })}
                   className={nightMode ? 'bg-slate-700 border-slate-600 text-slate-100' : ''}
+                  disabled={!isPremium}
                 />
                 <p className={`text-xs ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>How long to rest</p>
               </div>
             </div>
+
+            {!isPremium && (
+              <div className={`${nightMode ? 'bg-slate-700' : 'bg-amber-50'} p-4 rounded-lg border ${nightMode ? 'border-slate-600' : 'border-amber-200'}`}>
+                <p className={`text-sm ${nightMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                  <strong>Upgrade to Premium</strong> to customize your rest interval settings and maximize your learning efficiency!
+                </p>
+              </div>
+            )}
 
             <div className={`${nightMode ? 'bg-slate-700' : 'bg-teal-50'} p-4 rounded-lg border ${nightMode ? 'border-slate-600' : 'border-teal-200'}`}>
               <p className={`text-sm ${nightMode ? 'text-slate-300' : 'text-slate-700'}`}>

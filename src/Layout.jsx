@@ -1,9 +1,10 @@
+
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { Zap, Brain, TrendingUp, Home, BookOpen, User } from "lucide-react";
+import { Zap, Brain, TrendingUp, Home, BookOpen, User, Crown } from "lucide-react"; // Added Crown import
 import { Settings as SettingsIcon, Wind } from "lucide-react";
 import {
   Sidebar,
@@ -85,6 +86,7 @@ export default function Layout({ children, currentPageName }) {
   });
 
   const nightMode = settings?.night_mode || false;
+  const isPremium = settings?.subscription_status === 'premium'; // Added isPremium
 
   return (
     <SidebarProvider>
@@ -180,6 +182,32 @@ export default function Layout({ children, currentPageName }) {
           </SidebarHeader>
           
           <SidebarContent className="p-3">
+            {/* Premium Badge */}
+            {!isPremium && (
+              <div className="px-3 py-2 mb-4">
+                <Link to={createPageUrl("Subscription")}>
+                  <div className="p-3 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white cursor-pointer hover:from-amber-600 hover:to-orange-600 transition-all">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Crown className="w-4 h-4" />
+                      <span className="font-semibold text-sm">Upgrade to Premium</span>
+                    </div>
+                    <p className="text-xs opacity-90">Unlock all features!</p>
+                  </div>
+                </Link>
+              </div>
+            )}
+
+            {isPremium && (
+              <div className="px-3 py-2 mb-4">
+                <div className="p-3 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white">
+                  <div className="flex items-center gap-2">
+                    <Crown className="w-4 h-4" />
+                    <span className="font-semibold text-sm">Premium Member</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <SidebarGroup>
               <SidebarGroupLabel className={`text-xs font-medium ${nightMode ? 'text-slate-400' : 'text-slate-500'} uppercase tracking-wider px-3 py-2`}>
                 Study

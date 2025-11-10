@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -63,10 +64,37 @@ export default function FlashStudy() {
   const restMaxSeconds = settings?.rest_max_seconds || 150;
   const restDurationSeconds = settings?.rest_duration_seconds || 10;
   const nightMode = settings?.night_mode || false;
+  const isPremium = settings?.subscription_status === 'premium';
 
   const [nextRestDuration, setNextRestDuration] = useState(() => {
     return Math.floor(Math.random() * (restMaxSeconds - restMinSeconds) * 1000) + (restMinSeconds * 1000);
   });
+
+  // Track usage time and enforce limits
+  useEffect(() => {
+    // Only apply limits if user is logged in, settings are loaded, and user is not premium
+    if (!settings || !user || isPremium) return;
+
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const elapsedSeconds = Math.floor((now - sessionStartTime) / 1000);
+      const today = new Date().toISOString().split('T')[0];
+      const usageDate = settings.last_usage_date;
+      const isNewDay = usageDate !== today;
+      
+      const dailyLimit = 7.5 * 60; // 7.5 minutes in seconds
+      // Calculate current total usage. If it's a new day, start with current session's elapsed seconds.
+      // Otherwise, add current session's elapsed seconds to previously recorded daily usage.
+      const currentTotalUsage = isNewDay ? elapsedSeconds : (settings.daily_usage_seconds || 0) + elapsedSeconds;
+
+      if (currentTotalUsage >= dailyLimit && !sessionComplete) {
+        completeSession(); // End session if limit reached
+        alert("Daily study limit reached (7.5 minutes). Upgrade to Premium for unlimited access!");
+      }
+    }, 5000); // Check every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [settings, user, isPremium, sessionStartTime, sessionComplete]); // Added sessionComplete to dependencies to avoid re-triggering alert after session ends
 
   const createSessionMutation = useMutation({
     mutationFn: (sessionData) => base44.entities.StudySession.create(sessionData),
@@ -102,6 +130,26 @@ export default function FlashStudy() {
           next_review: new Date(Date.now() + 86400000).toISOString(),
         });
       }
+    },
+  });
+
+  const updateUsageMutation = useMutation({
+    mutationFn: async (elapsedSeconds) => {
+      if (!settings || !user) return;
+      
+      const today = new Date().toISOString().split('T')[0];
+      const usageDate = settings.last_usage_date;
+      const isNewDay = usageDate !== today;
+      
+      const newUsage = isNewDay ? elapsedSeconds : (settings.daily_usage_seconds || 0) + elapsedSeconds;
+      
+      return base44.entities.UserSettings.update(settings.id, {
+        daily_usage_seconds: newUsage,
+        last_usage_date: today
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['userSettings'] });
     },
   });
 
@@ -197,6 +245,11 @@ export default function FlashStudy() {
 
   const completeSession = () => {
     const duration = Math.floor((Date.now() - sessionStartTime) / 1000);
+    
+    // Update usage time for free users
+    if (!isPremium) {
+      updateUsageMutation.mutate(duration);
+    }
     
     createSessionMutation.mutate({
       mode,
