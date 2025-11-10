@@ -35,6 +35,8 @@ export default function FlashStudy() {
   
   // Track streak for each card (need 2 correct in a row to be "learned")
   const [cardStreaks, setCardStreaks] = useState(new Map());
+
+  const [currentUsage, setCurrentUsage] = useState(0); // Track usage in real-time
   
   const { data: allVocabulary = [], isLoading: isLoadingAll } = useQuery({
     queryKey: ['allVocabulary'],
@@ -66,35 +68,37 @@ export default function FlashStudy() {
   const nightMode = settings?.night_mode || false;
   const isPremium = settings?.subscription_status === 'premium';
 
+  // Calculate remaining time
+  const dailyLimit = 7.5 * 60; // 7.5 minutes in seconds
+  const today = new Date().toISOString().split('T')[0];
+  const usageDate = settings?.last_usage_date;
+  const isNewDay = usageDate !== today;
+  const baseUsage = isNewDay ? 0 : (settings?.daily_usage_seconds || 0);
+  const totalUsage = baseUsage + currentUsage;
+  const remainingSeconds = Math.max(0, dailyLimit - totalUsage);
+
   const [nextRestDuration, setNextRestDuration] = useState(() => {
     return Math.floor(Math.random() * (restMaxSeconds - restMinSeconds) * 1000) + (restMinSeconds * 1000);
   });
 
-  // Track usage time and enforce limits
+  // Track usage time in real-time
   useEffect(() => {
-    // Only apply limits if user is logged in, settings are loaded, and user is not premium
-    if (!settings || !user || isPremium) return;
+    if (isPremium || sessionComplete) return;
 
     const interval = setInterval(() => {
-      const now = Date.now();
-      const elapsedSeconds = Math.floor((now - sessionStartTime) / 1000);
-      const today = new Date().toISOString().split('T')[0];
-      const usageDate = settings.last_usage_date;
-      const isNewDay = usageDate !== today;
-      
-      const dailyLimit = 7.5 * 60; // 7.5 minutes in seconds
-      // Calculate current total usage. If it's a new day, start with current session's elapsed seconds.
-      // Otherwise, add current session's elapsed seconds to previously recorded daily usage.
-      const currentTotalUsage = isNewDay ? elapsedSeconds : (settings.daily_usage_seconds || 0) + elapsedSeconds;
+      const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
+      setCurrentUsage(elapsed);
 
-      if (currentTotalUsage >= dailyLimit && !sessionComplete) {
-        completeSession(); // End session if limit reached
+      // Check if limit reached
+      if (baseUsage + elapsed >= dailyLimit) {
+        completeSession();
+        navigate(createPageUrl('Subscription'));
         alert("Daily study limit reached (7.5 minutes). Upgrade to Premium for unlimited access!");
       }
-    }, 5000); // Check every 5 seconds
+    }, 1000);
 
     return () => clearInterval(interval);
-  }, [settings, user, isPremium, sessionStartTime, sessionComplete]); // Added sessionComplete to dependencies to avoid re-triggering alert after session ends
+  }, [isPremium, sessionComplete, baseUsage, dailyLimit, sessionStartTime, navigate]);
 
   const createSessionMutation = useMutation({
     mutationFn: (sessionData) => base44.entities.StudySession.create(sessionData),
@@ -270,6 +274,12 @@ export default function FlashStudy() {
     setNextRestDuration(Math.floor(Math.random() * (restMaxSeconds - restMinSeconds) * 1000) + (restMinSeconds * 1000));
   };
 
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   if (isLoadingAll) {
     return (
       <div className="h-screen flex items-center justify-center">
@@ -327,14 +337,28 @@ export default function FlashStudy() {
   return (
     <div className={`h-screen flex flex-col ${nightMode ? 'bg-slate-900' : 'bg-gradient-to-br from-stone-100 via-teal-50 to-cyan-50'}`}>
       <div className={`border-b px-3 md:px-6 py-2 md:py-3 flex items-center justify-between ${nightMode ? 'bg-slate-800/80 backdrop-blur-sm border-slate-700' : 'bg-white/80 backdrop-blur-sm border-stone-200'}`}>
-        <AccuracyMeter
-          accuracy={accuracy}
-          correctCount={correctCount}
-          incorrectCount={incorrectCount}
-          currentCard={wordsLearned}
-          totalCards={sessionSize}
-          nightMode={nightMode}
-        />
+        <div className="flex items-center gap-4">
+          <AccuracyMeter
+            accuracy={accuracy}
+            correctCount={correctCount}
+            incorrectCount={incorrectCount}
+            currentCard={wordsLearned}
+            totalCards={sessionSize}
+            nightMode={nightMode}
+          />
+          
+          {!isPremium && (
+            <>
+              <div className={`h-6 w-px ${nightMode ? 'bg-slate-600' : 'bg-stone-300'}`}></div>
+              <div className="flex items-center gap-2">
+                <span className={`text-xs ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Free:</span>
+                <span className={`font-semibold text-sm ${remainingSeconds < 60 ? 'text-rose-600' : nightMode ? 'text-teal-400' : 'text-teal-600'}`}>
+                  {formatTime(remainingSeconds)}
+                </span>
+              </div>
+            </>
+          )}
+        </div>
         
         <Button
           onClick={handleEndSession}

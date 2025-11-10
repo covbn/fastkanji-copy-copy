@@ -4,7 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { Zap, Brain, TrendingUp, Home, BookOpen, User, Crown } from "lucide-react"; // Added Crown import
+import { Zap, Brain, TrendingUp, Home, BookOpen, User, Crown, MessageSquare } from "lucide-react"; // Added Crown and MessageSquare import
 import { Settings as SettingsIcon, Wind } from "lucide-react";
 import {
   Sidebar,
@@ -59,6 +59,11 @@ const bottomNavigationItems = [
     title: "Focus Exercise",
     url: createPageUrl("Focus"),
     icon: Wind,
+  },
+  {
+    title: "Feedback & Bugs",
+    url: createPageUrl("Feedback"),
+    icon: MessageSquare,
   },
   {
     title: "Settings",

@@ -8,18 +8,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { Textarea } from "@/components/ui/textarea"; // Although not directly used in new steps, it was part of original imports. Keep it.
 import { motion, AnimatePresence } from "framer-motion";
-import { Brain, Zap, Coffee, TrendingUp, ArrowRight, Sparkles } from "lucide-react";
+import { Brain, Zap, Coffee, TrendingUp, ArrowRight, Sparkles, Wind } from "lucide-react"; // Added Wind icon
 
 export default function Welcome() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [step, setStep] = useState(0);
-  const [formData, setFormData] = useState({
-    learning_goal: '',
-    daily_target: 20,
-  });
+  const [learningGoal, setLearningGoal] = useState('');
+  const [dailyTarget, setDailyTarget] = useState(20);
 
   const { data: user } = useQuery({
     queryKey: ['user'],
@@ -43,186 +41,196 @@ export default function Welcome() {
   });
 
   const handleComplete = () => {
-    createSettingsMutation.mutate(formData);
+    createSettingsMutation.mutate({ learning_goal: learningGoal, daily_target: dailyTarget });
   };
 
   const steps = [
     // Step 0: Welcome
     {
       title: "Welcome to FastKanji",
-      subtitle: "速く学ぶ • Learn Fast",
+      subtitle: "Your intelligent Japanese learning companion",
       content: (
         <div className="space-y-6">
-          <p className="text-lg text-slate-700 leading-relaxed">
-            FastKanji combines cutting-edge neuroscience with traditional Japanese learning 
-            to create the most effective vocabulary study system.
+          <div className="text-6xl text-center">速</div>
+          <p className="text-center text-slate-600">
+            FastKanji combines cutting-edge spaced repetition algorithms with science-backed learning techniques
+            to help you master Japanese vocabulary faster than ever before.
           </p>
-          
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="p-4 bg-teal-50 rounded-xl border border-teal-200">
-              <Zap className="w-8 h-8 text-teal-600 mb-2" />
-              <h3 className="font-bold mb-1 text-slate-800">Lightning Fast</h3>
-              <p className="text-sm text-slate-600">Study efficiently with optimized flashcards</p>
+          <div className="grid grid-cols-3 gap-4 text-center">
+            <div>
+              <div className="text-3xl font-bold text-teal-600">2,000+</div>
+              <p className="text-sm text-slate-500">Words</p>
             </div>
-            
-            <div className="p-4 bg-cyan-50 rounded-xl border border-cyan-200">
-              <Brain className="w-8 h-8 text-cyan-600 mb-2" />
-              <h3 className="font-bold mb-1 text-slate-800">Science-Backed</h3>
-              <p className="text-sm text-slate-600">Anki-style SRS for long-term retention</p>
+            <div>
+              <div className="text-3xl font-bold text-cyan-600">JLPT</div>
+              <p className="text-sm text-slate-500">All Levels</p>
+            </div>
+            <div>
+              <div className="text-3xl font-bold text-amber-600">AI</div>
+              <p className="text-sm text-slate-500">Powered</p>
             </div>
           </div>
-
           <Button
-            onClick={() => setStep(1)}
+            onClick={() => setStep(step + 1)}
             size="lg"
-            className="w-full h-14 text-lg bg-teal-600 hover:bg-teal-700 text-white"
+            className="w-full h-14 text-lg bg-teal-600 hover:bg-teal-700 text-white mt-8"
           >
-            Get Started
-            <ArrowRight className="w-5 h-5 ml-2" />
-          </Button>
-        </div>
-      )
-    },
-    
-    // Step 1: Random Rest Science
-    {
-      title: "The Power of Random Rest",
-      subtitle: "Activate 10x More Neural Pathways",
-      content: (
-        <div className="space-y-6">
-          <div className="bg-amber-50 p-6 rounded-xl border border-amber-200">
-            <Coffee className="w-10 h-10 text-amber-600 mb-3" />
-            <p className="text-slate-700 leading-relaxed mb-4">
-              Research shows that <strong>unpredictable rest intervals</strong> trigger heightened 
-              alertness and attention, activating neural pathways 10x more effectively than 
-              scheduled breaks.
-            </p>
-            <p className="text-sm text-slate-600">
-              Your brain stays alert when it doesn't know when the next break is coming, 
-              creating optimal conditions for learning and memory formation.
-            </p>
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded-full bg-teal-600 text-white flex items-center justify-center text-sm font-bold flex-shrink-0 mt-1">
-                1
-              </div>
-              <p className="text-slate-700">Random intervals between 1.5-2.5 minutes</p>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded-full bg-teal-600 text-white flex items-center justify-center text-sm font-bold flex-shrink-0 mt-1">
-                2
-              </div>
-              <p className="text-slate-700">10-second rest breaks to consolidate learning</p>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded-full bg-teal-600 text-white flex items-center justify-center text-sm font-bold flex-shrink-0 mt-1">
-                3
-              </div>
-              <p className="text-slate-700">Your brain stays primed and focused</p>
-            </div>
-          </div>
-
-          <Button
-            onClick={() => setStep(2)}
-            size="lg"
-            className="w-full h-14 text-lg bg-teal-600 hover:bg-teal-700 text-white"
-          >
-            Continue
+            Next Step
             <ArrowRight className="w-5 h-5 ml-2" />
           </Button>
         </div>
       )
     },
 
-    // Step 2: Focus Exercise
+    // Step 1: Science-Backed Learning
     {
-      title: "Prime Your Brain for Learning",
-      subtitle: "The Focus Exercise",
+      title: "Science-Backed Learning",
+      subtitle: "Neuroplasticity meets spaced repetition",
       content: (
-        <div className="space-y-6">
-          <div className="bg-cyan-50 p-6 rounded-xl border border-cyan-200">
-            <Brain className="w-10 h-10 text-cyan-600 mb-3" />
-            <p className="text-slate-700 leading-relaxed mb-4">
-              To trigger <strong>neuroplasticity</strong> (the brain's ability to form new connections), 
-              you must be alert. Our breathing exercise releases epinephrine (adrenaline), 
-              creating the optimal state for learning.
+        <div className="space-y-6"> {/* Changed from space-y-4 to space-y-6 for consistency with button below */}
+          <div className="p-4 bg-teal-50 rounded-lg border border-teal-200">
+            <h3 className="font-semibold text-teal-800 mb-2 flex items-center gap-2">
+              <Zap className="w-5 h-5" />
+              FSRS-4 Algorithm
+            </h3>
+            <p className="text-sm text-slate-700">
+              We use the same advanced algorithm as Anki to optimize your review schedule.
+              Learn more efficiently by studying cards exactly when you're about to forget them.
             </p>
           </div>
+          <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
+            <h3 className="font-semibold text-amber-800 mb-2 flex items-center gap-2">
+              <Wind className="w-5 h-5" />
+              Focus Exercise
+            </h3>
+            <p className="text-sm text-slate-700">
+              Before studying, try our 2-minute neuroplasticity-activating breathing exercise.
+              Research shows it can increase retention by up to 10x by priming your brain for learning.
+            </p>
+          </div>
+          <div className="p-4 bg-cyan-50 rounded-lg border border-cyan-200">
+            <h3 className="font-semibold text-cyan-800 mb-2 flex items-center gap-2">
+              <Brain className="w-5 h-5" />
+              Random Rest Intervals
+            </h3>
+            <p className="text-sm text-slate-700">
+              Unpredictable breaks during study sessions trigger heightened alertness and attention,
+              activating neural pathways more effectively than scheduled breaks.
+            </p>
+          </div>
+          <Button
+            onClick={() => setStep(step + 1)}
+            size="lg"
+            className="w-full h-14 text-lg bg-teal-600 hover:bg-teal-700 text-white mt-8"
+          >
+            Next Step
+            <ArrowRight className="w-5 h-5 ml-2" />
+          </Button>
+        </div>
+      )
+    },
 
-          <div className="space-y-3">
-            <h4 className="font-bold text-slate-900">The Protocol:</h4>
-            <ol className="space-y-2 text-slate-700">
-              <li>1. Take 25-30 deep breaths (nose in, mouth out)</li>
-              <li>2. Hold your breath with empty lungs for 15-60 seconds</li>
-              <li>3. Inhale once and hold briefly</li>
-              <li>4. Resume normal breathing</li>
+    // Step 2: Try the Focus Exercise
+    {
+      title: "Try the Focus Exercise",
+      subtitle: "Prime your brain for optimal learning",
+      content: (
+        <div className="space-y-6">
+          <div className="text-center space-y-4">
+            <div className="w-20 h-20 mx-auto bg-gradient-to-br from-teal-500 to-cyan-500 rounded-3xl flex items-center justify-center shadow-lg">
+              <Wind className="w-10 h-10 text-white" />
+            </div>
+            <p className="text-slate-600">
+              This quick 2-minute exercise activates neuroplasticity through controlled breathing and focus training.
+              Let's try it now!
+            </p>
+          </div>
+          <div className="p-4 bg-gradient-to-r from-teal-50 to-cyan-50 rounded-lg border border-teal-200">
+            <h3 className="font-semibold text-slate-800 mb-3">What you'll do:</h3>
+            <ol className="space-y-2 text-sm text-slate-700">
+              <li className="flex gap-2">
+                <span className="font-semibold text-teal-600">1.</span>
+                <span>20 deep breaths (guided automatically)</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="font-semibold text-teal-600">2.</span>
+                <span>Hold breath with empty lungs</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="font-semibold text-teal-600">3.</span>
+                <span>Deep breath hold for 15 seconds</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="font-semibold text-teal-600">4.</span>
+                <span>30-second focus dot exercise</span>
+              </li>
             </ol>
           </div>
-
-          <p className="text-sm text-slate-600 bg-amber-50 p-3 rounded-lg border border-amber-200">
-            💡 Do this before each study session to maximize retention and focus!
-          </p>
-
           <Button
-            onClick={() => setStep(3)}
+            onClick={() => navigate(createPageUrl('Focus'))}
             size="lg"
-            className="w-full h-14 text-lg bg-teal-600 hover:bg-teal-700 text-white"
+            className="w-full h-14 bg-teal-600 hover:bg-teal-700 text-white"
           >
-            Continue
-            <ArrowRight className="w-5 h-5 ml-2" />
+            <Wind className="w-5 h-5 mr-2" />
+            Start Focus Exercise
+          </Button>
+          {/* Add a 'Skip' or 'Continue' button to allow progression without navigating away, if desired for linear flow */}
+          <Button
+            onClick={() => setStep(step + 1)}
+            variant="ghost"
+            size="lg"
+            className="w-full mt-4 text-teal-600 hover:text-teal-700"
+          >
+            Skip for now & Continue
+            <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
         </div>
       )
     },
 
-    // Step 3: Goals
+    // Step 3: Set Your Goals
     {
-      title: "Set Your Learning Goals",
-      subtitle: "Customize Your Journey",
+      title: "Set Your Goals",
+      subtitle: "Personalize your learning experience",
       content: (
         <div className="space-y-6">
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="goal" className="text-base font-medium">
-                What's your learning goal?
-              </Label>
-              <Textarea
-                id="goal"
-                placeholder="E.g., Pass JLPT N3, read manga without subtitles, travel to Japan..."
-                value={formData.learning_goal}
-                onChange={(e) => setFormData({ ...formData, learning_goal: e.target.value })}
-                className="h-24 resize-none"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="target" className="text-base font-medium">
-                Daily study target (cards)
-              </Label>
-              <div className="grid grid-cols-4 gap-2">
-                {[20, 50, 100, 150].map((target) => (
-                  <Button
-                    key={target}
-                    type="button"
-                    variant={formData.daily_target === target ? "default" : "outline"}
-                    onClick={() => setFormData({ ...formData, daily_target: target })}
-                    className={formData.daily_target === target ? "bg-teal-600 hover:bg-teal-700" : ""}
-                  >
-                    {target}
-                  </Button>
-                ))}
-              </div>
-              <p className="text-sm text-slate-500">Choose how many cards you want to study daily</p>
+          <div>
+            <Label htmlFor="learningGoal" className="text-base font-semibold mb-3 block">What's your learning goal?</Label>
+            <Input
+              id="learningGoal"
+              placeholder="e.g., Pass JLPT N3, Travel to Japan, Read manga..."
+              value={learningGoal}
+              onChange={(e) => setLearningGoal(e.target.value)}
+              className="text-base"
+            />
+          </div>
+          <div>
+            <Label className="text-base font-semibold mb-3 block">Daily target (cards)</Label>
+            <div className="grid grid-cols-4 gap-2">
+              {[10, 20, 30, 50].map((target) => (
+                <Button
+                  key={target}
+                  type="button"
+                  variant={dailyTarget === target ? "default" : "outline"}
+                  onClick={() => setDailyTarget(target)}
+                  className={dailyTarget === target ? "bg-teal-600 hover:bg-teal-700 text-white" : "border-slate-300 hover:bg-slate-50"}
+                >
+                  {target}
+                </Button>
+              ))}
             </div>
           </div>
-
+          <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
+            <p className="text-sm text-slate-700">
+              <strong>Tip:</strong> Start with a manageable goal. Consistency matters more than quantity.
+              You can always adjust this later in settings!
+            </p>
+          </div>
           <Button
             onClick={handleComplete}
             size="lg"
             disabled={createSettingsMutation.isPending}
-            className="w-full h-14 text-lg bg-teal-600 hover:bg-teal-700 text-white"
+            className="w-full h-14 text-lg bg-teal-600 hover:bg-teal-700 text-white mt-8"
           >
             {createSettingsMutation.isPending ? (
               'Setting up...'
@@ -235,7 +243,7 @@ export default function Welcome() {
           </Button>
         </div>
       )
-    },
+    }
   ];
 
   return (

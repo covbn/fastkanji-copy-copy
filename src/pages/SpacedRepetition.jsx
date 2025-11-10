@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -81,6 +80,8 @@ export default function SpacedRepetition() {
   const [lastRestTime, setLastRestTime] = useState(Date.now());
   const [newCardsToday, setNewCardsToday] = useState(0);
   const [reviewsToday, setReviewsToday] = useState(0);
+
+  const [currentUsage, setCurrentUsage] = useState(0); // Track usage in real-time
   
   const { data: allVocabulary = [], isLoading: isLoadingAll } = useQuery({
     queryKey: ['allVocabulary'],
@@ -113,6 +114,15 @@ export default function SpacedRepetition() {
   const nightMode = settings?.night_mode || false;
   const isPremium = settings?.subscription_status === 'premium';
   
+  // Calculate remaining time
+  const dailyLimit = 7.5 * 60; // 7.5 minutes in seconds
+  const today = new Date().toISOString().split('T')[0];
+  const usageDate = settings?.last_usage_date;
+  const isNewDay = usageDate !== today;
+  const baseUsage = isNewDay ? 0 : (settings?.daily_usage_seconds || 0);
+  const totalUsage = baseUsage + currentUsage;
+  const remainingSeconds = Math.max(0, dailyLimit - totalUsage);
+  
   // FSRS settings
   const maxNewCardsPerDay = settings?.max_new_cards_per_day || 20;
   const maxReviewsPerDay = settings?.max_reviews_per_day || 200;
@@ -135,34 +145,24 @@ export default function SpacedRepetition() {
     enabled: !!user,
   });
 
-  // Track usage time and enforce limits
+  // Track usage time in real-time
   useEffect(() => {
-    if (!settings || !user || isPremium) return;
+    if (isPremium || sessionComplete) return;
 
     const interval = setInterval(() => {
-      const now = Date.now();
-      const elapsedSeconds = Math.floor((now - sessionStartTime) / 1000);
-      const today = new Date().toISOString().split('T')[0];
-      const usageDate = settings.last_usage_date;
-      const dailyLimit = 7.5 * 60; // 7.5 minutes
+      const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
+      setCurrentUsage(elapsed);
 
-      // Determine current total usage for the day
-      let currentTotalUsage;
-      if (usageDate === today) {
-        currentTotalUsage = (settings.daily_usage_seconds || 0) + elapsedSeconds;
-      } else {
-        // If it's a new day, reset daily usage
-        currentTotalUsage = elapsedSeconds;
-      }
-      
-      if (currentTotalUsage >= dailyLimit) {
-        completeSession(); // This will trigger the updateUsageMutation
+      // Check if limit reached
+      if (baseUsage + elapsed >= dailyLimit) {
+        completeSession();
+        navigate(createPageUrl('Subscription'));
         alert("Daily study limit reached (7.5 minutes). Upgrade to Premium for unlimited access!");
       }
-    }, 5000); // Check every 5 seconds
+    }, 1000);
 
     return () => clearInterval(interval);
-  }, [settings, user, isPremium, sessionStartTime]);
+  }, [isPremium, sessionComplete, baseUsage, dailyLimit, sessionStartTime, navigate, completeSession]);
 
 
   // Count today's new cards and reviews
@@ -534,6 +534,12 @@ export default function SpacedRepetition() {
     }
   };
 
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   if (isLoadingAll) {
     return (
       <div className="h-screen flex items-center justify-center">
@@ -638,8 +644,8 @@ export default function SpacedRepetition() {
             
             <div className={`h-6 w-px ${nightMode ? 'bg-slate-600' : 'bg-stone-300'} hidden md:block`}></div>
 
-            {/* Accuracy without progress */}
-            <div className="hidden md:block">
+            {/* Accuracy and Usage without progress */}
+            <div className="hidden md:flex items-center gap-3">
               <AccuracyMeter
                 accuracy={accuracy}
                 correctCount={correctCount}
@@ -649,6 +655,18 @@ export default function SpacedRepetition() {
                 nightMode={nightMode}
                 showProgress={false}
               />
+              
+              {!isPremium && (
+                <>
+                  <div className={`h-6 w-px ${nightMode ? 'bg-slate-600' : 'bg-stone-300'}`}></div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Free:</span>
+                    <span className={`font-semibold text-sm ${remainingSeconds < 60 ? 'text-rose-600' : nightMode ? 'text-teal-400' : 'text-teal-600'}`}>
+                      {formatTime(remainingSeconds)}
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
           

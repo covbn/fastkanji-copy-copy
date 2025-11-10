@@ -1,9 +1,10 @@
+
 import React from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { User, Award, Flame, Target, Trophy, Zap, Brain, BookOpen, Clock } from "lucide-react";
+import { User, Award, Flame, Target, Trophy, Zap, Brain, BookOpen, Clock, Wind } from "lucide-react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 
@@ -51,15 +52,23 @@ export default function Profile() {
     let streak = 0;
     const today = new Date().setHours(0, 0, 0, 0);
     
-    for (let i = 0; i < sessions.length; i++) {
-      const sessionDate = new Date(sessions[i].created_date).setHours(0, 0, 0, 0);
-      const daysDiff = Math.floor((today - sessionDate) / (1000 * 60 * 60 * 24));
-      
-      if (daysDiff === streak) {
+    // Sort sessions by date in descending order to ensure correctness
+    const sortedSessions = [...sessions].sort((a, b) => new Date(b.created_date).getTime() - new Date(a.created_date).getTime());
+
+    let lastSessionDate = today;
+
+    for (let i = 0; i < sortedSessions.length; i++) {
+      const sessionDate = new Date(sortedSessions[i].created_date).setHours(0, 0, 0, 0);
+      const daysDiff = Math.round((lastSessionDate - sessionDate) / (1000 * 60 * 60 * 24)); // Round to handle potential timezone issues for same day
+
+      if (daysDiff === 0) { // Same day as last recorded, continue
+        // Do nothing, already counted if it was yesterday
+      } else if (daysDiff === 1) { // Session was yesterday or day before if current streak is not consecutive
         streak++;
-      } else {
+      } else if (daysDiff > 1) { // Gap in streak
         break;
       }
+      lastSessionDate = sessionDate;
     }
     return streak;
   };
@@ -68,12 +77,14 @@ export default function Profile() {
   const totalHours = Math.floor(totalStudyTime / 3600);
   const totalMinutes = Math.floor((totalStudyTime % 3600) / 60);
 
+  const focusCount = settings?.focus_exercises_completed || 0;
+
   // FSRS-4 breakdown
   const newCards = progress.filter(p => !p.state || p.state === "New").length;
   const learningCards = progress.filter(p => p.state === "Learning" || p.state === "Relearning").length;
   const reviewCards = progress.filter(p => p.state === "Review").length;
 
-  // Achievements
+  // Achievements - expanded
   const achievements = [
     { 
       name: "First Steps", 
@@ -97,11 +108,32 @@ export default function Profile() {
       color: "bg-emerald-500"
     },
     { 
+      name: "Month Master", 
+      description: "Maintain a 30-day streak", 
+      icon: Flame,
+      unlocked: getStreak() >= 30,
+      color: "bg-rose-500"
+    },
+    { 
       name: "Vocabulary Master", 
       description: "Learn 100 words", 
       icon: BookOpen,
       unlocked: progress.length >= 100,
       color: "bg-indigo-500"
+    },
+    { 
+      name: "Vocabulary Expert", 
+      description: "Learn 500 words", 
+      icon: BookOpen,
+      unlocked: progress.length >= 500,
+      color: "bg-purple-500"
+    },
+    { 
+      name: "Kanji King", 
+      description: "Learn 1000 words", 
+      icon: BookOpen,
+      unlocked: progress.length >= 1000,
+      color: "bg-pink-500"
     },
     { 
       name: "Accuracy Expert", 
@@ -111,11 +143,60 @@ export default function Profile() {
       color: "bg-teal-500"
     },
     { 
+      name: "Perfect Score", 
+      description: "Get 100% accuracy in any session", 
+      icon: Award,
+      unlocked: sessions.some(s => s.accuracy === 100),
+      color: "bg-amber-600"
+    },
+    { 
       name: "Time Invested", 
       description: "Study for over 10 hours total", 
       icon: Clock,
       unlocked: totalHours >= 10,
       color: "bg-rose-500"
+    },
+    { 
+      name: "Marathon Learner", 
+      description: "Study for over 50 hours total", 
+      icon: Clock,
+      unlocked: totalHours >= 50,
+      color: "bg-indigo-600"
+    },
+    { 
+      name: "Focus Beginner", 
+      description: "Complete 5 focus exercises", 
+      icon: Wind,
+      unlocked: focusCount >= 5,
+      color: "bg-cyan-600"
+    },
+    { 
+      name: "Focus Practitioner", 
+      description: "Complete 25 focus exercises", 
+      icon: Wind,
+      unlocked: focusCount >= 25,
+      color: "bg-teal-600"
+    },
+    { 
+      name: "Focus Master", 
+      description: "Complete 100 focus exercises", 
+      icon: Wind,
+      unlocked: focusCount >= 100,
+      color: "bg-emerald-600"
+    },
+    { 
+      name: "Consistent Scholar", 
+      description: "Complete 50 study sessions", 
+      icon: Zap,
+      unlocked: sessions.length >= 50,
+      color: "bg-blue-500"
+    },
+    { 
+      name: "Knowledge Seeker", 
+      description: "Study 1000 total cards", 
+      icon: Target,
+      unlocked: totalCards >= 1000,
+      color: "bg-purple-600"
     },
   ];
 
@@ -162,7 +243,7 @@ export default function Profile() {
         </motion.div>
 
         {/* Stats Overview */}
-        <div className="grid md:grid-cols-4 gap-4">
+        <div className="grid md:grid-cols-5 gap-4">
           <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
             <CardContent className="p-6 text-center">
               <div className="w-12 h-12 mx-auto rounded-full bg-teal-500 flex items-center justify-center mb-3">
@@ -200,6 +281,16 @@ export default function Profile() {
               </div>
               <p className={`text-3xl font-bold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>{totalHours}h {totalMinutes}m</p>
               <p className={`text-sm mt-1 ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Study Time</p>
+            </CardContent>
+          </Card>
+
+          <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
+            <CardContent className="p-6 text-center">
+              <div className="w-12 h-12 mx-auto rounded-full bg-indigo-500 flex items-center justify-center mb-3">
+                <Wind className="w-6 h-6 text-white" />
+              </div>
+              <p className={`text-3xl font-bold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>{focusCount}</p>
+              <p className={`text-sm mt-1 ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Focus Exercises</p>
             </CardContent>
           </Card>
         </div>
@@ -253,13 +344,13 @@ export default function Profile() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6">
-            <div className="grid md:grid-cols-3 gap-4">
+            <div className="grid md:grid-cols-4 gap-4">
               {achievements.map((achievement, idx) => (
                 <motion.div
                   key={achievement.name}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.1 }}
+                  transition={{ delay: idx * 0.02 }}
                   className={`p-4 rounded-lg border ${
                     achievement.unlocked 
                       ? nightMode ? 'bg-slate-700 border-slate-600' : 'bg-white border-teal-200' 

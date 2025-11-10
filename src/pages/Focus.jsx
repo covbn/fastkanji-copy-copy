@@ -2,24 +2,27 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion, AnimatePresence } from "framer-motion";
-import { Wind, Play, Pause, RotateCcw, Home, Sparkles, Brain, X } from "lucide-react";
+import { Wind, Play, Pause, RotateCcw, Home, Sparkles, Brain, X, Eye } from "lucide-react";
 
 export default function Focus() {
   const navigate = useNavigate();
-  const [phase, setPhase] = useState("ready"); // ready, breathing, hold_empty, inhale_hold, complete
+  const queryClient = useQueryClient();
+  const [phase, setPhase] = useState("ready"); // ready, breathing, hold_empty, inhale_hold, dot_stare, complete
   const [breathCount, setBreathCount] = useState(0);
   const [holdTimer, setHoldTimer] = useState(0);
   const [isActive, setIsActive] = useState(false);
   const [breathPhase, setBreathPhase] = useState("inhale"); // inhale, exhale
   const [breathTimer, setBreathTimer] = useState(0);
+  const [dotTimer, setDotTimer] = useState(0);
 
-  const totalBreaths = 30;
+  const totalBreaths = 20;
   const inhaleSeconds = 4;
   const exhaleSeconds = 4;
+  const dotStareDuration = 30;
 
   const { data: user } = useQuery({
     queryKey: ['user'],
@@ -38,6 +41,18 @@ export default function Focus() {
 
   const nightMode = settings?.night_mode || false;
 
+  const updateFocusCountMutation = useMutation({
+    mutationFn: async () => {
+      if (!settings || !user) return;
+      return base44.entities.UserSettings.update(settings.id, {
+        focus_exercises_completed: (settings.focus_exercises_completed || 0) + 1
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['userSettings'] });
+    },
+  });
+
   // Automatic breathing timer
   useEffect(() => {
     let interval = null;
@@ -47,13 +62,11 @@ export default function Focus() {
           const cycleLength = inhaleSeconds + exhaleSeconds;
           const newTimer = prev + 1;
           
-          // Determine phase
           if (newTimer <= inhaleSeconds) {
             setBreathPhase("inhale");
           } else if (newTimer <= cycleLength) {
             setBreathPhase("exhale");
           } else {
-            // Complete one breath cycle
             const newCount = breathCount + 1;
             setBreathCount(newCount);
             
@@ -62,7 +75,7 @@ export default function Focus() {
               setHoldTimer(0);
               setIsActive(false);
             }
-            return 0; // Reset timer for next breath
+            return 0;
           }
           
           return newTimer;
@@ -83,6 +96,23 @@ export default function Focus() {
     return () => clearInterval(interval);
   }, [isActive, phase]);
 
+  // Dot stare timer
+  useEffect(() => {
+    let interval = null;
+    if (phase === "dot_stare") {
+      interval = setInterval(() => {
+        setDotTimer((prev) => {
+          if (prev + 1 >= dotStareDuration) {
+            finishExercise();
+            return prev;
+          }
+          return prev + 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [phase]);
+
   const startExercise = () => {
     setPhase("breathing");
     setBreathCount(0);
@@ -92,8 +122,7 @@ export default function Focus() {
   };
 
   const skipToEnd = () => {
-    setPhase("complete");
-    setIsActive(false);
+    finishExercise();
   };
 
   const finishEmptyHold = () => {
@@ -103,6 +132,13 @@ export default function Focus() {
   };
 
   const finishInhaleHold = () => {
+    setPhase("dot_stare");
+    setDotTimer(0);
+    setIsActive(false);
+  };
+
+  const finishExercise = () => {
+    updateFocusCountMutation.mutate();
     setPhase("complete");
     setIsActive(false);
   };
@@ -112,12 +148,8 @@ export default function Focus() {
     setBreathCount(0);
     setHoldTimer(0);
     setBreathTimer(0);
+    setDotTimer(0);
     setIsActive(false);
-  };
-
-  const getBreathProgress = () => {
-    const cycleLength = inhaleSeconds + exhaleSeconds;
-    return (breathTimer / cycleLength) * 100;
   };
 
   return (
@@ -142,14 +174,14 @@ export default function Focus() {
                     Focus Exercise
                   </h1>
                   <p className={nightMode ? 'text-slate-400 max-w-md mx-auto' : 'text-slate-600 max-w-md mx-auto'}>
-                    Prime your brain for peak learning with this neuroplasticity-activating breathing protocol
+                    Prime your brain for peak learning with this neuroplasticity-activating protocol
                   </p>
                 </div>
 
                 <div className={`p-6 rounded-xl border text-left space-y-3 ${nightMode ? 'bg-slate-700/50 border-slate-600' : 'bg-teal-50 border-teal-200'}`}>
                   <h3 className={`font-bold flex items-center gap-2 ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>
                     <Brain className="w-5 h-5 text-teal-600" />
-                    The Protocol
+                    The Protocol (~2 minutes)
                   </h3>
                   <ol className={`space-y-2 ${nightMode ? 'text-slate-300' : 'text-slate-700'}`}>
                     <li className="flex items-start gap-2">
@@ -166,7 +198,7 @@ export default function Focus() {
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="font-semibold text-teal-600">4.</span>
-                      <span>Resume normal breathing - you're ready!</span>
+                      <span>Focus on a dot for 30 seconds to sharpen attention</span>
                     </li>
                   </ol>
                 </div>
@@ -211,13 +243,13 @@ export default function Focus() {
                       duration: breathPhase === "inhale" ? inhaleSeconds : exhaleSeconds,
                       ease: "easeInOut"
                     }}
-                    className="w-32 h-32 mx-auto bg-gradient-to-br from-teal-500 to-cyan-500 rounded-full flex items-center justify-center shadow-xl relative"
+                    className="w-32 h-32 md:w-32 md:h-32 mx-auto rounded-full bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center shadow-xl relative"
                   >
                     <Wind className="w-16 h-16 text-white" />
                   </motion.div>
                   
                   <div className="space-y-2">
-                    <h2 className={`text-5xl font-bold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>
+                    <h2 className={`text-5xl font-bold px-4 ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>
                       {breathCount}/{totalBreaths}
                     </h2>
                     <p className={`text-2xl font-semibold ${breathPhase === 'inhale' ? 'text-teal-600' : 'text-cyan-600'}`}>
@@ -227,22 +259,14 @@ export default function Focus() {
                       Follow the circle
                     </p>
                   </div>
-
-                  {/* Progress bar */}
-                  <div className={`w-full h-2 rounded-full overflow-hidden ${nightMode ? 'bg-slate-700' : 'bg-stone-200'}`}>
-                    <motion.div
-                      className="h-full bg-teal-600"
-                      style={{ width: `${getBreathProgress()}%` }}
-                    />
-                  </div>
                 </div>
 
                 <Button
                   onClick={skipToEnd}
                   variant="outline"
+                  size="sm"
                   className={nightMode ? 'border-slate-600 text-slate-300 hover:bg-slate-700' : ''}
                 >
-                  <X className="w-4 h-4 mr-2" />
                   Skip Exercise
                 </Button>
               </motion.div>
@@ -314,7 +338,7 @@ export default function Focus() {
                     Hold deep breath
                   </p>
                   <p className={nightMode ? 'text-slate-400' : 'text-slate-500'}>
-                    Hold for ~15 seconds, then release
+                    Hold for ~15 seconds, then continue
                   </p>
                 </div>
 
@@ -323,7 +347,60 @@ export default function Focus() {
                   size="lg"
                   className="w-full h-16 text-xl bg-emerald-600 hover:bg-emerald-700"
                 >
-                  Complete Exercise
+                  Continue
+                </Button>
+              </motion.div>
+            )}
+
+            {/* Dot Stare Phase */}
+            {phase === "dot_stare" && (
+              <motion.div
+                key="dot_stare"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="text-center space-y-8"
+              >
+                <div className="space-y-4">
+                  <Eye className={`w-12 h-12 mx-auto ${nightMode ? 'text-slate-400' : 'text-slate-600'}`} />
+                  <h2 className={`text-3xl font-semibold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`} style={{fontFamily: "'Crimson Pro', serif"}}>
+                    Focus on the Dot
+                  </h2>
+                  <p className={nightMode ? 'text-slate-400' : 'text-slate-600'}>
+                    Stare at the dot without looking away. Blink as needed.
+                  </p>
+                </div>
+
+                {/* Dot */}
+                <motion.div
+                  animate={{
+                    scale: [1, 1.1, 1],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                  className="w-4 h-4 mx-auto rounded-full bg-teal-600 shadow-lg"
+                />
+
+                {/* Timer */}
+                <div className="space-y-2">
+                  <h3 className={`text-5xl font-bold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>
+                    {dotStareDuration - dotTimer}s
+                  </h3>
+                  <p className={`text-sm ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    remaining
+                  </p>
+                </div>
+
+                <Button
+                  onClick={finishExercise}
+                  variant="outline"
+                  size="sm"
+                  className={nightMode ? 'border-slate-600 text-slate-300 hover:bg-slate-700' : ''}
+                >
+                  Skip
                 </Button>
               </motion.div>
             )}

@@ -8,6 +8,7 @@ import Welcome from './pages/Welcome';
 import CardBrowser from './pages/CardBrowser';
 import Profile from './pages/Profile';
 import Subscription from './pages/Subscription';
+import Feedback from './pages/Feedback';
 import Layout from './Layout.jsx';
 
 
@@ -22,6 +23,7 @@ export const PAGES = {
     "CardBrowser": CardBrowser,
     "Profile": Profile,
     "Subscription": Subscription,
+    "Feedback": Feedback,
 }
 
 export const pagesConfig = {
