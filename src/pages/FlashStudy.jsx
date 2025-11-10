@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -24,7 +23,7 @@ export default function FlashStudy() {
   const [studyQueue, setStudyQueue] = useState([]);
   const [currentCard, setCurrentCard] = useState(null);
   const [cardsStudied, setCardsStudied] = useState(0);
-  const [wordsLearned, setWordsLearned] = useState(0); // Track words that achieved 2x correct
+  const [wordsLearned, setWordsLearned] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
   const [incorrectCount, setIncorrectCount] = useState(0);
   const [showRest, setShowRest] = useState(false);
@@ -32,11 +31,8 @@ export default function FlashStudy() {
   const [sessionStartTime] = useState(Date.now());
   const [reviewAfterRest, setReviewAfterRest] = useState([]);
   const [lastRestTime, setLastRestTime] = useState(Date.now());
-  
-  // Track streak for each card (need 2 correct in a row to be "learned")
   const [cardStreaks, setCardStreaks] = useState(new Map());
-
-  const [currentUsage, setCurrentUsage] = useState(0); // Track usage in real-time
+  const [currentUsage, setCurrentUsage] = useState(0);
   
   const { data: allVocabulary = [], isLoading: isLoadingAll } = useQuery({
     queryKey: ['allVocabulary'],
@@ -68,8 +64,7 @@ export default function FlashStudy() {
   const nightMode = settings?.night_mode || false;
   const isPremium = settings?.subscription_status === 'premium';
 
-  // Calculate remaining time
-  const dailyLimit = 7.5 * 60; // 7.5 minutes in seconds
+  const dailyLimit = 7.5 * 60;
   const today = new Date().toISOString().split('T')[0];
   const usageDate = settings?.last_usage_date;
   const isNewDay = usageDate !== today;
@@ -80,25 +75,6 @@ export default function FlashStudy() {
   const [nextRestDuration, setNextRestDuration] = useState(() => {
     return Math.floor(Math.random() * (restMaxSeconds - restMinSeconds) * 1000) + (restMinSeconds * 1000);
   });
-
-  // Track usage time in real-time
-  useEffect(() => {
-    if (isPremium || sessionComplete) return;
-
-    const interval = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
-      setCurrentUsage(elapsed);
-
-      // Check if limit reached
-      if (baseUsage + elapsed >= dailyLimit) {
-        completeSession();
-        navigate(createPageUrl('Subscription'));
-        alert("Daily study limit reached (7.5 minutes). Upgrade to Premium for unlimited access!");
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [isPremium, sessionComplete, baseUsage, dailyLimit, sessionStartTime, navigate]);
 
   const createSessionMutation = useMutation({
     mutationFn: (sessionData) => base44.entities.StudySession.create(sessionData),
@@ -157,7 +133,48 @@ export default function FlashStudy() {
     },
   });
 
-  // Initialize study queue
+  const totalAnswered = correctCount + incorrectCount;
+  const accuracy = totalAnswered > 0 ? (correctCount / totalAnswered) * 100 : 0;
+
+  // Define completeSession early using useCallback
+  const completeSession = useCallback(() => {
+    const duration = Math.floor((Date.now() - sessionStartTime) / 1000);
+    
+    if (!isPremium) {
+      updateUsageMutation.mutate(duration);
+    }
+    
+    createSessionMutation.mutate({
+      mode,
+      level,
+      total_cards: totalAnswered,
+      correct_answers: correctCount,
+      accuracy,
+      duration,
+      session_type: 'flash',
+    });
+
+    setSessionComplete(true);
+  }, [sessionStartTime, isPremium, updateUsageMutation, createSessionMutation, mode, level, totalAnswered, correctCount, accuracy]);
+
+  // Track usage time in real-time
+  useEffect(() => {
+    if (isPremium || sessionComplete) return;
+
+    const interval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
+      setCurrentUsage(elapsed);
+
+      if (baseUsage + elapsed >= dailyLimit) {
+        completeSession();
+        navigate(createPageUrl('Subscription'));
+        alert("Daily study limit reached (7.5 minutes). Upgrade to Premium for unlimited access!");
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isPremium, sessionComplete, baseUsage, dailyLimit, sessionStartTime, navigate, completeSession]);
+
   useEffect(() => {
     if (vocabulary.length > 0 && studyQueue.length === 0) {
       const shuffled = [...vocabulary].sort(() => Math.random() - 0.5);
@@ -165,17 +182,12 @@ export default function FlashStudy() {
       setStudyQueue(initial);
       setCurrentCard(initial[0]);
       
-      // Initialize streaks
       const streaks = new Map();
       initial.forEach(card => streaks.set(card.id, 0));
       setCardStreaks(streaks);
     }
   }, [vocabulary, sessionSize, studyQueue.length]);
 
-  const totalAnswered = correctCount + incorrectCount;
-  const accuracy = totalAnswered > 0 ? (correctCount / totalAnswered) * 100 : 0;
-
-  // Check for rest time
   useEffect(() => {
     const checkRestTime = setInterval(() => {
       const timeSinceLastRest = Date.now() - lastRestTime;
@@ -204,34 +216,27 @@ export default function FlashStudy() {
       correct
     });
 
-    // Update streak for this card
     const currentStreak = cardStreaks.get(currentCard.id) || 0;
     const newStreak = correct ? currentStreak + 1 : 0;
     const newStreaks = new Map(cardStreaks);
     newStreaks.set(currentCard.id, newStreak);
     setCardStreaks(newStreaks);
 
-    // Check if word is now "learned" (2 correct in a row)
     const wasLearned = newStreak >= 2 && currentStreak < 2;
     if (wasLearned) {
       setWordsLearned(prev => prev + 1);
     }
 
-    // Remove current card from queue
     let newQueue = studyQueue.slice(1);
     
-    // If wrong OR not yet 2 correct in a row, add back to queue
     if (!correct || newStreak < 2) {
-      // Add back at a random position (between 2-5 cards ahead)
       const insertPosition = Math.min(
         Math.floor(Math.random() * 4) + 2,
         newQueue.length
       );
       newQueue.splice(insertPosition, 0, currentCard);
     }
-    // else: card has 2 correct in a row, it's "learned" and removed from queue
 
-    // Check if session is complete (all words learned OR hit session size limit)
     if (wordsLearned + (wasLearned ? 1 : 0) >= sessionSize || newQueue.length === 0) {
       completeSession();
       return;
@@ -245,27 +250,6 @@ export default function FlashStudy() {
     if (window.confirm('Are you sure you want to end this session early? Your progress will be saved.')) {
       completeSession();
     }
-  };
-
-  const completeSession = () => {
-    const duration = Math.floor((Date.now() - sessionStartTime) / 1000);
-    
-    // Update usage time for free users
-    if (!isPremium) {
-      updateUsageMutation.mutate(duration);
-    }
-    
-    createSessionMutation.mutate({
-      mode,
-      level,
-      total_cards: totalAnswered,
-      correct_answers: correctCount,
-      accuracy,
-      duration,
-      session_type: 'flash',
-    });
-
-    setSessionComplete(true);
   };
 
   const continueAfterRest = () => {

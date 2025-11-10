@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { BookOpen, Brain, Clock } from "lucide-react";
-import { Button } from "@/components/ui/button"; // Assuming Button component is from shadcn/ui or similar
+import { Button } from "@/components/ui/button";
 
 import FlashCard from "../components/flash/FlashCard";
 import AccuracyMeter from "../components/flash/AccuracyMeter";
@@ -14,26 +14,24 @@ import SessionComplete from "../components/flash/SessionComplete";
 // FSRS-4 Algorithm Implementation
 class FSRS4 {
   constructor(params = {}) {
-    // FSRS-4 default parameters (optimized for general learning)
     this.w = params.w || [0.4, 0.6, 2.4, 5.8, 4.93, 0.94, 0.86, 0.01, 1.49, 0.14, 0.94, 2.18, 0.05, 0.34, 1.26, 0.29, 2.61];
     this.requestRetention = params.requestRetention || 0.9;
-    this.maximumInterval = params.maximumInterval || 36500; // 100 years
+    this.maximumInterval = params.maximumInterval || 36500;
   }
 
-  // Calculate memory stability after review
   calculateStability(state, difficulty, stability, rating) {
     if (state === "New") {
       return this.w[rating - 1];
     }
     
     if (state === "Review" || state === "Relearning") {
-      if (rating === 1) { // Again
+      if (rating === 1) {
         return this.w[11] * Math.pow(difficulty, -this.w[12]) * (Math.pow(stability + 1, this.w[13]) - 1) * Math.exp((1 - this.w[14]) * stability);
-      } else if (rating === 2) { // Hard
+      } else if (rating === 2) {
         return stability * (1 + Math.exp(this.w[15]) * (11 - difficulty) * Math.pow(stability, -this.w[16]) * (Math.exp((1 - this.w[14]) * stability) - 1));
-      } else if (rating === 3) { // Good
+      } else if (rating === 3) {
         return stability * (1 + Math.exp(this.w[8]) * (11 - difficulty) * Math.pow(stability, -this.w[9]) * (Math.exp((1 - this.w[10]) * stability) - 1));
-      } else { // Easy
+      } else {
         return stability * (1 + Math.exp(this.w[15]) * (11 - difficulty) * Math.pow(stability, -this.w[16]) * (Math.exp((1 - this.w[10]) * stability) - 1));
       }
     }
@@ -41,19 +39,16 @@ class FSRS4 {
     return stability;
   }
 
-  // Calculate difficulty after review
   calculateDifficulty(difficulty, rating) {
     const newDifficulty = difficulty - this.w[6] * (rating - 3);
     return Math.min(Math.max(newDifficulty, 1), 10);
   }
 
-  // Calculate next interval based on stability and desired retention
   calculateInterval(stability, desiredRetention) {
     const interval = Math.round(stability * Math.log(desiredRetention) / Math.log(0.9));
     return Math.min(Math.max(interval, 1), this.maximumInterval);
   }
 
-  // Get retrievability (probability of recall)
   getRetrievability(elapsedDays, stability) {
     return Math.pow(1 + elapsedDays / (9 * stability), -1);
   }
@@ -80,8 +75,7 @@ export default function SpacedRepetition() {
   const [lastRestTime, setLastRestTime] = useState(Date.now());
   const [newCardsToday, setNewCardsToday] = useState(0);
   const [reviewsToday, setReviewsToday] = useState(0);
-
-  const [currentUsage, setCurrentUsage] = useState(0); // Track usage in real-time
+  const [currentUsage, setCurrentUsage] = useState(0);
   
   const { data: allVocabulary = [], isLoading: isLoadingAll } = useQuery({
     queryKey: ['allVocabulary'],
@@ -107,15 +101,13 @@ export default function SpacedRepetition() {
     enabled: !!user,
   });
 
-  // Use settings for rest intervals and FSRS parameters
   const restMinSeconds = settings?.rest_min_seconds || 90;
   const restMaxSeconds = settings?.rest_max_seconds || 150;
   const restDurationSeconds = settings?.rest_duration_seconds || 10;
   const nightMode = settings?.night_mode || false;
   const isPremium = settings?.subscription_status === 'premium';
   
-  // Calculate remaining time
-  const dailyLimit = 7.5 * 60; // 7.5 minutes in seconds
+  const dailyLimit = 7.5 * 60;
   const today = new Date().toISOString().split('T')[0];
   const usageDate = settings?.last_usage_date;
   const isNewDay = usageDate !== today;
@@ -123,7 +115,6 @@ export default function SpacedRepetition() {
   const totalUsage = baseUsage + currentUsage;
   const remainingSeconds = Math.max(0, dailyLimit - totalUsage);
   
-  // FSRS settings
   const maxNewCardsPerDay = settings?.max_new_cards_per_day || 20;
   const maxReviewsPerDay = settings?.max_reviews_per_day || 200;
   const desiredRetention = settings?.desired_retention || 0.9;
@@ -145,6 +136,62 @@ export default function SpacedRepetition() {
     enabled: !!user,
   });
 
+  const totalAnswered = correctCount + incorrectCount;
+  const accuracy = totalAnswered > 0 ? (correctCount / totalAnswered) * 100 : 0;
+
+  const createSessionMutation = useMutation({
+    mutationFn: (sessionData) => base44.entities.StudySession.create(sessionData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recentSessions'] });
+      queryClient.invalidateQueries({ queryKey: ['allSessions'] });
+    },
+  });
+
+  const updateUsageMutation = useMutation({
+    mutationFn: async (elapsedSeconds) => {
+      if (!settings || !user) return;
+      
+      const today = new Date().toISOString().split('T')[0];
+      const usageDate = settings.last_usage_date;
+      
+      let newUsage;
+      if (usageDate === today) {
+        newUsage = (settings.daily_usage_seconds || 0) + elapsedSeconds;
+      } else {
+        newUsage = elapsedSeconds;
+      }
+      
+      return base44.entities.UserSettings.update(settings.id, {
+        daily_usage_seconds: newUsage,
+        last_usage_date: today
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['userSettings'] });
+    },
+  });
+
+  // Define completeSession early using useCallback
+  const completeSession = useCallback(() => {
+    const duration = Math.floor((Date.now() - sessionStartTime) / 1000);
+    
+    if (!isPremium) {
+      updateUsageMutation.mutate(duration);
+    }
+    
+    createSessionMutation.mutate({
+      mode,
+      level,
+      total_cards: totalAnswered,
+      correct_answers: correctCount,
+      accuracy,
+      duration,
+      session_type: 'spaced_repetition',
+    });
+
+    setSessionComplete(true);
+  }, [sessionStartTime, isPremium, updateUsageMutation, createSessionMutation, mode, level, totalAnswered, correctCount, accuracy]);
+
   // Track usage time in real-time
   useEffect(() => {
     if (isPremium || sessionComplete) return;
@@ -153,7 +200,6 @@ export default function SpacedRepetition() {
       const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
       setCurrentUsage(elapsed);
 
-      // Check if limit reached
       if (baseUsage + elapsed >= dailyLimit) {
         completeSession();
         navigate(createPageUrl('Subscription'));
@@ -164,8 +210,6 @@ export default function SpacedRepetition() {
     return () => clearInterval(interval);
   }, [isPremium, sessionComplete, baseUsage, dailyLimit, sessionStartTime, navigate, completeSession]);
 
-
-  // Count today's new cards and reviews
   useEffect(() => {
     if (userProgress.length > 0) {
       const today = new Date().setHours(0, 0, 0, 0);
@@ -181,14 +225,6 @@ export default function SpacedRepetition() {
       setReviewsToday(reviews);
     }
   }, [userProgress]);
-
-  const createSessionMutation = useMutation({
-    mutationFn: (sessionData) => base44.entities.StudySession.create(sessionData),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['recentSessions'] });
-      queryClient.invalidateQueries({ queryKey: ['allSessions'] });
-    },
-  });
 
   const updateProgressMutation = useMutation({
     mutationFn: async ({ vocabularyId, correct }) => {
@@ -210,7 +246,6 @@ export default function SpacedRepetition() {
         const lastReview = progress.last_reviewed ? new Date(progress.last_reviewed) : now;
         const elapsedDays = (now - lastReview) / (1000 * 60 * 60 * 24);
         
-        // Rating: 1 = Again, 2 = Hard, 3 = Good, 4 = Easy
         let rating = correct ? 3 : 1;
         
         let newState = state;
@@ -221,43 +256,40 @@ export default function SpacedRepetition() {
         let newLearningStep = progress.learning_step || 0;
 
         if (state === "New") {
-          // New card
           newStability = fsrs.calculateStability(state, difficulty, stability, rating);
           newDifficulty = fsrs.calculateDifficulty(difficulty, rating);
           
-          if (rating === 1) { // Again
-            newState = "Learning";
-            newLearningStep = 0;
-            newInterval = learningSteps[0] / (24 * 60); // Convert minutes to days
-            newNextReview = new Date(now.getTime() + learningSteps[0] * 60000);
-          } else if (rating === 2) { // Hard
+          if (rating === 1) {
             newState = "Learning";
             newLearningStep = 0;
             newInterval = learningSteps[0] / (24 * 60);
             newNextReview = new Date(now.getTime() + learningSteps[0] * 60000);
-          } else if (rating === 3) { // Good
+          } else if (rating === 2) {
             newState = "Learning";
             newLearningStep = 0;
             newInterval = learningSteps[0] / (24 * 60);
             newNextReview = new Date(now.getTime() + learningSteps[0] * 60000);
-          } else { // Easy - skip learning
+          } else if (rating === 3) {
+            newState = "Learning";
+            newLearningStep = 0;
+            newInterval = learningSteps[0] / (24 * 60);
+            newNextReview = new Date(now.getTime() + learningSteps[0] * 60000);
+          } else {
             newState = "Review";
             newInterval = easyInterval;
             newNextReview = new Date(now.getTime() + easyInterval * 86400000);
           }
         } else if (state === "Learning") {
-          // Learning card
           newStability = fsrs.calculateStability(state, difficulty, stability, rating);
           newDifficulty = fsrs.calculateDifficulty(difficulty, rating);
           
-          if (rating === 1) { // Again - restart learning
+          if (rating === 1) {
             newLearningStep = 0;
             newInterval = learningSteps[0] / (24 * 60);
             newNextReview = new Date(now.getTime() + learningSteps[0] * 60000);
           } else {
             newLearningStep++;
             if (newLearningStep >= learningSteps.length) {
-              // Graduate to review
               newState = "Review";
               newInterval = graduatingInterval;
               newNextReview = new Date(now.getTime() + graduatingInterval * 86400000);
@@ -267,11 +299,10 @@ export default function SpacedRepetition() {
             }
           }
         } else if (state === "Review") {
-          // Review card
           newStability = fsrs.calculateStability(state, difficulty, stability, rating);
           newDifficulty = fsrs.calculateDifficulty(difficulty, rating);
           
-          if (rating === 1) { // Again - move to relearning
+          if (rating === 1) {
             newState = "Relearning";
             newLearningStep = 0;
             newInterval = relearningSteps[0] / (24 * 60);
@@ -281,18 +312,16 @@ export default function SpacedRepetition() {
             newNextReview = new Date(now.getTime() + newInterval * 86400000);
           }
         } else if (state === "Relearning") {
-          // Relearning card
           newStability = fsrs.calculateStability(state, difficulty, stability, rating);
           newDifficulty = fsrs.calculateDifficulty(difficulty, rating);
           
-          if (rating === 1) { // Again - restart relearning
+          if (rating === 1) {
             newLearningStep = 0;
             newInterval = relearningSteps[0] / (24 * 60);
             newNextReview = new Date(now.getTime() + relearningSteps[0] * 60000);
           } else {
             newLearningStep++;
             if (newLearningStep >= relearningSteps.length) {
-              // Graduate back to review
               newState = "Review";
               newInterval = fsrs.calculateInterval(newStability, desiredRetention);
               newNextReview = new Date(now.getTime() + newInterval * 86400000);
@@ -318,7 +347,6 @@ export default function SpacedRepetition() {
           learning_step: newLearningStep,
         });
       } else {
-        // Brand new card
         const fsrs = new FSRS4({ requestRetention: desiredRetention });
         const rating = correct ? 3 : 1;
         const stability = fsrs.calculateStability("New", 5, 0, rating);
@@ -328,7 +356,7 @@ export default function SpacedRepetition() {
         let state;
         let interval;
         
-        if (rating === 4) { // Easy - skip learning
+        if (rating === 4) {
           state = "Review";
           interval = easyInterval;
           nextReview = new Date(now.getTime() + easyInterval * 86400000);
@@ -361,31 +389,6 @@ export default function SpacedRepetition() {
     },
   });
 
-  const updateUsageMutation = useMutation({
-    mutationFn: async (elapsedSeconds) => {
-      if (!settings || !user) return;
-      
-      const today = new Date().toISOString().split('T')[0];
-      const usageDate = settings.last_usage_date;
-      
-      let newUsage;
-      if (usageDate === today) {
-        newUsage = (settings.daily_usage_seconds || 0) + elapsedSeconds;
-      } else {
-        newUsage = elapsedSeconds; // Reset for a new day
-      }
-      
-      return base44.entities.UserSettings.update(settings.id, {
-        daily_usage_seconds: newUsage,
-        last_usage_date: today
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userSettings'] });
-    },
-  });
-
-  // Categorize cards with FSRS-4
   const cardCategories = React.useMemo(() => {
     if (!vocabulary.length) return { newCards: [], learningCards: [], dueCards: [] };
     
@@ -414,7 +417,6 @@ export default function SpacedRepetition() {
       }
     });
 
-    // Sort by priority
     learningCards.sort((a, b) => 
       new Date(a.progress.next_review) - new Date(b.progress.next_review)
     );
@@ -425,30 +427,24 @@ export default function SpacedRepetition() {
     return { newCards, learningCards, dueCards };
   }, [vocabulary, userProgress]);
 
-  // Build study queue - NO SESSION SIZE LIMIT, continues until all cards are done
   const buildQueue = React.useMemo(() => {
     const { newCards, learningCards, dueCards } = cardCategories;
     const queue = [];
     
-    // Add due review cards first (most important, NO LIMIT)
     const remainingReviews = maxReviewsPerDay - reviewsToday;
     const dueWords = dueCards.map(d => d.word).slice(0, Math.max(0, remainingReviews));
     queue.push(...dueWords);
     
-    // Add ALL learning/relearning cards (always show these, NO LIMIT)
     const learningWords = learningCards.map(l => l.word);
     queue.push(...learningWords);
     
-    // Add new cards (respecting daily limit)
     const remainingNew = maxNewCardsPerDay - newCardsToday;
     const newWordsToAdd = newCards.slice(0, Math.max(0, remainingNew));
     queue.push(...newWordsToAdd);
     
-    // NO sessionSize limit - return all cards that need to be studied
     return queue;
   }, [cardCategories, maxNewCardsPerDay, maxReviewsPerDay, newCardsToday, reviewsToday]);
 
-  // Initialize study queue
   useEffect(() => {
     if (buildQueue.length > 0 && studyQueue.length === 0) {
       setStudyQueue(buildQueue);
@@ -456,10 +452,6 @@ export default function SpacedRepetition() {
     }
   }, [buildQueue, studyQueue.length]);
 
-  const totalAnswered = correctCount + incorrectCount;
-  const accuracy = totalAnswered > 0 ? (correctCount / totalAnswered) * 100 : 0;
-
-  // Check for rest time
   useEffect(() => {
     const checkRestTime = setInterval(() => {
       const timeSinceLastRest = Date.now() - lastRestTime;
@@ -488,10 +480,8 @@ export default function SpacedRepetition() {
       correct
     });
 
-    // Remove current card from queue
     const newQueue = studyQueue.slice(1);
 
-    // Session is complete only when queue is empty (no more cards to study)
     if (newQueue.length === 0) {
       completeSession();
       return;
@@ -499,27 +489,6 @@ export default function SpacedRepetition() {
 
     setStudyQueue(newQueue);
     setCurrentCard(newQueue[0]);
-  };
-
-  const completeSession = () => {
-    const duration = Math.floor((Date.now() - sessionStartTime) / 1000);
-    
-    // Update usage time for free users
-    if (!isPremium) {
-      updateUsageMutation.mutate(duration);
-    }
-    
-    createSessionMutation.mutate({
-      mode,
-      level,
-      total_cards: totalAnswered,
-      correct_answers: correctCount,
-      accuracy,
-      duration,
-      session_type: 'spaced_repetition',
-    });
-
-    setSessionComplete(true);
   };
 
   const continueAfterRest = () => {
@@ -614,11 +583,8 @@ export default function SpacedRepetition() {
     );
   }
 
-  const totalCards = buildQueue.length;
-
   return (
     <div className={`h-screen flex flex-col ${nightMode ? 'bg-slate-900' : 'bg-gradient-to-br from-stone-100 via-teal-50 to-cyan-50'}`}>
-      {/* FSRS-4 card counts */}
       <div className={`border-b px-3 md:px-6 py-2 md:py-3 ${nightMode ? 'bg-slate-800/80 backdrop-blur-sm border-slate-700' : 'bg-white/80 backdrop-blur-sm border-stone-200'}`}>
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3 md:gap-6">
@@ -644,7 +610,6 @@ export default function SpacedRepetition() {
             
             <div className={`h-6 w-px ${nightMode ? 'bg-slate-600' : 'bg-stone-300'} hidden md:block`}></div>
 
-            {/* Accuracy and Usage without progress */}
             <div className="hidden md:flex items-center gap-3">
               <AccuracyMeter
                 accuracy={accuracy}
