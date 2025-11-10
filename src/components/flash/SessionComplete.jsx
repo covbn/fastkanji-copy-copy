@@ -29,7 +29,7 @@ export default function SessionComplete({ correctCount, incorrectCount, accuracy
   const isGood = accuracy >= 75;
 
   return (
-    <div className={`h-screen flex items-center justify-center p-4 overflow-y-auto ${nightMode ? 'bg-slate-900' : 'bg-gradient-to-br from-teal-50 via-cyan-50 to-stone-50'}`}>
+    <div className={`min-h-screen flex items-center justify-center p-4 ${nightMode ? 'bg-slate-900' : 'bg-gradient-to-br from-teal-50 via-cyan-50 to-stone-50'}`}>
       <motion.div
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -113,7 +113,7 @@ export default function SessionComplete({ correctCount, incorrectCount, accuracy
               <h3 className={`text-lg font-semibold mb-3 ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>
                 Words to Review
               </h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-32 overflow-y-auto custom-scrollbar">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-40 overflow-y-auto custom-scrollbar">
                 {reviewWords.map((word, idx) => (
                   <div
                     key={idx}

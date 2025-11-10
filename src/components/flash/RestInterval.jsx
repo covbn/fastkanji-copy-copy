@@ -69,12 +69,6 @@ export default function RestInterval({ onContinue, duration = 600 }) {
           Take this time to rest your eyes, stretch, or have a drink of water
         </p>
 
-        {/* Ad Banner Placeholder */}
-        <div className={`backdrop-blur-sm border rounded-2xl p-6 md:p-8 mx-4 ${nightMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white/50 border-stone-200'}`}>
-          <p className={`text-sm ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Advertisement Space</p>
-          <p className={`text-xs mt-1 ${nightMode ? 'text-slate-500' : 'text-slate-400'}`}>Banner ad could be displayed here</p>
-        </div>
-
         {/* Continue Button - only show when countdown is 0 */}
         {countdown === 0 && (
           <motion.div

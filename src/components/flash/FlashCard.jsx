@@ -43,6 +43,7 @@ export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSente
   };
 
   const shouldShowExample = showExampleSentences && vocabulary.example_sentence;
+  const isReadingToMeaning = mode === 'reading_to_meaning';
 
   return (
     <motion.div
@@ -61,6 +62,17 @@ export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSente
               <p className="text-xs md:text-sm font-medium text-slate-500 uppercase tracking-wider">
                 {getModeDisplay()}
               </p>
+
+              {/* Example sentence hint for reading_to_meaning (before reveal) */}
+              {isReadingToMeaning && shouldShowExample && !revealed && (
+                <div className="text-xs text-slate-400 mb-2 px-4">
+                  <p 
+                    className="italic"
+                    dangerouslySetInnerHTML={{ __html: vocabulary.example_sentence }}
+                  />
+                </div>
+              )}
+
               <motion.div
                 className="text-5xl sm:text-6xl md:text-7xl font-light text-slate-800 min-h-[60px] md:min-h-[80px] flex items-center justify-center px-2 break-all"
                 style={{fontFamily: "'Crimson Pro', serif"}}
@@ -113,7 +125,7 @@ export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSente
                     </p>
                   </div>
 
-                  {/* Example - at bottom */}
+                  {/* Example - at bottom (for all modes after reveal, or reading_to_meaning with translation) */}
                   {shouldShowExample && (
                     <motion.div
                       initial={{ opacity: 0 }}
@@ -121,12 +133,14 @@ export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSente
                       className="text-xs md:text-sm text-slate-600 p-3 md:p-4 bg-stone-50 rounded-lg border border-stone-200 max-h-24 overflow-y-auto custom-scrollbar"
                     >
                       <p className="font-medium mb-1.5 text-teal-700 text-xs md:text-sm">Example</p>
-                      <p 
-                        className="text-slate-700 text-xs md:text-sm mb-1.5 break-words" 
-                        style={{fontFamily: "'Crimson Pro', serif"}}
-                        dangerouslySetInnerHTML={{ __html: vocabulary.example_sentence }}
-                      />
-                      {vocabulary.example_sentence_kana && (
+                      {!isReadingToMeaning && (
+                        <p 
+                          className="text-slate-700 text-xs md:text-sm mb-1.5 break-words" 
+                          style={{fontFamily: "'Crimson Pro', serif"}}
+                          dangerouslySetInnerHTML={{ __html: vocabulary.example_sentence }}
+                        />
+                      )}
+                      {vocabulary.example_sentence_kana && !isReadingToMeaning && (
                         <p 
                           className="text-slate-500 text-xs mb-1.5 break-words"
                           dangerouslySetInnerHTML={{ __html: vocabulary.example_sentence_kana }}

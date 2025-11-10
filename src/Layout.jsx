@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { Zap, Brain, TrendingUp, Home, BookOpen } from "lucide-react";
+import { Zap, Brain, TrendingUp, Home, BookOpen, User } from "lucide-react";
 import { Settings as SettingsIcon, Wind } from "lucide-react";
 import {
   Sidebar,
@@ -45,6 +45,11 @@ const navigationItems = [
     title: "Progress",
     url: createPageUrl("Progress"),
     icon: TrendingUp,
+  },
+  {
+    title: "Profile",
+    url: createPageUrl("Profile"),
+    icon: User,
   },
 ];
 
@@ -166,7 +171,7 @@ export default function Layout({ children, currentPageName }) {
                 <span className="text-2xl">速</span>
               </div>
               <div>
-                <h2 className="font-semibold text-xl text-slate-800" style={{fontFamily: "'Crimson Pro', serif"}}>
+                <h2 className={`font-semibold text-xl ${nightMode ? 'text-slate-100' : 'text-slate-800'}`} style={{fontFamily: "'Crimson Pro', serif"}}>
                   FastKanji
                 </h2>
                 <p className={`text-xs ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>速く学ぶ</p>
@@ -247,7 +252,7 @@ export default function Layout({ children, currentPageName }) {
           <header className={`${nightMode ? 'bg-slate-800/95 border-slate-700' : 'bg-white/95 border-stone-200'} backdrop-blur-sm border-b px-6 py-4 md:hidden`}>
             <div className="flex items-center gap-4">
               <SidebarTrigger className={`${nightMode ? 'hover:bg-slate-700' : 'hover:bg-stone-100'} p-2 rounded-lg transition-colors duration-200`} />
-              <h1 className="text-xl font-semibold text-slate-800" style={{fontFamily: "'Crimson Pro', serif"}}>
+              <h1 className={`text-xl font-semibold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`} style={{fontFamily: "'Crimson Pro', serif"}}>
                 FastKanji
               </h1>
             </div>

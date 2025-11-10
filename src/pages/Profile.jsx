@@ -1,0 +1,302 @@
+import React from "react";
+import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { User, Award, Flame, Target, Trophy, Zap, Brain, BookOpen, Clock } from "lucide-react";
+import { motion } from "framer-motion";
+import { format } from "date-fns";
+
+export default function Profile() {
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  const { data: settings } = useQuery({
+    queryKey: ['userSettings', user?.email],
+    queryFn: async () => {
+      if (!user) return null;
+      const existing = await base44.entities.UserSettings.filter({ user_email: user.email });
+      return existing.length > 0 ? existing[0] : null;
+    },
+    enabled: !!user,
+  });
+
+  const nightMode = settings?.night_mode || false;
+
+  const { data: sessions = [] } = useQuery({
+    queryKey: ['allSessions'],
+    queryFn: () => base44.entities.StudySession.list('-created_date', 100),
+  });
+
+  const { data: progress = [] } = useQuery({
+    queryKey: ['userProgress'],
+    queryFn: async () => {
+      if (!user) return [];
+      return base44.entities.UserProgress.filter({ user_email: user.email });
+    },
+    enabled: !!user,
+  });
+
+  // Calculate stats
+  const totalCards = sessions.reduce((sum, s) => sum + s.total_cards, 0);
+  const totalCorrect = sessions.reduce((sum, s) => sum + s.correct_answers, 0);
+  const avgAccuracy = sessions.length > 0 
+    ? sessions.reduce((sum, s) => sum + s.accuracy, 0) / sessions.length 
+    : 0;
+
+  const getStreak = () => {
+    if (sessions.length === 0) return 0;
+    let streak = 0;
+    const today = new Date().setHours(0, 0, 0, 0);
+    
+    for (let i = 0; i < sessions.length; i++) {
+      const sessionDate = new Date(sessions[i].created_date).setHours(0, 0, 0, 0);
+      const daysDiff = Math.floor((today - sessionDate) / (1000 * 60 * 60 * 24));
+      
+      if (daysDiff === streak) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+    return streak;
+  };
+
+  const totalStudyTime = sessions.reduce((sum, s) => sum + (s.duration || 0), 0);
+  const totalHours = Math.floor(totalStudyTime / 3600);
+  const totalMinutes = Math.floor((totalStudyTime % 3600) / 60);
+
+  // FSRS-4 breakdown
+  const newCards = progress.filter(p => !p.state || p.state === "New").length;
+  const learningCards = progress.filter(p => p.state === "Learning" || p.state === "Relearning").length;
+  const reviewCards = progress.filter(p => p.state === "Review").length;
+
+  // Achievements
+  const achievements = [
+    { 
+      name: "First Steps", 
+      description: "Complete your first study session", 
+      icon: Zap,
+      unlocked: sessions.length >= 1,
+      color: "bg-cyan-500"
+    },
+    { 
+      name: "Dedicated Learner", 
+      description: "Study for 3 days in a row", 
+      icon: Flame,
+      unlocked: getStreak() >= 3,
+      color: "bg-amber-500"
+    },
+    { 
+      name: "Week Warrior", 
+      description: "Maintain a 7-day streak", 
+      icon: Trophy,
+      unlocked: getStreak() >= 7,
+      color: "bg-emerald-500"
+    },
+    { 
+      name: "Vocabulary Master", 
+      description: "Learn 100 words", 
+      icon: BookOpen,
+      unlocked: progress.length >= 100,
+      color: "bg-indigo-500"
+    },
+    { 
+      name: "Accuracy Expert", 
+      description: "Achieve 90%+ accuracy in 5 sessions", 
+      icon: Target,
+      unlocked: sessions.filter(s => s.accuracy >= 90).length >= 5,
+      color: "bg-teal-500"
+    },
+    { 
+      name: "Time Invested", 
+      description: "Study for over 10 hours total", 
+      icon: Clock,
+      unlocked: totalHours >= 10,
+      color: "bg-rose-500"
+    },
+  ];
+
+  const unlockedCount = achievements.filter(a => a.unlocked).length;
+
+  if (!user) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
+          <p className="text-slate-600">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`min-h-screen p-4 md:p-8 ${nightMode ? 'bg-slate-900' : 'bg-stone-50'}`}>
+      <div className="max-w-6xl mx-auto space-y-8">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center space-y-4"
+        >
+          <div className={`w-24 h-24 mx-auto rounded-full flex items-center justify-center ${nightMode ? 'bg-slate-800' : 'bg-gradient-to-br from-teal-500 to-cyan-500'} shadow-lg`}>
+            <span className="text-4xl">学</span>
+          </div>
+          <div>
+            <h1 className={`text-4xl font-semibold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`} style={{fontFamily: "'Crimson Pro', serif"}}>
+              {user.full_name || "Learner"}
+            </h1>
+            <p className={nightMode ? 'text-slate-400' : 'text-slate-600'}>{user.email}</p>
+            <div className="flex items-center justify-center gap-2 mt-2">
+              <Badge className="bg-teal-500 text-white">
+                <Flame className="w-3 h-3 mr-1" />
+                {getStreak()} Day Streak
+              </Badge>
+              <Badge variant="outline" className={nightMode ? 'border-slate-600 text-slate-300' : ''}>
+                Level {Math.floor(progress.length / 50) + 1}
+              </Badge>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Stats Overview */}
+        <div className="grid md:grid-cols-4 gap-4">
+          <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
+            <CardContent className="p-6 text-center">
+              <div className="w-12 h-12 mx-auto rounded-full bg-teal-500 flex items-center justify-center mb-3">
+                <Zap className="w-6 h-6 text-white" />
+              </div>
+              <p className={`text-3xl font-bold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>{sessions.length}</p>
+              <p className={`text-sm mt-1 ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Sessions</p>
+            </CardContent>
+          </Card>
+
+          <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
+            <CardContent className="p-6 text-center">
+              <div className="w-12 h-12 mx-auto rounded-full bg-emerald-500 flex items-center justify-center mb-3">
+                <Target className="w-6 h-6 text-white" />
+              </div>
+              <p className={`text-3xl font-bold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>{totalCards}</p>
+              <p className={`text-sm mt-1 ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Cards Studied</p>
+            </CardContent>
+          </Card>
+
+          <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
+            <CardContent className="p-6 text-center">
+              <div className="w-12 h-12 mx-auto rounded-full bg-cyan-500 flex items-center justify-center mb-3">
+                <Award className="w-6 h-6 text-white" />
+              </div>
+              <p className={`text-3xl font-bold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>{avgAccuracy.toFixed(0)}%</p>
+              <p className={`text-sm mt-1 ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Avg Accuracy</p>
+            </CardContent>
+          </Card>
+
+          <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
+            <CardContent className="p-6 text-center">
+              <div className="w-12 h-12 mx-auto rounded-full bg-amber-500 flex items-center justify-center mb-3">
+                <Clock className="w-6 h-6 text-white" />
+              </div>
+              <p className={`text-3xl font-bold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>{totalHours}h {totalMinutes}m</p>
+              <p className={`text-sm mt-1 ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Study Time</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* FSRS-4 Progress */}
+        <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
+          <CardHeader className={`border-b ${nightMode ? 'border-slate-700' : 'border-stone-200'}`}>
+            <CardTitle className={`flex items-center gap-2 ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>
+              <Brain className="w-5 h-5 text-teal-600" />
+              Learning Progress (FSRS-4)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className={`p-4 rounded-lg border ${nightMode ? 'bg-slate-700 border-slate-600' : 'bg-cyan-50 border-cyan-200'}`}>
+                <div className="flex items-center gap-3 mb-2">
+                  <BookOpen className="w-5 h-5 text-cyan-600" />
+                  <p className={`font-semibold ${nightMode ? 'text-slate-200' : 'text-slate-800'}`}>New</p>
+                </div>
+                <p className={`text-3xl font-bold ${nightMode ? 'text-cyan-400' : 'text-cyan-700'}`}>{newCards}</p>
+                <p className={`text-sm mt-1 ${nightMode ? 'text-slate-400' : 'text-slate-600'}`}>Words not yet started</p>
+              </div>
+
+              <div className={`p-4 rounded-lg border ${nightMode ? 'bg-slate-700 border-slate-600' : 'bg-amber-50 border-amber-200'}`}>
+                <div className="flex items-center gap-3 mb-2">
+                  <Zap className="w-5 h-5 text-amber-600" />
+                  <p className={`font-semibold ${nightMode ? 'text-slate-200' : 'text-slate-800'}`}>Learning</p>
+                </div>
+                <p className={`text-3xl font-bold ${nightMode ? 'text-amber-400' : 'text-amber-700'}`}>{learningCards}</p>
+                <p className={`text-sm mt-1 ${nightMode ? 'text-slate-400' : 'text-slate-600'}`}>Currently learning</p>
+              </div>
+
+              <div className={`p-4 rounded-lg border ${nightMode ? 'bg-slate-700 border-slate-600' : 'bg-emerald-50 border-emerald-200'}`}>
+                <div className="flex items-center gap-3 mb-2">
+                  <Trophy className="w-5 h-5 text-emerald-600" />
+                  <p className={`font-semibold ${nightMode ? 'text-slate-200' : 'text-slate-800'}`}>Mastered</p>
+                </div>
+                <p className={`text-3xl font-bold ${nightMode ? 'text-emerald-400' : 'text-emerald-700'}`}>{reviewCards}</p>
+                <p className={`text-sm mt-1 ${nightMode ? 'text-slate-400' : 'text-slate-600'}`}>In review phase</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Achievements */}
+        <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
+          <CardHeader className={`border-b ${nightMode ? 'border-slate-700' : 'border-stone-200'}`}>
+            <CardTitle className={`flex items-center gap-2 ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>
+              <Trophy className="w-5 h-5 text-amber-500" />
+              Achievements ({unlockedCount}/{achievements.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="grid md:grid-cols-3 gap-4">
+              {achievements.map((achievement, idx) => (
+                <motion.div
+                  key={achievement.name}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.1 }}
+                  className={`p-4 rounded-lg border ${
+                    achievement.unlocked 
+                      ? nightMode ? 'bg-slate-700 border-slate-600' : 'bg-white border-teal-200' 
+                      : nightMode ? 'bg-slate-800/50 border-slate-700' : 'bg-stone-50 border-stone-200 opacity-50'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`w-10 h-10 rounded-lg ${achievement.color} flex items-center justify-center flex-shrink-0 ${!achievement.unlocked && 'opacity-50'}`}>
+                      <achievement.icon className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`font-semibold ${nightMode ? 'text-slate-200' : 'text-slate-800'} ${!achievement.unlocked && 'opacity-50'}`}>
+                        {achievement.name}
+                      </p>
+                      <p className={`text-sm mt-1 ${nightMode ? 'text-slate-400' : 'text-slate-600'} ${!achievement.unlocked && 'opacity-50'}`}>
+                        {achievement.description}
+                      </p>
+                      {achievement.unlocked && (
+                        <Badge className="bg-emerald-500 text-white mt-2">Unlocked!</Badge>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Member Since */}
+        <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
+          <CardContent className="p-6 text-center">
+            <p className={nightMode ? 'text-slate-400' : 'text-slate-600'}>
+              Member since {format(new Date(user.created_date), 'MMMM yyyy')}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}

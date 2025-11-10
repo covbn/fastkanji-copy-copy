@@ -1,4 +1,3 @@
-
 import React from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -56,17 +55,25 @@ export default function Progress() {
     }));
 
   const modeData = sessions.reduce((acc, session) => {
-    const mode = session.mode.replace(/_/g, ' ');
-    if (!acc[mode]) {
-      acc[mode] = { mode, count: 0, avgAccuracy: 0, total: 0 };
+    // Convert mode to readable format
+    let modeName = session.mode.replace(/_/g, ' ');
+    // Remove obsolete "reading to hiragana"
+    if (modeName === 'reading to hiragana') return acc;
+    
+    if (!acc[modeName]) {
+      acc[modeName] = { mode: modeName, count: 0, avgAccuracy: 0, total: 0 };
     }
-    acc[mode].count++;
-    acc[mode].total += session.accuracy;
-    acc[mode].avgAccuracy = acc[mode].total / acc[mode].count;
+    acc[modeName].count++;
+    acc[modeName].total += session.accuracy;
+    acc[modeName].avgAccuracy = acc[modeName].total / acc[modeName].count;
     return acc;
   }, {});
 
   const modeChartData = Object.values(modeData);
+
+  const formatModeName = (mode) => {
+    return mode.replace(/_/g, ' ').replace('to', '→');
+  };
 
   if (isLoading) {
     return (
@@ -84,7 +91,7 @@ export default function Progress() {
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="text-center space-y-2">
-          <h1 className="text-4xl font-semibold text-slate-800" style={{fontFamily: "'Crimson Pro', serif"}}>
+          <h1 className={`text-4xl font-semibold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`} style={{fontFamily: "'Crimson Pro', serif"}}>
             Your Progress
           </h1>
           <p className={nightMode ? 'text-slate-400' : 'text-slate-600'}>Track your learning journey</p>
@@ -92,51 +99,51 @@ export default function Progress() {
 
         {/* Stats Grid */}
         <div className="grid md:grid-cols-4 gap-4">
-          <Card className="border border-stone-200 shadow-sm bg-white">
+          <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
             <CardContent className="p-6">
               <div className="flex items-start justify-between mb-3">
-                <div className="w-12 h-12 rounded-lg bg-teal-500 flex items-center justify-center shadow-sm">
+                <div className={`w-12 h-12 rounded-lg bg-teal-500 flex items-center justify-center shadow-sm`}>
                   <Zap className="w-6 h-6 text-white" />
                 </div>
               </div>
-              <p className="text-2xl font-semibold text-slate-800">{sessions.length}</p>
-              <p className="text-sm text-slate-500 mt-1">Total Sessions</p>
+              <p className={`text-2xl font-semibold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>{sessions.length}</p>
+              <p className={`text-sm mt-1 ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Total Sessions</p>
             </CardContent>
           </Card>
 
-          <Card className="border border-stone-200 shadow-sm bg-white">
+          <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
             <CardContent className="p-6">
               <div className="flex items-start justify-between mb-3">
-                <div className="w-12 h-12 rounded-lg bg-emerald-500 flex items-center justify-center shadow-sm">
+                <div className={`w-12 h-12 rounded-lg bg-emerald-500 flex items-center justify-center shadow-sm`}>
                   <Target className="w-6 h-6 text-white" />
                 </div>
               </div>
-              <p className="text-2xl font-semibold text-slate-800">{totalCards}</p>
-              <p className="text-sm text-slate-500 mt-1">Cards Studied</p>
+              <p className={`text-2xl font-semibold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>{totalCards}</p>
+              <p className={`text-sm mt-1 ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Cards Studied</p>
             </CardContent>
           </Card>
 
-          <Card className="border border-stone-200 shadow-sm bg-white">
+          <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
             <CardContent className="p-6">
               <div className="flex items-start justify-between mb-3">
-                <div className="w-12 h-12 rounded-lg bg-cyan-500 flex items-center justify-center shadow-sm">
+                <div className={`w-12 h-12 rounded-lg bg-cyan-500 flex items-center justify-center shadow-sm`}>
                   <Award className="w-6 h-6 text-white" />
                 </div>
               </div>
-              <p className="text-2xl font-semibold text-slate-800">{avgAccuracy.toFixed(0)}%</p>
-              <p className="text-sm text-slate-500 mt-1">Avg Accuracy</p>
+              <p className={`text-2xl font-semibold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>{avgAccuracy.toFixed(0)}%</p>
+              <p className={`text-sm mt-1 ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Avg Accuracy</p>
             </CardContent>
           </Card>
 
-          <Card className="border border-stone-200 shadow-sm bg-white">
+          <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
             <CardContent className="p-6">
               <div className="flex items-start justify-between mb-3">
-                <div className="w-12 h-12 rounded-lg bg-amber-500 flex items-center justify-center shadow-sm">
+                <div className={`w-12 h-12 rounded-lg bg-amber-500 flex items-center justify-center shadow-sm`}>
                   <Brain className="w-6 h-6 text-white" />
                 </div>
               </div>
-              <p className="text-2xl font-semibold text-slate-800">{progress.length}</p>
-              <p className="text-sm text-slate-500 mt-1">Words Learned</p>
+              <p className={`text-2xl font-semibold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>{progress.length}</p>
+              <p className={`text-sm mt-1 ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Words Learned</p>
             </CardContent>
           </Card>
         </div>
@@ -240,7 +247,7 @@ export default function Progress() {
                       )}
                       <div>
                         <p className={`font-medium ${nightMode ? 'text-slate-200' : 'text-slate-800'}`}>
-                          {session.mode.replace(/_/g, ' ').replace('to', '→').toUpperCase()}
+                          {formatModeName(session.mode).toUpperCase()}
                         </p>
                         <p className={`text-sm ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>
                           {format(new Date(session.created_date), 'MMM d, yyyy h:mm a')} • {session.level}

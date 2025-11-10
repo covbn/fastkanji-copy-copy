@@ -575,6 +575,21 @@ export default function SpacedRepetition() {
                 {cardCategories.dueCards.length} <span className="text-xs opacity-60">({reviewsToday}/{maxReviewsPerDay})</span>
               </span>
             </div>
+            
+            <div className={`h-6 w-px ${nightMode ? 'bg-slate-600' : 'bg-stone-300'} hidden md:block`}></div>
+
+            {/* Accuracy without progress */}
+            <div className="hidden md:block">
+              <AccuracyMeter
+                accuracy={accuracy}
+                correctCount={correctCount}
+                incorrectCount={incorrectCount}
+                currentCard={0}
+                totalCards={0}
+                nightMode={nightMode}
+                showProgress={false}
+              />
+            </div>
           </div>
           
           <Button
@@ -587,15 +602,6 @@ export default function SpacedRepetition() {
           </Button>
         </div>
       </div>
-
-      <AccuracyMeter
-        accuracy={accuracy}
-        correctCount={correctCount}
-        incorrectCount={incorrectCount}
-        currentCard={cardsStudied + 1}
-        totalCards={totalCards}
-        nightMode={nightMode}
-      />
 
       <div className="flex-1 flex items-center justify-center p-4 overflow-y-auto">
         <FlashCard
