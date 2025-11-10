@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { BookOpen, Brain, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button"; // Assuming Button component is from shadcn/ui or similar
 
 import FlashCard from "../components/flash/FlashCard";
 import AccuracyMeter from "../components/flash/AccuracyMeter";
@@ -467,6 +468,12 @@ export default function SpacedRepetition() {
     setNextRestDuration(Math.floor(Math.random() * (restMaxSeconds - restMinSeconds) * 1000) + (restMinSeconds * 1000));
   };
 
+  const handleEndSession = () => {
+    if (window.confirm('Are you sure you want to end this session early? Your progress will be saved.')) {
+      completeSession();
+    }
+  };
+
   if (isLoadingAll) {
     return (
       <div className="h-screen flex items-center justify-center">
@@ -569,6 +576,15 @@ export default function SpacedRepetition() {
               </span>
             </div>
           </div>
+          
+          <Button
+            onClick={handleEndSession}
+            variant="ghost"
+            size="sm"
+            className={`text-xs ${nightMode ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-700' : 'text-slate-600 hover:text-slate-800 hover:bg-stone-100'}`}
+          >
+            End Session
+          </Button>
         </div>
       </div>
 

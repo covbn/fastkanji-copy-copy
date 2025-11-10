@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -7,8 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Zap, Brain, Target, TrendingUp, Award, Flame } from "lucide-react";
-import { motion } from "framer-motion";
+import { Zap, Brain, Target, TrendingUp, Award, Flame, Wind, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 import ModeSelector from "../components/home/ModeSelector";
 import LevelSelector from "../components/home/LevelSelector";
@@ -20,6 +19,8 @@ export default function Home() {
   const [selectedMode, setSelectedMode] = useState("kanji_to_meaning");
   const [selectedLevel, setSelectedLevel] = useState("N5");
   const [sessionSize, setSessionSize] = useState(20);
+  const [showFocusPrompt, setShowFocusPrompt] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState(null);
 
   const { data: recentSessions = [] } = useQuery({
     queryKey: ['recentSessions'],
@@ -48,16 +49,60 @@ export default function Home() {
 
   const nightMode = settings?.night_mode || false;
 
+  // Check if user should see focus exercise prompt
+  useEffect(() => {
+    const checkFocusPrompt = () => {
+      const lastPrompt = localStorage.getItem('lastFocusPrompt');
+      if (!lastPrompt) return true;
+      
+      const lastPromptTime = new Date(lastPrompt).getTime();
+      const now = new Date().getTime();
+      const sixHours = 6 * 60 * 60 * 1000;
+      
+      return now - lastPromptTime >= sixHours;
+    };
+
+    if (recentSessions.length === 0 || checkFocusPrompt()) {
+      // Show prompt on first session or after 6 hours
+      setShowFocusPrompt(true);
+    }
+  }, [recentSessions]);
+
+  const handleStartStudy = (url) => {
+    const lastPrompt = localStorage.getItem('lastFocusPrompt');
+    const shouldShowPrompt = !lastPrompt || (new Date().getTime() - new Date(lastPrompt).getTime()) >= (6 * 60 * 60 * 1000);
+    
+    if (shouldShowPrompt && showFocusPrompt) {
+      setPendingNavigation(url);
+    } else {
+      navigate(url);
+    }
+  };
+
+  const dismissFocusPrompt = () => {
+    localStorage.setItem('lastFocusPrompt', new Date().toISOString());
+    setShowFocusPrompt(false);
+    if (pendingNavigation) {
+      navigate(pendingNavigation);
+      setPendingNavigation(null);
+    }
+  };
+
+  const goToFocusExercise = () => {
+    localStorage.setItem('lastFocusPrompt', new Date().toISOString());
+    setShowFocusPrompt(false);
+    navigate(createPageUrl('Focus'));
+  };
+
   const startFlashStudy = () => {
-    navigate(createPageUrl(`FlashStudy?mode=${selectedMode}&level=${selectedLevel}&size=${sessionSize}`));
+    handleStartStudy(createPageUrl(`FlashStudy?mode=${selectedMode}&level=${selectedLevel}&size=${sessionSize}`));
   };
 
   const startSpacedRepetition = () => {
-    navigate(createPageUrl(`SpacedRepetition?mode=${selectedMode}&level=${selectedLevel}&size=${sessionSize}`));
+    handleStartStudy(createPageUrl(`SpacedRepetition?mode=${selectedMode}&level=${selectedLevel}`));
   };
 
   const getStreak = () => {
-    // Calculate study streak
     if (recentSessions.length === 0) return 0;
     let streak = 0;
     const today = new Date().setHours(0, 0, 0, 0);
@@ -126,10 +171,19 @@ export default function Home() {
               />
             </div>
 
-            <SessionSizeSelector
-              sessionSize={sessionSize}
-              onSelectSize={setSessionSize}
-            />
+            {/* Session Size - Only for Flash Study */}
+            <div className={`p-4 rounded-lg border ${nightMode ? 'bg-slate-700 border-slate-600' : 'bg-teal-50 border-teal-200'}`}>
+              <h3 className={`text-sm font-semibold mb-3 ${nightMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                Flash Study Session Size
+              </h3>
+              <SessionSizeSelector
+                sessionSize={sessionSize}
+                onSelectSize={setSessionSize}
+              />
+              <p className={`text-xs mt-2 ${nightMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                Note: Spaced Repetition continues until all due cards are reviewed
+              </p>
+            </div>
 
             <div className="grid md:grid-cols-2 gap-4 pt-4">
               <Button
@@ -205,6 +259,67 @@ export default function Home() {
           </Card>
         )}
       </div>
+
+      {/* Focus Exercise Prompt */}
+      <AnimatePresence>
+        {showFocusPrompt && pendingNavigation && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+            onClick={dismissFocusPrompt}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className={`max-w-md w-full rounded-2xl shadow-2xl p-6 space-y-4 ${nightMode ? 'bg-slate-800 border border-slate-700' : 'bg-white'}`}
+            >
+              <button
+                onClick={dismissFocusPrompt}
+                className={`absolute top-4 right-4 p-1 rounded-lg ${nightMode ? 'hover:bg-slate-700 text-slate-400' : 'hover:bg-stone-100 text-slate-500'}`}
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center">
+                <Wind className="w-8 h-8 text-white" />
+              </div>
+
+              <div className="text-center space-y-2">
+                <h3 className={`text-2xl font-semibold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`} style={{fontFamily: "'Crimson Pro', serif"}}>
+                  Boost Your Learning?
+                </h3>
+                <p className={`text-sm ${nightMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                  Science shows that doing the focus exercise before studying can increase retention by 10x. 
+                  It only takes 2-3 minutes!
+                </p>
+              </div>
+
+              <div className="space-y-2 pt-2">
+                <Button
+                  onClick={goToFocusExercise}
+                  size="lg"
+                  className="w-full bg-teal-600 hover:bg-teal-700 text-white"
+                >
+                  <Wind className="w-4 h-4 mr-2" />
+                  Do Focus Exercise (2-3 min)
+                </Button>
+                <Button
+                  onClick={dismissFocusPrompt}
+                  variant="outline"
+                  size="lg"
+                  className={`w-full ${nightMode ? 'border-slate-600 text-slate-300 hover:bg-slate-700' : ''}`}
+                >
+                  Skip for Now
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

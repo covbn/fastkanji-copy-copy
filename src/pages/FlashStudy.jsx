@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { Button } from "@/components/ui/button";
 
 import FlashCard from "../components/flash/FlashCard";
 import AccuracyMeter from "../components/flash/AccuracyMeter";
@@ -22,6 +23,7 @@ export default function FlashStudy() {
   const [studyQueue, setStudyQueue] = useState([]);
   const [currentCard, setCurrentCard] = useState(null);
   const [cardsStudied, setCardsStudied] = useState(0);
+  const [wordsLearned, setWordsLearned] = useState(0); // Track words that achieved 2x correct
   const [correctCount, setCorrectCount] = useState(0);
   const [incorrectCount, setIncorrectCount] = useState(0);
   const [showRest, setShowRest] = useState(false);
@@ -157,6 +159,12 @@ export default function FlashStudy() {
     newStreaks.set(currentCard.id, newStreak);
     setCardStreaks(newStreaks);
 
+    // Check if word is now "learned" (2 correct in a row)
+    const wasLearned = newStreak >= 2 && currentStreak < 2;
+    if (wasLearned) {
+      setWordsLearned(prev => prev + 1);
+    }
+
     // Remove current card from queue
     let newQueue = studyQueue.slice(1);
     
@@ -171,19 +179,20 @@ export default function FlashStudy() {
     }
     // else: card has 2 correct in a row, it's "learned" and removed from queue
 
-    // Check if session is complete
-    if (cardsStudied + 1 >= sessionSize) {
-      completeSession();
-      return;
-    }
-
-    if (newQueue.length === 0) {
+    // Check if session is complete (all words learned OR hit session size limit)
+    if (wordsLearned + (wasLearned ? 1 : 0) >= sessionSize || newQueue.length === 0) {
       completeSession();
       return;
     }
 
     setStudyQueue(newQueue);
     setCurrentCard(newQueue[0]);
+  };
+
+  const handleEndSession = () => {
+    if (window.confirm('Are you sure you want to end this session early? Your progress will be saved.')) {
+      completeSession();
+    }
   };
 
   const completeSession = () => {
@@ -264,14 +273,25 @@ export default function FlashStudy() {
 
   return (
     <div className={`h-screen flex flex-col ${nightMode ? 'bg-slate-900' : 'bg-gradient-to-br from-stone-100 via-teal-50 to-cyan-50'}`}>
-      <AccuracyMeter
-        accuracy={accuracy}
-        correctCount={correctCount}
-        incorrectCount={incorrectCount}
-        currentCard={cardsStudied + 1}
-        totalCards={sessionSize}
-        nightMode={nightMode}
-      />
+      <div className={`border-b px-3 md:px-6 py-2 md:py-3 flex items-center justify-between ${nightMode ? 'bg-slate-800/80 backdrop-blur-sm border-slate-700' : 'bg-white/80 backdrop-blur-sm border-stone-200'}`}>
+        <AccuracyMeter
+          accuracy={accuracy}
+          correctCount={correctCount}
+          incorrectCount={incorrectCount}
+          currentCard={wordsLearned}
+          totalCards={sessionSize}
+          nightMode={nightMode}
+        />
+        
+        <Button
+          onClick={handleEndSession}
+          variant="ghost"
+          size="sm"
+          className={`text-xs ${nightMode ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-700' : 'text-slate-600 hover:text-slate-800 hover:bg-stone-100'}`}
+        >
+          End Session
+        </Button>
+      </div>
 
       <div className="flex-1 flex items-center justify-center p-4 overflow-y-auto">
         <FlashCard
