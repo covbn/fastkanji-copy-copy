@@ -7,6 +7,29 @@ import { Check, X, Eye } from "lucide-react";
 export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSentences = true }) {
   const [revealed, setRevealed] = useState(false);
 
+  // Keyboard shortcuts
+  React.useEffect(() => {
+    const handleKeyPress = (e) => {
+      if (e.key === ' ' || e.key === 'Enter') {
+        e.preventDefault();
+        if (!revealed) {
+          setRevealed(true);
+        }
+      } else if (revealed) {
+        if (e.key === '1' || e.key === 'ArrowLeft') {
+          e.preventDefault();
+          handleAnswer(false);
+        } else if (e.key === '2' || e.key === 'ArrowRight') {
+          e.preventDefault();
+          handleAnswer(true);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [revealed]);
+
   const getQuestion = () => {
     switch (mode) {
       case 'kanji_to_reading':
@@ -153,23 +176,23 @@ export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSente
                   )}
 
                   {/* Action Buttons */}
-                  <div className="grid grid-cols-2 gap-3 md:gap-4 pt-2">
+                  <div className="grid grid-cols-2 gap-2 md:gap-3 pt-2">
                     <Button
                       onClick={() => handleAnswer(false)}
-                      size="lg"
+                      size="sm"
                       variant="outline"
-                      className="h-12 md:h-14 text-sm md:text-base font-medium border-2 border-rose-300 text-rose-700 hover:bg-rose-50 hover:border-rose-400"
+                      className="h-10 md:h-11 text-xs md:text-sm font-medium border-2 border-rose-300 text-rose-700 hover:bg-rose-50 hover:border-rose-400"
                     >
-                      <X className="w-4 h-4 md:w-5 md:h-5 mr-1.5" />
-                      Wrong
+                      <X className="w-3 h-3 md:w-4 md:h-4 mr-1" />
+                      Wrong (1/←)
                     </Button>
                     <Button
                       onClick={() => handleAnswer(true)}
-                      size="lg"
-                      className="h-12 md:h-14 text-sm md:text-base font-medium bg-emerald-500 hover:bg-emerald-600 text-white"
+                      size="sm"
+                      className="h-10 md:h-11 text-xs md:text-sm font-medium bg-emerald-500 hover:bg-emerald-600 text-white"
                     >
-                      <Check className="w-4 h-4 md:w-5 md:h-5 mr-1.5" />
-                      Correct
+                      <Check className="w-3 h-3 md:w-4 md:h-4 mr-1" />
+                      Correct (2/→)
                     </Button>
                   </div>
                 </motion.div>
@@ -180,7 +203,7 @@ export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSente
                   exit={{ opacity: 0 }}
                   className="text-center py-6 md:py-8"
                 >
-                  <p className="text-slate-400 text-sm md:text-base">Click reveal to check your answer</p>
+                  <p className="text-slate-400 text-sm md:text-base">Press Space/Enter to reveal</p>
                 </motion.div>
               )}
             </AnimatePresence>
