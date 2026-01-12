@@ -22,6 +22,7 @@ export default function Focus() {
   const totalBreaths = 20;
   const inhaleSeconds = 4;
   const exhaleSeconds = 4;
+  const holdSeconds = 2;
   const dotStareDuration = 30;
 
   const { data: user } = useQuery({
@@ -59,13 +60,17 @@ export default function Focus() {
     if (phase === "breathing" && isActive) {
       interval = setInterval(() => {
         setBreathTimer((prev) => {
-          const cycleLength = inhaleSeconds + exhaleSeconds;
+          const cycleLength = inhaleSeconds + holdSeconds + exhaleSeconds + holdSeconds;
           const newTimer = prev + 1;
           
           if (newTimer <= inhaleSeconds) {
             setBreathPhase("inhale");
-          } else if (newTimer <= cycleLength) {
+          } else if (newTimer <= inhaleSeconds + holdSeconds) {
+            setBreathPhase("hold");
+          } else if (newTimer <= inhaleSeconds + holdSeconds + exhaleSeconds) {
             setBreathPhase("exhale");
+          } else if (newTimer <= cycleLength) {
+            setBreathPhase("hold");
           } else {
             const newCount = breathCount + 1;
             setBreathCount(newCount);
@@ -181,12 +186,12 @@ export default function Focus() {
                 <div className={`p-6 rounded-xl border text-left space-y-3 ${nightMode ? 'bg-slate-700/50 border-slate-600' : 'bg-teal-50 border-teal-200'}`}>
                   <h3 className={`font-bold flex items-center gap-2 ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>
                     <Brain className="w-5 h-5 text-teal-600" />
-                    The Protocol (~2 minutes)
+                    The Exercise (~2 minutes)
                   </h3>
                   <ol className={`space-y-2 ${nightMode ? 'text-slate-300' : 'text-slate-700'}`}>
                     <li className="flex items-start gap-2">
                       <span className="font-semibold text-teal-600">1.</span>
-                      <span>Take {totalBreaths} deep breaths (automatic 4s in, 4s out)</span>
+                      <span>Take {totalBreaths} deep breaths (automatic 4s in, 2s hold, 4s out, 2s hold)</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="font-semibold text-teal-600">2.</span>
@@ -237,10 +242,10 @@ export default function Focus() {
                 <div className="space-y-4">
                   <motion.div
                     animate={{ 
-                      scale: breathPhase === "inhale" ? [1, 1.3] : [1.3, 1],
+                      scale: breathPhase === "inhale" ? 1.3 : breathPhase === "exhale" ? 1 : (breathPhase === "hold" && breathTimer <= inhaleSeconds + holdSeconds) ? 1.3 : 1,
                     }}
                     transition={{ 
-                      duration: breathPhase === "inhale" ? inhaleSeconds : exhaleSeconds,
+                      duration: 0.5,
                       ease: "easeInOut"
                     }}
                     className="w-32 h-32 md:w-32 md:h-32 mx-auto rounded-full bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center shadow-xl relative"
@@ -252,8 +257,14 @@ export default function Focus() {
                     <h2 className={`text-5xl font-bold px-4 ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>
                       {breathCount}/{totalBreaths}
                     </h2>
-                    <p className={`text-2xl font-semibold ${breathPhase === 'inhale' ? 'text-teal-600' : 'text-cyan-600'}`}>
-                      {breathPhase === 'inhale' ? 'Breathe In' : 'Breathe Out'}
+                    <p className={`text-2xl font-semibold ${
+                      breathPhase === 'inhale' ? 'text-teal-600' : 
+                      breathPhase === 'exhale' ? 'text-cyan-600' : 
+                      'text-amber-600'
+                    }`}>
+                      {breathPhase === 'inhale' ? 'Breathe In' : 
+                       breathPhase === 'exhale' ? 'Breathe Out' : 
+                       'Hold'}
                     </p>
                     <p className={nightMode ? 'text-slate-400' : 'text-slate-500'}>
                       Follow the circle

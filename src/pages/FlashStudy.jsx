@@ -118,13 +118,10 @@ export default function FlashStudy() {
       if (!settings || !user) return;
       
       const today = new Date().toISOString().split('T')[0];
-      const usageDate = settings.last_usage_date;
-      const isNewDay = usageDate !== today;
-      
-      const newUsage = isNewDay ? elapsedSeconds : (settings.daily_usage_seconds || 0) + elapsedSeconds;
+      const currentUsage = settings.daily_usage_seconds || 0;
       
       return base44.entities.UserSettings.update(settings.id, {
-        daily_usage_seconds: newUsage,
+        daily_usage_seconds: currentUsage + elapsedSeconds,
         last_usage_date: today
       });
     },
