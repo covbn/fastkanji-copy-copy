@@ -137,6 +137,10 @@ export default function FlashStudy() {
   const completeSession = useCallback(() => {
     const duration = Math.floor((Date.now() - sessionStartTime) / 1000);
     
+    if (!isPremium) {
+      updateUsageMutation.mutate(duration);
+    }
+    
     createSessionMutation.mutate({
       mode,
       level,
@@ -148,40 +152,24 @@ export default function FlashStudy() {
     });
 
     setSessionComplete(true);
-  }, [sessionStartTime, createSessionMutation, mode, level, totalAnswered, correctCount, accuracy]);
+  }, [sessionStartTime, isPremium, updateUsageMutation, createSessionMutation, mode, level, totalAnswered, correctCount, accuracy]);
 
-  // Track usage time in real-time and update backend
+  // Track usage time in real-time
   useEffect(() => {
-    if (isPremium) return;
+    if (isPremium || sessionComplete) return;
 
-    let lastUpdate = 0;
     const interval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
       setCurrentUsage(elapsed);
 
-      // Update backend every 10 seconds
-      const currentTens = Math.floor(elapsed / 10);
-      if (currentTens > lastUpdate) {
-        updateUsageMutation.mutate(10);
-        lastUpdate = currentTens;
-      }
-
-      if (!sessionComplete && baseUsage + elapsed >= dailyLimit) {
+      if (baseUsage + elapsed >= dailyLimit) {
         completeSession();
         navigate(createPageUrl('Subscription'));
         alert("Daily study limit reached (7.5 minutes). Upgrade to Premium for unlimited access!");
       }
     }, 1000);
 
-    return () => {
-      clearInterval(interval);
-      // Update any remaining time on unmount
-      const finalElapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
-      const remainder = finalElapsed % 10;
-      if (remainder > 0) {
-        updateUsageMutation.mutate(remainder);
-      }
-    };
+    return () => clearInterval(interval);
   }, [isPremium, sessionComplete, baseUsage, dailyLimit, sessionStartTime, navigate, completeSession]);
 
   useEffect(() => {

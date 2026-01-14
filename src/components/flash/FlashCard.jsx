@@ -7,6 +7,29 @@ import { Check, X, Eye } from "lucide-react";
 export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSentences = true }) {
   const [revealed, setRevealed] = useState(false);
 
+  // Keyboard shortcuts
+  React.useEffect(() => {
+    const handleKeyPress = (e) => {
+      if (e.key === ' ' || e.key === 'Enter') {
+        e.preventDefault();
+        if (!revealed) {
+          setRevealed(true);
+        }
+      } else if (revealed) {
+        if (e.key === '1' || e.key === 'ArrowLeft') {
+          e.preventDefault();
+          handleAnswer(false);
+        } else if (e.key === '2' || e.key === 'ArrowRight') {
+          e.preventDefault();
+          handleAnswer(true);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [revealed]);
+
   const getQuestion = () => {
     switch (mode) {
       case 'kanji_to_reading':
@@ -37,29 +60,6 @@ export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSente
     onAnswer(correct);
     setRevealed(false);
   };
-
-  // Keyboard shortcuts
-  React.useEffect(() => {
-    const handleKeyPress = (e) => {
-      if (e.key === ' ' || e.key === 'Enter') {
-        e.preventDefault();
-        if (!revealed) {
-          setRevealed(true);
-        }
-      } else if (revealed) {
-        if (e.key === '1' || e.key === 'ArrowLeft') {
-          e.preventDefault();
-          handleAnswer(false);
-        } else if (e.key === '2' || e.key === 'ArrowRight') {
-          e.preventDefault();
-          handleAnswer(true);
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [revealed, handleAnswer]);
 
   const getModeDisplay = () => {
     return mode.replace(/_/g, ' ').replace('to', '→');
@@ -176,22 +176,22 @@ export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSente
                   )}
 
                   {/* Action Buttons */}
-                  <div className="grid grid-cols-2 gap-2 pt-1">
+                  <div className="grid grid-cols-2 gap-2 md:gap-3 pt-2">
                     <Button
                       onClick={() => handleAnswer(false)}
                       size="sm"
                       variant="outline"
-                      className="h-8 text-xs font-medium border-2 border-rose-300 text-rose-700 hover:bg-rose-50 hover:border-rose-400"
+                      className="h-10 md:h-11 text-xs md:text-sm font-medium border-2 border-rose-300 text-rose-700 hover:bg-rose-50 hover:border-rose-400"
                     >
-                      <X className="w-3 h-3 mr-1" />
+                      <X className="w-3 h-3 md:w-4 md:h-4 mr-1" />
                       Wrong (1/←)
                     </Button>
                     <Button
                       onClick={() => handleAnswer(true)}
                       size="sm"
-                      className="h-8 text-xs font-medium bg-emerald-500 hover:bg-emerald-600 text-white"
+                      className="h-10 md:h-11 text-xs md:text-sm font-medium bg-emerald-500 hover:bg-emerald-600 text-white"
                     >
-                      <Check className="w-3 h-3 mr-1" />
+                      <Check className="w-3 h-3 md:w-4 md:h-4 mr-1" />
                       Correct (2/→)
                     </Button>
                   </div>
