@@ -10,8 +10,9 @@ import FlashCard from "../components/flash/FlashCard";
 import AccuracyMeter from "../components/flash/AccuracyMeter";
 import RestInterval from "../components/flash/RestInterval";
 import SessionComplete from "../components/flash/SessionComplete";
+import FSRSQueueManager from "../components/fsrs/QueueManager";
 
-// FSRS-4 Algorithm Implementation
+// Legacy FSRS-4 class - kept for backward compatibility
 class FSRS4 {
   constructor(params = {}) {
     this.w = params.w || [0.4, 0.6, 2.4, 5.8, 4.93, 0.94, 0.86, 0.01, 1.49, 0.14, 0.94, 2.18, 0.05, 0.34, 1.26, 0.29, 2.61];
@@ -233,8 +234,10 @@ export default function SpacedRepetition() {
   }, [userProgress]);
 
   const updateProgressMutation = useMutation({
-    mutationFn: async ({ vocabularyId, correct }) => {
+    mutationFn: async ({ vocabularyId, rating }) => {
       if (!user) return null;
+      
+      console.log(`[SpacedRepetition] Updating progress for ${vocabularyId} with rating ${rating}`);
       
       const existing = await base44.entities.UserProgress.filter({
         vocabulary_id: vocabularyId,
@@ -242,138 +245,35 @@ export default function SpacedRepetition() {
       });
 
       const now = new Date();
-      const fsrs = new FSRS4({ requestRetention: desiredRetention });
+      const queueManager = new FSRSQueueManager({
+        max_new_cards_per_day: maxNewCardsPerDay,
+        max_reviews_per_day: maxReviewsPerDay,
+        learning_steps: learningSteps,
+        relearning_steps: relearningSteps,
+        graduating_interval: graduatingInterval,
+        easy_interval: easyInterval,
+        desired_retention: desiredRetention,
+      });
+
+      // Find the card
+      const card = vocabulary.find(v => v.id === vocabularyId);
+      if (!card) {
+        console.error('[SpacedRepetition] Card not found:', vocabularyId);
+        return null;
+      }
+
+      const progress = existing.length > 0 ? existing[0] : null;
+
+      // Apply rating using centralized queue manager
+      const updatedProgress = queueManager.applyRating(card, progress, rating, now);
+      updatedProgress.user_email = user.email;
+
+      console.log('[SpacedRepetition] Updated progress:', updatedProgress);
 
       if (existing.length > 0) {
-        const progress = existing[0];
-        const state = progress.state || "New";
-        const difficulty = progress.difficulty || 5;
-        const stability = progress.stability || 0;
-        const lastReview = progress.last_reviewed ? new Date(progress.last_reviewed) : now;
-        const elapsedDays = (now - lastReview) / (1000 * 60 * 60 * 24);
-        
-        let newState = state;
-        let newStability = stability;
-        let newDifficulty = difficulty;
-        let newInterval = 0;
-        let newNextReview = now;
-        let newLearningStep = progress.learning_step || 0;
-
-        if (state === "New") {
-          newStability = fsrs.calculateStability(state, difficulty, stability, correct ? 3 : 1);
-          newDifficulty = fsrs.calculateDifficulty(difficulty, correct ? 3 : 1);
-          
-          newState = "Learning";
-          newLearningStep = 0;
-          newInterval = learningSteps[0] / (24 * 60);
-          newNextReview = new Date(now.getTime() + learningSteps[0] * 60000);
-        } else if (state === "Learning") {
-          if (!correct) {
-            // Failed in learning - restart from step 0
-            newStability = fsrs.calculateStability(state, difficulty, stability, 1);
-            newDifficulty = fsrs.calculateDifficulty(difficulty, 1);
-            newLearningStep = 0;
-            newInterval = learningSteps[0] / (24 * 60);
-            newNextReview = new Date(now.getTime() + learningSteps[0] * 60000);
-          } else {
-            // Passed - advance to next step
-            newStability = fsrs.calculateStability(state, difficulty, stability, 3);
-            newDifficulty = fsrs.calculateDifficulty(difficulty, 3);
-            newLearningStep++;
-            
-            if (newLearningStep >= learningSteps.length) {
-              // Graduate to Review
-              newState = "Review";
-              newInterval = graduatingInterval;
-              newNextReview = new Date(now.getTime() + graduatingInterval * 86400000);
-            } else {
-              newInterval = learningSteps[newLearningStep] / (24 * 60);
-              newNextReview = new Date(now.getTime() + learningSteps[newLearningStep] * 60000);
-            }
-          }
-        } else if (state === "Review") {
-          newStability = fsrs.calculateStability(state, difficulty, stability, correct ? 3 : 1);
-          newDifficulty = fsrs.calculateDifficulty(difficulty, correct ? 3 : 1);
-          
-          if (!correct) {
-            // Failed review - move to relearning
-            newState = "Relearning";
-            newLearningStep = 0;
-            newInterval = relearningSteps[0] / (24 * 60);
-            newNextReview = new Date(now.getTime() + relearningSteps[0] * 60000);
-          } else {
-            // Passed review - calculate next interval
-            newInterval = fsrs.calculateInterval(newStability, desiredRetention);
-            newNextReview = new Date(now.getTime() + newInterval * 86400000);
-          }
-        } else if (state === "Relearning") {
-          if (!correct) {
-            // Failed relearning - restart from step 0
-            newStability = fsrs.calculateStability(state, difficulty, stability, 1);
-            newDifficulty = fsrs.calculateDifficulty(difficulty, 1);
-            newLearningStep = 0;
-            newInterval = relearningSteps[0] / (24 * 60);
-            newNextReview = new Date(now.getTime() + relearningSteps[0] * 60000);
-          } else {
-            // Passed - advance
-            newStability = fsrs.calculateStability(state, difficulty, stability, 3);
-            newDifficulty = fsrs.calculateDifficulty(difficulty, 3);
-            newLearningStep++;
-            
-            if (newLearningStep >= relearningSteps.length) {
-              // Graduate back to Review
-              newState = "Review";
-              newInterval = fsrs.calculateInterval(newStability, desiredRetention);
-              newNextReview = new Date(now.getTime() + newInterval * 86400000);
-            } else {
-              newInterval = relearningSteps[newLearningStep] / (24 * 60);
-              newNextReview = new Date(now.getTime() + relearningSteps[newLearningStep] * 60000);
-            }
-          }
-        }
-
-        const updated = await base44.entities.UserProgress.update(progress.id, {
-          correct_count: progress.correct_count + (correct ? 1 : 0),
-          incorrect_count: progress.incorrect_count + (correct ? 0 : 1),
-          last_reviewed: now.toISOString(),
-          next_review: newNextReview.toISOString(),
-          state: newState,
-          stability: newStability,
-          difficulty: newDifficulty,
-          elapsed_days: elapsedDays,
-          scheduled_days: newInterval,
-          reps: (progress.reps || 0) + 1,
-          lapses: (progress.lapses || 0) + (correct ? 0 : 1),
-          learning_step: newLearningStep,
-        });
-        return updated;
+        return await base44.entities.UserProgress.update(progress.id, updatedProgress);
       } else {
-        // New card first time
-        const fsrs = new FSRS4({ requestRetention: desiredRetention });
-        const stability = fsrs.calculateStability("New", 5, 0, correct ? 3 : 1);
-        const difficulty = fsrs.calculateDifficulty(5, correct ? 3 : 1);
-        
-        const state = "Learning";
-        const interval = learningSteps[0] / (24 * 60);
-        const nextReview = new Date(now.getTime() + learningSteps[0] * 60000);
-
-        const created = await base44.entities.UserProgress.create({
-          vocabulary_id: vocabularyId,
-          user_email: user.email,
-          correct_count: correct ? 1 : 0,
-          incorrect_count: correct ? 0 : 1,
-          last_reviewed: now.toISOString(),
-          next_review: nextReview.toISOString(),
-          state: state,
-          stability: stability,
-          difficulty: difficulty,
-          elapsed_days: 0,
-          scheduled_days: interval,
-          reps: 1,
-          lapses: correct ? 0 : 1,
-          learning_step: 0,
-        });
-        return created;
+        return await base44.entities.UserProgress.create(updatedProgress);
       }
     },
     onSuccess: () => {
@@ -385,56 +285,64 @@ export default function SpacedRepetition() {
   const cardCategories = React.useMemo(() => {
     if (!vocabulary.length) return { newCards: [], learningCards: [], dueCards: [] };
     
+    console.log('[SpacedRepetition] Building card categories from', vocabulary.length, 'vocabulary and', userProgress.length, 'progress records');
+    
     const now = new Date();
-    const progressMap = new Map(userProgress.map(p => [p.vocabulary_id, p]));
-    
-    const newCards = [];
-    const learningCards = [];
-    const dueCards = [];
-    
-    vocabulary.forEach(word => {
-      const progress = progressMap.get(word.id);
-      
-      if (!progress || progress.state === "New") {
-        newCards.push(word);
-      } else if (progress.state === "Learning" || progress.state === "Relearning") {
-        const nextReview = new Date(progress.next_review);
-        if (nextReview <= now) {
-          learningCards.push({ word, progress });
-        }
-      } else if (progress.state === "Review") {
-        const nextReview = new Date(progress.next_review);
-        if (nextReview <= now) {
-          dueCards.push({ word, progress });
-        }
-      }
+    const progressMap = {};
+    userProgress.forEach(p => {
+      progressMap[p.vocabulary_id] = p;
     });
 
-    learningCards.sort((a, b) => 
-      new Date(a.progress.next_review) - new Date(b.progress.next_review)
-    );
-    dueCards.sort((a, b) => 
-      new Date(a.progress.next_review) - new Date(b.progress.next_review)
-    );
+    const queueManager = new FSRSQueueManager({
+      max_new_cards_per_day: maxNewCardsPerDay,
+      max_reviews_per_day: maxReviewsPerDay,
+      learning_steps: learningSteps,
+      relearning_steps: relearningSteps,
+      graduating_interval: graduatingInterval,
+      easy_interval: easyInterval,
+      desired_retention: desiredRetention,
+    });
 
-    return { newCards, learningCards, dueCards };
-  }, [vocabulary, userProgress]);
+    // Build queues using centralized logic
+    const queues = queueManager.buildQueues(vocabulary, progressMap, now);
+
+    console.log('[SpacedRepetition] Queue counts:', {
+      new: queues.new.length,
+      learning: queues.learning.length,
+      due: queues.due.length
+    });
+
+    return { 
+      newCards: queues.new.map(c => c), 
+      learningCards: queues.learning.map(c => ({ word: c, progress: c.progress })), 
+      dueCards: queues.due.map(c => ({ word: c, progress: c.progress })) 
+    };
+  }, [vocabulary, userProgress, maxNewCardsPerDay, maxReviewsPerDay, learningSteps, relearningSteps, graduatingInterval, easyInterval, desiredRetention]);
 
   const buildQueue = React.useMemo(() => {
     const { newCards, learningCards, dueCards } = cardCategories;
     const queue = [];
     
+    console.log('[SpacedRepetition] Building study queue with priority: Learning > Due > New');
+    
+    // Priority 1: Learning cards (all of them, they're already due)
+    const learningWords = learningCards.map(l => l.word);
+    queue.push(...learningWords);
+    console.log('[SpacedRepetition] Added', learningWords.length, 'learning cards');
+    
+    // Priority 2: Due review cards (within daily limit)
     const remainingReviews = maxReviewsPerDay - reviewsToday;
     const dueWords = dueCards.map(d => d.word).slice(0, Math.max(0, remainingReviews));
     queue.push(...dueWords);
+    console.log('[SpacedRepetition] Added', dueWords.length, 'due cards (limit:', remainingReviews, ')');
     
-    const learningWords = learningCards.map(l => l.word);
-    queue.push(...learningWords);
-    
+    // Priority 3: New cards (within daily limit)
     const remainingNew = maxNewCardsPerDay - newCardsToday;
     const newWordsToAdd = newCards.slice(0, Math.max(0, remainingNew));
     queue.push(...newWordsToAdd);
+    console.log('[SpacedRepetition] Added', newWordsToAdd.length, 'new cards (limit:', remainingNew, ')');
     
+    console.log('[SpacedRepetition] Final queue size:', queue.length);
     return queue;
   }, [cardCategories, maxNewCardsPerDay, maxReviewsPerDay, newCardsToday, reviewsToday]);
 
@@ -461,6 +369,10 @@ export default function SpacedRepetition() {
     
     setCardsStudied(prev => prev + 1);
     
+    // Convert correct/incorrect to FSRS rating (1-4)
+    // For basic correct/incorrect, map to: incorrect=1 (Again), correct=3 (Good)
+    const rating = correct ? 3 : 1;
+    
     if (correct) {
       setCorrectCount(prev => prev + 1);
     } else {
@@ -468,10 +380,12 @@ export default function SpacedRepetition() {
       setReviewAfterRest(prev => [...prev, currentCard]);
     }
 
-    // Update progress and wait for it to complete
+    console.log('[SpacedRepetition] User answered', correct ? 'correct' : 'incorrect', '- rating:', rating);
+
+    // Update progress with rating
     await updateProgressMutation.mutateAsync({
       vocabularyId: currentCard.id,
-      correct
+      rating
     });
 
     // Refetch progress to get updated data
@@ -480,10 +394,12 @@ export default function SpacedRepetition() {
     const newQueue = studyQueue.slice(1);
 
     if (newQueue.length === 0) {
+      console.log('[SpacedRepetition] Queue empty - completing session');
       completeSession();
       return;
     }
 
+    console.log('[SpacedRepetition] Moving to next card,', newQueue.length, 'cards remaining');
     setStudyQueue(newQueue);
     setCurrentCard(newQueue[0]);
   };
