@@ -77,6 +77,8 @@ export default function SpacedRepetition() {
   const [newCardsToday, setNewCardsToday] = useState(0);
   const [reviewsToday, setReviewsToday] = useState(0);
   const [currentUsage, setCurrentUsage] = useState(0);
+  const [tempNewCardLimit, setTempNewCardLimit] = useState(null);
+  const [showLimitPrompt, setShowLimitPrompt] = useState(false);
   
   const { data: allVocabulary = [], isLoading: isLoadingAll } = useQuery({
     queryKey: ['allVocabulary'],
@@ -116,7 +118,7 @@ export default function SpacedRepetition() {
   const totalUsage = baseUsage + currentUsage;
   const remainingSeconds = Math.max(0, dailyLimit - totalUsage);
   
-  const maxNewCardsPerDay = settings?.max_new_cards_per_day || 20;
+  const maxNewCardsPerDay = tempNewCardLimit || settings?.max_new_cards_per_day || 20;
   const maxReviewsPerDay = settings?.max_reviews_per_day || 200;
   const desiredRetention = settings?.desired_retention || 0.9;
   const learningSteps = settings?.learning_steps || [1, 10];
@@ -221,12 +223,22 @@ export default function SpacedRepetition() {
     if (userProgress.length > 0) {
       const today = new Date().setHours(0, 0, 0, 0);
       const todaysProgress = userProgress.filter(p => {
+        if (!p.last_reviewed) return false;
         const reviewDate = new Date(p.last_reviewed).setHours(0, 0, 0, 0);
         return reviewDate === today;
       });
       
-      const newCards = todaysProgress.filter(p => p.state === "New" || (p.reps === 1 && p.state === "Learning")).length;
-      const reviews = todaysProgress.filter(p => p.state === "Review" || p.state === "Relearning").length;
+      // Count NEW cards that received their FIRST rating today (reps === 1 and was New -> Learning)
+      const newCards = todaysProgress.filter(p => 
+        p.reps === 1 && (p.state === "Learning" || p.state === "Review")
+      ).length;
+      
+      // Count REVIEW cards that were reviewed today
+      const reviews = todaysProgress.filter(p => 
+        p.state === "Review" && p.reps > 1
+      ).length;
+      
+      console.log('[SpacedRepetition] Daily stats - New today:', newCards, 'Reviews today:', reviews);
       
       setNewCardsToday(newCards);
       setReviewsToday(reviews);
@@ -445,9 +457,21 @@ export default function SpacedRepetition() {
     );
   }
 
-  if (buildQueue.length === 0) {
+  if (buildQueue.length === 0 && !showLimitPrompt) {
     const remainingNew = maxNewCardsPerDay - newCardsToday;
-    const remainingReviews = maxReviewsPerDay - reviewsToday;
+    const hasLearning = cardCategories.learningCards.length > 0;
+    const hasDue = cardCategories.dueCards.length > 0;
+    const hasNew = cardCategories.newCards.length > 0;
+    
+    // Detect WHY the queue is empty
+    const newLimitReached = remainingNew <= 0 && hasNew;
+    const reviewLimitReached = reviewsToday >= maxReviewsPerDay && hasDue;
+    
+    if (newLimitReached && !hasLearning && !hasDue) {
+      // Only new cards left but limit reached - show prompt
+      setShowLimitPrompt(true);
+      return null;
+    }
     
     return (
       <div className={`h-screen flex items-center justify-center p-4 ${nightMode ? 'bg-slate-900' : 'bg-stone-50'}`}>
@@ -466,16 +490,77 @@ export default function SpacedRepetition() {
             </div>
           </div>
           <p className={nightMode ? 'text-slate-400' : 'text-slate-600'}>
-            {remainingNew === 0 && remainingReviews === 0 
-              ? "You've completed all your reviews and new cards for today!"
-              : "No cards are due for review right now. Come back later or try flash study mode!"}
+            {!hasLearning && !hasDue && !hasNew
+              ? "Perfect! You've reviewed all due cards and reached your daily limits."
+              : "No more cards due right now. Great work today!"}
           </p>
-          <button
-            onClick={() => navigate(createPageUrl('Home'))}
-            className="text-teal-600 hover:text-teal-700 font-medium"
-          >
-            ← Back to Home
-          </button>
+          <div className="space-y-2">
+            <Button
+              onClick={() => navigate(createPageUrl('FlashStudy?mode=' + mode + '&level=' + level))}
+              className="w-full bg-teal-600 hover:bg-teal-700 text-white"
+            >
+              Continue with Flash Study (No Limits)
+            </Button>
+            <Button
+              onClick={() => navigate(createPageUrl('Home'))}
+              variant="outline"
+              className={`w-full ${nightMode ? 'border-slate-600 text-slate-300 hover:bg-slate-700' : ''}`}
+            >
+              Back to Home
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (showLimitPrompt) {
+    const remainingNew = maxNewCardsPerDay - newCardsToday;
+    const hasNew = cardCategories.newCards.length > 0;
+    
+    return (
+      <div className={`h-screen flex items-center justify-center p-4 ${nightMode ? 'bg-slate-900' : 'bg-stone-50'}`}>
+        <div className="text-center space-y-6 max-w-md">
+          <div className="text-5xl">🎯</div>
+          <h2 className={`text-2xl font-semibold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`} style={{fontFamily: "'Crimson Pro', serif"}}>
+            Daily New Card Limit Reached
+          </h2>
+          <div className={`p-4 rounded-lg ${nightMode ? 'bg-slate-800 border border-slate-700' : 'bg-white border border-stone-200'}`}>
+            <p className={nightMode ? 'text-slate-300' : 'text-slate-700'}>
+              You've learned <strong>{newCardsToday} new cards</strong> today!
+            </p>
+            <p className={`mt-2 text-sm ${nightMode ? 'text-slate-400' : 'text-slate-600'}`}>
+              {hasNew ? `${cardCategories.newCards.length} new cards remaining` : 'No new cards left'}
+            </p>
+          </div>
+          <div className="space-y-2">
+            {hasNew && (
+              <Button
+                onClick={() => {
+                  setTempNewCardLimit((settings?.max_new_cards_per_day || 20) + 10);
+                  setShowLimitPrompt(false);
+                }}
+                className="w-full bg-amber-600 hover:bg-amber-700 text-white"
+              >
+                Study 10 More New Cards (Today Only)
+              </Button>
+            )}
+            <Button
+              onClick={() => {
+                navigate(createPageUrl('FlashStudy?mode=' + mode + '&level=' + level));
+              }}
+              className="w-full bg-teal-600 hover:bg-teal-700 text-white"
+            >
+              Switch to Flash Study (No Limits)
+            </Button>
+            <Button
+              onClick={() => navigate(createPageUrl('Home'))}
+              variant="outline"
+              className={`w-full ${nightMode ? 'border-slate-600 text-slate-300 hover:bg-slate-700' : ''}`}
+            >
+              Done for Today
+            </Button>
+          </div>
         </div>
       </div>
     );
