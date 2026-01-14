@@ -22,7 +22,7 @@ export default function Focus() {
   const totalBreaths = 20;
   const inhaleSeconds = 4;
   const exhaleSeconds = 4;
-  const holdSeconds = 2;
+  const holdSeconds = 1;
   const dotStareDuration = 30;
 
   const { data: user } = useQuery({
@@ -63,18 +63,18 @@ export default function Focus() {
           const cycleLength = inhaleSeconds + holdSeconds + exhaleSeconds + holdSeconds;
           const newTimer = prev + 1;
           
-          // Update phase at the start of each phase to sync with animation
-          if (newTimer === 1) {
+          // Update phase based on current timer position
+          if (newTimer <= inhaleSeconds) {
             setBreathPhase("inhale");
-          } else if (newTimer === inhaleSeconds + 1) {
+          } else if (newTimer <= inhaleSeconds + holdSeconds) {
             setBreathPhase("hold");
-          } else if (newTimer === inhaleSeconds + holdSeconds + 1) {
+          } else if (newTimer <= inhaleSeconds + holdSeconds + exhaleSeconds) {
             setBreathPhase("exhale");
-          } else if (newTimer === inhaleSeconds + holdSeconds + exhaleSeconds + 1) {
+          } else if (newTimer <= cycleLength) {
             setBreathPhase("hold");
           }
           
-          if (newTimer > cycleLength) {
+          if (newTimer >= cycleLength) {
             const newCount = breathCount + 1;
             setBreathCount(newCount);
             
@@ -82,8 +82,9 @@ export default function Focus() {
               setPhase("hold_empty");
               setHoldTimer(0);
               setIsActive(false);
+              return 0;
             }
-            return 0;
+            return 1; // Start next cycle at 1
           }
           
           return newTimer;
@@ -194,7 +195,7 @@ export default function Focus() {
                   <ol className={`space-y-2 ${nightMode ? 'text-slate-300' : 'text-slate-700'}`}>
                     <li className="flex items-start gap-2">
                       <span className="font-semibold text-teal-600">1.</span>
-                      <span>Take {totalBreaths} deep breaths (automatic 4s in, 2s hold, 4s out, 2s hold)</span>
+                      <span>Take {totalBreaths} deep breaths (automatic 4s in, 1s hold, 4s out, 1s hold)</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="font-semibold text-teal-600">2.</span>

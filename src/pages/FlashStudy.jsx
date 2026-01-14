@@ -86,7 +86,7 @@ export default function FlashStudy() {
 
   const updateProgressMutation = useMutation({
     mutationFn: async ({ vocabularyId, correct }) => {
-      if (!user) return;
+      if (!user) return null;
       
       const existing = await base44.entities.UserProgress.filter({
         vocabulary_id: vocabularyId,

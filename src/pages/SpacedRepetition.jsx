@@ -127,13 +127,15 @@ export default function SpacedRepetition() {
     return Math.floor(Math.random() * (restMaxSeconds - restMinSeconds) * 1000) + (restMinSeconds * 1000);
   });
 
-  const { data: userProgress = [] } = useQuery({
+  const { data: userProgress = [], refetch: refetchProgress } = useQuery({
     queryKey: ['userProgress', user?.email],
     queryFn: async () => {
       if (!user) return [];
-      return base44.entities.UserProgress.filter({ user_email: user.email });
+      const allProgress = await base44.entities.UserProgress.filter({ user_email: user.email });
+      return allProgress;
     },
     enabled: !!user,
+    staleTime: 0, // Always fetch fresh data
   });
 
   const totalAnswered = correctCount + incorrectCount;
@@ -232,7 +234,7 @@ export default function SpacedRepetition() {
 
   const updateProgressMutation = useMutation({
     mutationFn: async ({ vocabularyId, correct }) => {
-      if (!user) return;
+      if (!user) return null;
       
       const existing = await base44.entities.UserProgress.filter({
         vocabulary_id: vocabularyId,
@@ -376,6 +378,7 @@ export default function SpacedRepetition() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['userProgress'] });
+      queryClient.invalidateQueries({ queryKey: ['recentSessions'] });
     },
   });
 
@@ -453,7 +456,7 @@ export default function SpacedRepetition() {
     return () => clearInterval(checkRestTime);
   }, [lastRestTime, nextRestDuration, showRest, sessionComplete, cardsStudied]);
 
-  const handleAnswer = (correct) => {
+  const handleAnswer = async (correct) => {
     if (!currentCard) return;
     
     setCardsStudied(prev => prev + 1);
@@ -465,10 +468,14 @@ export default function SpacedRepetition() {
       setReviewAfterRest(prev => [...prev, currentCard]);
     }
 
-    updateProgressMutation.mutate({
+    // Update progress and wait for it to complete
+    await updateProgressMutation.mutateAsync({
       vocabularyId: currentCard.id,
       correct
     });
+
+    // Refetch progress to get updated data
+    await refetchProgress();
 
     const newQueue = studyQueue.slice(1);
 
