@@ -330,7 +330,7 @@ export default function SpacedRepetition() {
           }
         }
 
-        return base44.entities.UserProgress.update(progress.id, {
+        const updated = await base44.entities.UserProgress.update(progress.id, {
           correct_count: progress.correct_count + (correct ? 1 : 0),
           incorrect_count: progress.incorrect_count + (correct ? 0 : 1),
           last_reviewed: now.toISOString(),
@@ -341,9 +341,10 @@ export default function SpacedRepetition() {
           elapsed_days: elapsedDays,
           scheduled_days: newInterval,
           reps: (progress.reps || 0) + 1,
-          lapses: progress.lapses + (correct ? 0 : 1),
+          lapses: (progress.lapses || 0) + (correct ? 0 : 1),
           learning_step: newLearningStep,
         });
+        return updated;
       } else {
         // New card first time
         const fsrs = new FSRS4({ requestRetention: desiredRetention });
@@ -354,7 +355,7 @@ export default function SpacedRepetition() {
         const interval = learningSteps[0] / (24 * 60);
         const nextReview = new Date(now.getTime() + learningSteps[0] * 60000);
 
-        return base44.entities.UserProgress.create({
+        const created = await base44.entities.UserProgress.create({
           vocabulary_id: vocabularyId,
           user_email: user.email,
           correct_count: correct ? 1 : 0,
@@ -370,6 +371,7 @@ export default function SpacedRepetition() {
           lapses: correct ? 0 : 1,
           learning_step: 0,
         });
+        return created;
       }
     },
     onSuccess: () => {
