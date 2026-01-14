@@ -245,7 +245,7 @@ export default function Focus() {
                       scale: breathPhase === "inhale" ? 1.3 : breathPhase === "exhale" ? 1 : (breathPhase === "hold" && breathTimer <= inhaleSeconds + holdSeconds) ? 1.3 : 1,
                     }}
                     transition={{ 
-                      duration: 0.5,
+                      duration: breathPhase === "inhale" ? inhaleSeconds : breathPhase === "exhale" ? exhaleSeconds : holdSeconds,
                       ease: "easeInOut"
                     }}
                     className="w-32 h-32 md:w-32 md:h-32 mx-auto rounded-full bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center shadow-xl relative"

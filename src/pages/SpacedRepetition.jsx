@@ -175,22 +175,18 @@ export default function SpacedRepetition() {
   const completeSession = useCallback(() => {
     const duration = Math.floor((Date.now() - sessionStartTime) / 1000);
     
-    if (!isPremium) {
-      updateUsageMutation.mutate(duration);
-    }
-    
     createSessionMutation.mutate({
       mode,
       level,
-      total_cards: totalAnswered,
+      total_cards: correctCount + incorrectCount,
       correct_answers: correctCount,
-      accuracy,
+      accuracy: correctCount + incorrectCount > 0 ? (correctCount / (correctCount + incorrectCount)) * 100 : 0,
       duration,
       session_type: 'spaced_repetition',
     });
 
     setSessionComplete(true);
-  }, [sessionStartTime, isPremium, updateUsageMutation, createSessionMutation, mode, level, totalAnswered, correctCount, accuracy]);
+  }, [sessionStartTime, createSessionMutation, mode, level, correctCount, incorrectCount]);
 
   // Track usage time in real-time
   useEffect(() => {
@@ -200,15 +196,23 @@ export default function SpacedRepetition() {
       const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
       setCurrentUsage(elapsed);
 
+      // Update usage in real-time (every 10 seconds)
+      if (elapsed % 10 === 0 && elapsed > 0 && settings) {
+        const currentStoredUsage = settings.daily_usage_seconds || 0;
+        base44.entities.UserSettings.update(settings.id, {
+          daily_usage_seconds: currentStoredUsage + 10,
+          last_usage_date: today
+        });
+      }
+
       if (baseUsage + elapsed >= dailyLimit) {
-        completeSession();
-        navigate(createPageUrl('Subscription'));
         alert("Daily study limit reached (7.5 minutes). Upgrade to Premium for unlimited access!");
+        navigate(createPageUrl('Subscription'));
       }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isPremium, sessionComplete, baseUsage, dailyLimit, sessionStartTime, navigate, completeSession]);
+  }, [isPremium, sessionComplete, baseUsage, dailyLimit, sessionStartTime, today, navigate, settings]);
 
   useEffect(() => {
     if (userProgress.length > 0) {
@@ -246,8 +250,6 @@ export default function SpacedRepetition() {
         const lastReview = progress.last_reviewed ? new Date(progress.last_reviewed) : now;
         const elapsedDays = (now - lastReview) / (1000 * 60 * 60 * 24);
         
-        let rating = correct ? 3 : 1;
-        
         let newState = state;
         let newStability = stability;
         let newDifficulty = difficulty;
@@ -256,40 +258,29 @@ export default function SpacedRepetition() {
         let newLearningStep = progress.learning_step || 0;
 
         if (state === "New") {
-          newStability = fsrs.calculateStability(state, difficulty, stability, rating);
-          newDifficulty = fsrs.calculateDifficulty(difficulty, rating);
+          newStability = fsrs.calculateStability(state, difficulty, stability, correct ? 3 : 1);
+          newDifficulty = fsrs.calculateDifficulty(difficulty, correct ? 3 : 1);
           
-          if (rating === 1) {
-            newState = "Learning";
-            newLearningStep = 0;
-            newInterval = learningSteps[0] / (24 * 60);
-            newNextReview = new Date(now.getTime() + learningSteps[0] * 60000);
-          } else if (rating === 2) {
-            newState = "Learning";
-            newLearningStep = 0;
-            newInterval = learningSteps[0] / (24 * 60);
-            newNextReview = new Date(now.getTime() + learningSteps[0] * 60000);
-          } else if (rating === 3) {
-            newState = "Learning";
-            newLearningStep = 0;
-            newInterval = learningSteps[0] / (24 * 60);
-            newNextReview = new Date(now.getTime() + learningSteps[0] * 60000);
-          } else {
-            newState = "Review";
-            newInterval = easyInterval;
-            newNextReview = new Date(now.getTime() + easyInterval * 86400000);
-          }
+          newState = "Learning";
+          newLearningStep = 0;
+          newInterval = learningSteps[0] / (24 * 60);
+          newNextReview = new Date(now.getTime() + learningSteps[0] * 60000);
         } else if (state === "Learning") {
-          newStability = fsrs.calculateStability(state, difficulty, stability, rating);
-          newDifficulty = fsrs.calculateDifficulty(difficulty, rating);
-          
-          if (rating === 1) {
+          if (!correct) {
+            // Failed in learning - restart from step 0
+            newStability = fsrs.calculateStability(state, difficulty, stability, 1);
+            newDifficulty = fsrs.calculateDifficulty(difficulty, 1);
             newLearningStep = 0;
             newInterval = learningSteps[0] / (24 * 60);
             newNextReview = new Date(now.getTime() + learningSteps[0] * 60000);
           } else {
+            // Passed - advance to next step
+            newStability = fsrs.calculateStability(state, difficulty, stability, 3);
+            newDifficulty = fsrs.calculateDifficulty(difficulty, 3);
             newLearningStep++;
+            
             if (newLearningStep >= learningSteps.length) {
+              // Graduate to Review
               newState = "Review";
               newInterval = graduatingInterval;
               newNextReview = new Date(now.getTime() + graduatingInterval * 86400000);
@@ -299,29 +290,36 @@ export default function SpacedRepetition() {
             }
           }
         } else if (state === "Review") {
-          newStability = fsrs.calculateStability(state, difficulty, stability, rating);
-          newDifficulty = fsrs.calculateDifficulty(difficulty, rating);
+          newStability = fsrs.calculateStability(state, difficulty, stability, correct ? 3 : 1);
+          newDifficulty = fsrs.calculateDifficulty(difficulty, correct ? 3 : 1);
           
-          if (rating === 1) {
+          if (!correct) {
+            // Failed review - move to relearning
             newState = "Relearning";
             newLearningStep = 0;
             newInterval = relearningSteps[0] / (24 * 60);
             newNextReview = new Date(now.getTime() + relearningSteps[0] * 60000);
           } else {
+            // Passed review - calculate next interval
             newInterval = fsrs.calculateInterval(newStability, desiredRetention);
             newNextReview = new Date(now.getTime() + newInterval * 86400000);
           }
         } else if (state === "Relearning") {
-          newStability = fsrs.calculateStability(state, difficulty, stability, rating);
-          newDifficulty = fsrs.calculateDifficulty(difficulty, rating);
-          
-          if (rating === 1) {
+          if (!correct) {
+            // Failed relearning - restart from step 0
+            newStability = fsrs.calculateStability(state, difficulty, stability, 1);
+            newDifficulty = fsrs.calculateDifficulty(difficulty, 1);
             newLearningStep = 0;
             newInterval = relearningSteps[0] / (24 * 60);
             newNextReview = new Date(now.getTime() + relearningSteps[0] * 60000);
           } else {
+            // Passed - advance
+            newStability = fsrs.calculateStability(state, difficulty, stability, 3);
+            newDifficulty = fsrs.calculateDifficulty(difficulty, 3);
             newLearningStep++;
+            
             if (newLearningStep >= relearningSteps.length) {
+              // Graduate back to Review
               newState = "Review";
               newInterval = fsrs.calculateInterval(newStability, desiredRetention);
               newNextReview = new Date(now.getTime() + newInterval * 86400000);
@@ -347,24 +345,14 @@ export default function SpacedRepetition() {
           learning_step: newLearningStep,
         });
       } else {
+        // New card first time
         const fsrs = new FSRS4({ requestRetention: desiredRetention });
-        const rating = correct ? 3 : 1;
-        const stability = fsrs.calculateStability("New", 5, 0, rating);
-        const difficulty = fsrs.calculateDifficulty(5, rating);
+        const stability = fsrs.calculateStability("New", 5, 0, correct ? 3 : 1);
+        const difficulty = fsrs.calculateDifficulty(5, correct ? 3 : 1);
         
-        let nextReview;
-        let state;
-        let interval;
-        
-        if (rating === 4) {
-          state = "Review";
-          interval = easyInterval;
-          nextReview = new Date(now.getTime() + easyInterval * 86400000);
-        } else {
-          state = "Learning";
-          interval = learningSteps[0] / (24 * 60);
-          nextReview = new Date(now.getTime() + learningSteps[0] * 60000);
-        }
+        const state = "Learning";
+        const interval = learningSteps[0] / (24 * 60);
+        const nextReview = new Date(now.getTime() + learningSteps[0] * 60000);
 
         return base44.entities.UserProgress.create({
           vocabulary_id: vocabularyId,

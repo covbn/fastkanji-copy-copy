@@ -137,22 +137,18 @@ export default function FlashStudy() {
   const completeSession = useCallback(() => {
     const duration = Math.floor((Date.now() - sessionStartTime) / 1000);
     
-    if (!isPremium) {
-      updateUsageMutation.mutate(duration);
-    }
-    
     createSessionMutation.mutate({
       mode,
       level,
-      total_cards: totalAnswered,
+      total_cards: correctCount + incorrectCount,
       correct_answers: correctCount,
-      accuracy,
+      accuracy: correctCount + incorrectCount > 0 ? (correctCount / (correctCount + incorrectCount)) * 100 : 0,
       duration,
       session_type: 'flash',
     });
 
     setSessionComplete(true);
-  }, [sessionStartTime, isPremium, updateUsageMutation, createSessionMutation, mode, level, totalAnswered, correctCount, accuracy]);
+  }, [sessionStartTime, createSessionMutation, mode, level, correctCount, incorrectCount]);
 
   // Track usage time in real-time
   useEffect(() => {
@@ -162,15 +158,23 @@ export default function FlashStudy() {
       const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
       setCurrentUsage(elapsed);
 
+      // Update usage in real-time (every 10 seconds)
+      if (elapsed % 10 === 0 && elapsed > 0 && settings) {
+        const currentStoredUsage = settings.daily_usage_seconds || 0;
+        base44.entities.UserSettings.update(settings.id, {
+          daily_usage_seconds: currentStoredUsage + 10,
+          last_usage_date: today
+        });
+      }
+
       if (baseUsage + elapsed >= dailyLimit) {
-        completeSession();
-        navigate(createPageUrl('Subscription'));
         alert("Daily study limit reached (7.5 minutes). Upgrade to Premium for unlimited access!");
+        navigate(createPageUrl('Subscription'));
       }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isPremium, sessionComplete, baseUsage, dailyLimit, sessionStartTime, navigate, completeSession]);
+  }, [isPremium, sessionComplete, baseUsage, dailyLimit, sessionStartTime, today, navigate, settings]);
 
   useEffect(() => {
     if (vocabulary.length > 0 && studyQueue.length === 0) {
