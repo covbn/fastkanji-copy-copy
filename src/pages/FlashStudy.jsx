@@ -203,6 +203,9 @@ export default function FlashStudy() {
   const handleAnswer = (correct) => {
     if (!currentCard) return;
     
+    // 🚀 PERFORMANCE: Record tap time
+    const tapTime = performance.now();
+    
     setCardsStudied(prev => prev + 1);
     
     if (correct) {
@@ -212,6 +215,7 @@ export default function FlashStudy() {
       setReviewAfterRest(prev => [...prev, currentCard]);
     }
 
+    // 🔄 BACKGROUND: Update progress in the background (non-blocking)
     updateProgressMutation.mutate({
       vocabularyId: currentCard.id,
       correct
@@ -243,8 +247,16 @@ export default function FlashStudy() {
       return;
     }
 
+    // 🚀 OPTIMISTIC UI: Move to next card IMMEDIATELY
     setStudyQueue(newQueue);
     setCurrentCard(newQueue[0]);
+
+    // 🚀 PERFORMANCE: Log card transition time
+    requestAnimationFrame(() => {
+      const nextCardRenderedTime = performance.now();
+      const deltaMs = nextCardRenderedTime - tapTime;
+      console.log(`[PERF] Card transition: ${deltaMs.toFixed(2)}ms`);
+    });
   };
 
   const handleEndSession = () => {
