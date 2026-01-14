@@ -137,10 +137,6 @@ export default function FlashStudy() {
   const completeSession = useCallback(() => {
     const duration = Math.floor((Date.now() - sessionStartTime) / 1000);
     
-    if (!isPremium) {
-      updateUsageMutation.mutate(duration);
-    }
-    
     createSessionMutation.mutate({
       mode,
       level,
@@ -152,25 +148,38 @@ export default function FlashStudy() {
     });
 
     setSessionComplete(true);
-  }, [sessionStartTime, isPremium, updateUsageMutation, createSessionMutation, mode, level, totalAnswered, correctCount, accuracy]);
+  }, [sessionStartTime, createSessionMutation, mode, level, totalAnswered, correctCount, accuracy]);
 
-  // Track usage time in real-time
+  // Track usage time in real-time and update backend
   useEffect(() => {
-    if (isPremium || sessionComplete) return;
+    if (isPremium) return;
 
     const interval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
       setCurrentUsage(elapsed);
 
-      if (baseUsage + elapsed >= dailyLimit) {
+      // Update backend every 10 seconds
+      if (elapsed > 0 && elapsed % 10 === 0) {
+        updateUsageMutation.mutate(10);
+      }
+
+      if (!sessionComplete && baseUsage + elapsed >= dailyLimit) {
         completeSession();
         navigate(createPageUrl('Subscription'));
         alert("Daily study limit reached (7.5 minutes). Upgrade to Premium for unlimited access!");
       }
     }, 1000);
 
-    return () => clearInterval(interval);
-  }, [isPremium, sessionComplete, baseUsage, dailyLimit, sessionStartTime, navigate, completeSession]);
+    return () => {
+      clearInterval(interval);
+      // Update any remaining time on unmount
+      const finalElapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
+      const remainder = finalElapsed % 10;
+      if (remainder > 0 && !sessionComplete) {
+        updateUsageMutation.mutate(remainder);
+      }
+    };
+  }, [isPremium, sessionComplete, baseUsage, dailyLimit, sessionStartTime, navigate, completeSession, updateUsageMutation]);
 
   useEffect(() => {
     if (vocabulary.length > 0 && studyQueue.length === 0) {

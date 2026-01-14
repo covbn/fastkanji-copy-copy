@@ -175,10 +175,6 @@ export default function SpacedRepetition() {
   const completeSession = useCallback(() => {
     const duration = Math.floor((Date.now() - sessionStartTime) / 1000);
     
-    if (!isPremium) {
-      updateUsageMutation.mutate(duration);
-    }
-    
     createSessionMutation.mutate({
       mode,
       level,
@@ -190,41 +186,67 @@ export default function SpacedRepetition() {
     });
 
     setSessionComplete(true);
-  }, [sessionStartTime, isPremium, updateUsageMutation, createSessionMutation, mode, level, totalAnswered, correctCount, accuracy]);
+  }, [sessionStartTime, createSessionMutation, mode, level, totalAnswered, correctCount, accuracy]);
 
-  // Track usage time in real-time
+  // Track usage time in real-time and update backend
   useEffect(() => {
-    if (isPremium || sessionComplete) return;
+    if (isPremium) return;
 
     const interval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
       setCurrentUsage(elapsed);
 
-      if (baseUsage + elapsed >= dailyLimit) {
+      // Update backend every 10 seconds
+      if (elapsed > 0 && elapsed % 10 === 0) {
+        updateUsageMutation.mutate(10);
+      }
+
+      if (!sessionComplete && baseUsage + elapsed >= dailyLimit) {
         completeSession();
         navigate(createPageUrl('Subscription'));
         alert("Daily study limit reached (7.5 minutes). Upgrade to Premium for unlimited access!");
       }
     }, 1000);
 
-    return () => clearInterval(interval);
-  }, [isPremium, sessionComplete, baseUsage, dailyLimit, sessionStartTime, navigate, completeSession]);
+    return () => {
+      clearInterval(interval);
+      // Update any remaining time on unmount
+      const finalElapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
+      const remainder = finalElapsed % 10;
+      if (remainder > 0 && !sessionComplete) {
+        updateUsageMutation.mutate(remainder);
+      }
+    };
+  }, [isPremium, sessionComplete, baseUsage, dailyLimit, sessionStartTime, navigate, completeSession, updateUsageMutation]);
 
   useEffect(() => {
-    if (userProgress.length > 0) {
-      const today = new Date().setHours(0, 0, 0, 0);
-      const todaysProgress = userProgress.filter(p => {
-        const reviewDate = new Date(p.last_reviewed).setHours(0, 0, 0, 0);
-        return reviewDate === today;
-      });
+    if (userProgress.length > 0 && settings) {
+      const today = new Date().toISOString().split('T')[0];
+      const lastReset = settings.last_usage_date;
       
-      const newCards = todaysProgress.filter(p => p.state === "New" || (p.reps === 1 && p.state === "Learning")).length;
-      const reviews = todaysProgress.filter(p => p.state === "Review" || p.state === "Relearning").length;
-      
-      setNewCardsToday(newCards);
-      setReviewsToday(reviews);
+      // Reset counters if it's a new day
+      if (lastReset !== today) {
+        setNewCardsToday(0);
+        setReviewsToday(0);
+      } else {
+        // Count cards studied today based on last_reviewed date
+        const todaysProgress = userProgress.filter(p => {
+          if (!p.last_reviewed) return false;
+          const reviewDate = new Date(p.last_reviewed).toISOString().split('T')[0];
+          return reviewDate === today;
+        });
+        
+        // Count new cards that transitioned from New state today
+        const newCards = todaysProgress.filter(p => p.state !== "New" && p.reps >= 1).length;
+        
+        // Count reviews (cards that were already in Learning/Review/Relearning and got reviewed)
+        const reviews = todaysProgress.filter(p => (p.state === "Review" || p.state === "Relearning" || p.state === "Learning") && p.reps > 1).length;
+        
+        setNewCardsToday(newCards);
+        setReviewsToday(reviews);
+      }
     }
-  }, [userProgress]);
+  }, [userProgress, settings]);
 
   const updateProgressMutation = useMutation({
     mutationFn: async ({ vocabularyId, correct }) => {
@@ -246,7 +268,7 @@ export default function SpacedRepetition() {
         const lastReview = progress.last_reviewed ? new Date(progress.last_reviewed) : now;
         const elapsedDays = (now - lastReview) / (1000 * 60 * 60 * 24);
         
-        let rating = correct ? 3 : 1;
+        let rating = correct ? 4 : 1;
         
         let newState = state;
         let newStability = stability;
@@ -348,7 +370,7 @@ export default function SpacedRepetition() {
         });
       } else {
         const fsrs = new FSRS4({ requestRetention: desiredRetention });
-        const rating = correct ? 3 : 1;
+        const rating = correct ? 4 : 1;
         const stability = fsrs.calculateStability("New", 5, 0, rating);
         const difficulty = fsrs.calculateDifficulty(5, rating);
         
