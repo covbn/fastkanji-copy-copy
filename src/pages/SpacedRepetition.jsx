@@ -192,13 +192,16 @@ export default function SpacedRepetition() {
   useEffect(() => {
     if (isPremium) return;
 
+    let lastUpdate = 0;
     const interval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
       setCurrentUsage(elapsed);
 
       // Update backend every 10 seconds
-      if (elapsed > 0 && elapsed % 10 === 0) {
+      const currentTens = Math.floor(elapsed / 10);
+      if (currentTens > lastUpdate) {
         updateUsageMutation.mutate(10);
+        lastUpdate = currentTens;
       }
 
       if (!sessionComplete && baseUsage + elapsed >= dailyLimit) {
@@ -213,11 +216,11 @@ export default function SpacedRepetition() {
       // Update any remaining time on unmount
       const finalElapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
       const remainder = finalElapsed % 10;
-      if (remainder > 0 && !sessionComplete) {
+      if (remainder > 0) {
         updateUsageMutation.mutate(remainder);
       }
     };
-  }, [isPremium, sessionComplete, baseUsage, dailyLimit, sessionStartTime, navigate, completeSession, updateUsageMutation]);
+  }, [isPremium, sessionComplete, baseUsage, dailyLimit, sessionStartTime, navigate, completeSession]);
 
   useEffect(() => {
     if (userProgress.length > 0 && settings) {
