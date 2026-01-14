@@ -364,13 +364,15 @@ export default function SpacedRepetition() {
     return () => clearInterval(checkRestTime);
   }, [lastRestTime, nextRestDuration, showRest, sessionComplete, cardsStudied]);
 
-  const handleAnswer = async (correct) => {
+  const handleAnswer = (correct) => {
     if (!currentCard) return;
+    
+    // 🚀 PERFORMANCE: Record tap time
+    const tapTime = performance.now();
     
     setCardsStudied(prev => prev + 1);
     
     // Convert correct/incorrect to FSRS rating (1-4)
-    // For basic correct/incorrect, map to: incorrect=1 (Again), correct=3 (Good)
     const rating = correct ? 3 : 1;
     
     if (correct) {
@@ -382,15 +384,7 @@ export default function SpacedRepetition() {
 
     console.log('[SpacedRepetition] User answered', correct ? 'correct' : 'incorrect', '- rating:', rating);
 
-    // Update progress with rating
-    await updateProgressMutation.mutateAsync({
-      vocabularyId: currentCard.id,
-      rating
-    });
-
-    // Refetch progress to get updated data
-    await refetchProgress();
-
+    // 🚀 OPTIMISTIC UI: Move to next card IMMEDIATELY (non-blocking)
     const newQueue = studyQueue.slice(1);
 
     if (newQueue.length === 0) {
@@ -402,6 +396,24 @@ export default function SpacedRepetition() {
     console.log('[SpacedRepetition] Moving to next card,', newQueue.length, 'cards remaining');
     setStudyQueue(newQueue);
     setCurrentCard(newQueue[0]);
+
+    // 🚀 PERFORMANCE: Log card transition time
+    requestAnimationFrame(() => {
+      const nextCardRenderedTime = performance.now();
+      const deltaMs = nextCardRenderedTime - tapTime;
+      console.log(`[PERF] Card transition: ${deltaMs.toFixed(2)}ms`);
+    });
+
+    // 🔄 BACKGROUND: Update progress in the background (non-blocking)
+    updateProgressMutation.mutate({
+      vocabularyId: currentCard.id,
+      rating
+    });
+
+    // 🔄 BACKGROUND: Refetch progress after a short delay (non-blocking)
+    setTimeout(() => {
+      refetchProgress();
+    }, 100);
   };
 
   const continueAfterRest = () => {
