@@ -63,15 +63,18 @@ export default function Focus() {
           const cycleLength = inhaleSeconds + holdSeconds + exhaleSeconds + holdSeconds;
           const newTimer = prev + 1;
           
-          if (newTimer <= inhaleSeconds) {
+          // Update phase at the start of each phase to sync with animation
+          if (newTimer === 1) {
             setBreathPhase("inhale");
-          } else if (newTimer <= inhaleSeconds + holdSeconds) {
+          } else if (newTimer === inhaleSeconds + 1) {
             setBreathPhase("hold");
-          } else if (newTimer <= inhaleSeconds + holdSeconds + exhaleSeconds) {
+          } else if (newTimer === inhaleSeconds + holdSeconds + 1) {
             setBreathPhase("exhale");
-          } else if (newTimer <= cycleLength) {
+          } else if (newTimer === inhaleSeconds + holdSeconds + exhaleSeconds + 1) {
             setBreathPhase("hold");
-          } else {
+          }
+          
+          if (newTimer > cycleLength) {
             const newCount = breathCount + 1;
             setBreathCount(newCount);
             

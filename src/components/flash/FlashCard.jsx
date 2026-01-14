@@ -153,7 +153,7 @@ export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSente
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      className="text-xs md:text-sm text-slate-600 p-3 md:p-4 bg-stone-50 rounded-lg border border-stone-200 max-h-24 overflow-y-auto custom-scrollbar"
+                      className="text-xs md:text-sm text-slate-600 p-3 md:p-4 bg-stone-50 rounded-lg border border-stone-200 max-h-32 md:max-h-40 overflow-y-auto custom-scrollbar"
                     >
                       <p className="font-medium mb-1.5 text-teal-700 text-xs md:text-sm">Example</p>
                       {!isReadingToMeaning && (
