@@ -7,29 +7,6 @@ import { Check, X, Eye } from "lucide-react";
 export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSentences = true }) {
   const [revealed, setRevealed] = useState(false);
 
-  // Keyboard shortcuts
-  React.useEffect(() => {
-    const handleKeyPress = (e) => {
-      if (e.key === ' ' || e.key === 'Enter') {
-        e.preventDefault();
-        if (!revealed) {
-          setRevealed(true);
-        }
-      } else if (revealed) {
-        if (e.key === '1' || e.key === 'ArrowLeft') {
-          e.preventDefault();
-          handleAnswer(false);
-        } else if (e.key === '2' || e.key === 'ArrowRight') {
-          e.preventDefault();
-          handleAnswer(true);
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [revealed]);
-
   const getQuestion = () => {
     switch (mode) {
       case 'kanji_to_reading':
@@ -60,6 +37,29 @@ export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSente
     onAnswer(correct);
     setRevealed(false);
   };
+
+  // Keyboard shortcuts
+  React.useEffect(() => {
+    const handleKeyPress = (e) => {
+      if (e.key === ' ' || e.key === 'Enter') {
+        e.preventDefault();
+        if (!revealed) {
+          setRevealed(true);
+        }
+      } else if (revealed) {
+        if (e.key === '1' || e.key === 'ArrowLeft') {
+          e.preventDefault();
+          handleAnswer(false);
+        } else if (e.key === '2' || e.key === 'ArrowRight') {
+          e.preventDefault();
+          handleAnswer(true);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [revealed, handleAnswer]);
 
   const getModeDisplay = () => {
     return mode.replace(/_/g, ' ').replace('to', '→');
