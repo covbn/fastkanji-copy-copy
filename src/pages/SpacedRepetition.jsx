@@ -78,7 +78,9 @@ export default function SpacedRepetition() {
   const [reviewsToday, setReviewsToday] = useState(0);
   const [currentUsage, setCurrentUsage] = useState(0);
   const [tempNewCardLimit, setTempNewCardLimit] = useState(null);
+  const [tempReviewLimit, setTempReviewLimit] = useState(null);
   const [showLimitPrompt, setShowLimitPrompt] = useState(false);
+  const [limitPromptType, setLimitPromptType] = useState(null); // 'new', 'review', or 'both'
   
   const { data: allVocabulary = [], isLoading: isLoadingAll } = useQuery({
     queryKey: ['allVocabulary'],
@@ -119,7 +121,8 @@ export default function SpacedRepetition() {
   const remainingSeconds = Math.max(0, dailyLimit - totalUsage);
   
   const maxNewCardsPerDay = tempNewCardLimit || settings?.max_new_cards_per_day || 20;
-  const maxReviewsPerDay = settings?.max_reviews_per_day || 200;
+  const maxReviewsPerDay = tempReviewLimit || settings?.max_reviews_per_day || 200;
+  const newIgnoresReviewLimit = settings?.new_ignores_review_limit || false; // Anki default: OFF
   const desiredRetention = settings?.desired_retention || 0.9;
   const learningSteps = settings?.learning_steps || [1, 10];
   const relearningSteps = settings?.relearning_steps || [10];
@@ -344,12 +347,13 @@ export default function SpacedRepetition() {
     const { newCards, learningCards, dueCards } = cardCategories;
     const queue = [];
     
-    console.log('[SpacedRepetition] Building study queue with priority: Learning > Due > New');
+    console.log('[SpacedRepetition] Building study queue with Anki-like priority');
     
     // Priority 1: Learning cards (all of them, they're already due)
+    // Learning cards are NEVER blocked by any limits (Anki behavior)
     const learningWords = learningCards.map(l => l.word);
     queue.push(...learningWords);
-    console.log('[SpacedRepetition] Added', learningWords.length, 'learning cards');
+    console.log('[SpacedRepetition] Added', learningWords.length, 'learning cards (never blocked)');
     
     // Priority 2: Due review cards (within daily limit)
     const remainingReviews = maxReviewsPerDay - reviewsToday;
@@ -357,15 +361,23 @@ export default function SpacedRepetition() {
     queue.push(...dueWords);
     console.log('[SpacedRepetition] Added', dueWords.length, 'due cards (limit:', remainingReviews, ')');
     
-    // Priority 3: New cards (within daily limit)
+    // Priority 3: New cards (within daily limit AND respecting review limit)
     const remainingNew = maxNewCardsPerDay - newCardsToday;
-    const newWordsToAdd = newCards.slice(0, Math.max(0, remainingNew));
+    
+    // 🎯 ANKI BEHAVIOR: If review limit reached, block new cards (unless setting overrides)
+    const reviewLimitReached = remainingReviews <= 0;
+    const canShowNew = newIgnoresReviewLimit || !reviewLimitReached;
+    
+    const newWordsToAdd = canShowNew 
+      ? newCards.slice(0, Math.max(0, remainingNew))
+      : [];
+    
     queue.push(...newWordsToAdd);
-    console.log('[SpacedRepetition] Added', newWordsToAdd.length, 'new cards (limit:', remainingNew, ')');
+    console.log('[SpacedRepetition] Added', newWordsToAdd.length, 'new cards (new limit:', remainingNew, ', review limit blocks:', !canShowNew, ')');
     
     console.log('[SpacedRepetition] Final queue size:', queue.length);
     return queue;
-  }, [cardCategories, maxNewCardsPerDay, maxReviewsPerDay, newCardsToday, reviewsToday]);
+  }, [cardCategories, maxNewCardsPerDay, maxReviewsPerDay, newCardsToday, reviewsToday, newIgnoresReviewLimit]);
 
   useEffect(() => {
     if (buildQueue.length > 0 && studyQueue.length === 0) {
@@ -468,6 +480,7 @@ export default function SpacedRepetition() {
 
   if (buildQueue.length === 0 && !showLimitPrompt) {
     const remainingNew = maxNewCardsPerDay - newCardsToday;
+    const remainingReviews = maxReviewsPerDay - reviewsToday;
     
     // ✅ CORRECT: Check if cards are DUE (not just exist)
     const hasLearningDue = cardCategories.learningCards.length > 0;
@@ -482,17 +495,42 @@ export default function SpacedRepetition() {
       dueDue: hasDueDue,
       newAvailable: hasNewAvailable,
       remainingNew,
+      remainingReviews,
       totalLearning: totalLearningCount
     });
     
-    // Detect WHY the queue is empty
+    // 🎯 ANKI BEHAVIOR: Detect WHY the queue is empty
     const newLimitReached = remainingNew <= 0 && hasNewAvailable;
+    const reviewLimitReached = remainingReviews <= 0 && hasDueDue;
+    const reviewLimitBlocksNew = reviewLimitReached && hasNewAvailable && !newIgnoresReviewLimit;
     
-    // ✅ CORRECT: Only show limit prompt if ONLY new cards remain
-    if (newLimitReached && !hasLearningDue && !hasDueDue) {
-      console.log('[SpacedRepetition] Showing new card limit prompt');
-      setShowLimitPrompt(true);
-      return null;
+    // Determine what kind of limit prompt to show
+    if (!hasLearningDue) {
+      if (newLimitReached && reviewLimitReached && hasDueDue) {
+        // Both limits reached, and reviews blocked
+        console.log('[SpacedRepetition] Both limits reached - showing combined prompt');
+        setLimitPromptType('both');
+        setShowLimitPrompt(true);
+        return null;
+      } else if (reviewLimitReached && hasDueDue && !hasNewAvailable) {
+        // Only review limit, no new cards available
+        console.log('[SpacedRepetition] Review limit reached - showing review prompt');
+        setLimitPromptType('review');
+        setShowLimitPrompt(true);
+        return null;
+      } else if (reviewLimitBlocksNew && !hasDueDue) {
+        // Review limit is blocking new cards (even though reviews are done)
+        console.log('[SpacedRepetition] Review limit blocking new cards - showing new prompt');
+        setLimitPromptType('new');
+        setShowLimitPrompt(true);
+        return null;
+      } else if (newLimitReached && !hasDueDue) {
+        // Only new limit reached
+        console.log('[SpacedRepetition] New card limit reached - showing new prompt');
+        setLimitPromptType('new');
+        setShowLimitPrompt(true);
+        return null;
+      }
     }
     
     // ✅ CORRECT: Session truly done - no eligible cards remain
@@ -542,39 +580,98 @@ export default function SpacedRepetition() {
 
   if (showLimitPrompt) {
     const remainingNew = maxNewCardsPerDay - newCardsToday;
+    const remainingReviews = maxReviewsPerDay - reviewsToday;
     const hasNew = cardCategories.newCards.length > 0;
+    const hasDue = cardCategories.dueCards.length > 0;
     
+    // 🎉 ANKI-LIKE CONGRATS SCREEN
     return (
       <div className={`h-screen flex items-center justify-center p-4 ${nightMode ? 'bg-slate-900' : 'bg-stone-50'}`}>
-        <div className="text-center space-y-6 max-w-md">
-          <div className="text-5xl">🎯</div>
+        <div className="text-center space-y-6 max-w-lg">
+          <div className="text-6xl">🎉</div>
           <h2 className={`text-2xl font-semibold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`} style={{fontFamily: "'Crimson Pro', serif"}}>
-            Daily New Card Limit Reached
+            {limitPromptType === 'both' ? 'Daily Limits Reached!' : 
+             limitPromptType === 'review' ? 'Daily Review Limit Reached!' :
+             'Daily New Card Limit Reached!'}
           </h2>
-          <div className={`p-4 rounded-lg ${nightMode ? 'bg-slate-800 border border-slate-700' : 'bg-white border border-stone-200'}`}>
-            <p className={nightMode ? 'text-slate-300' : 'text-slate-700'}>
-              You've learned <strong>{newCardsToday} new cards</strong> today!
+          
+          <div className={`p-5 rounded-lg ${nightMode ? 'bg-slate-800 border border-slate-700' : 'bg-white border border-stone-200'}`}>
+            <p className={`font-medium mb-3 ${nightMode ? 'text-slate-200' : 'text-slate-700'}`}>
+              📊 Today's Progress:
             </p>
-            <p className={`mt-2 text-sm ${nightMode ? 'text-slate-400' : 'text-slate-600'}`}>
-              {hasNew ? `${cardCategories.newCards.length} new cards remaining` : 'No new cards left'}
-            </p>
+            <div className={`space-y-2 text-sm ${nightMode ? 'text-slate-400' : 'text-slate-600'}`}>
+              <div className="flex justify-between items-center">
+                <span>New cards introduced:</span>
+                <span className="font-semibold text-cyan-600">{newCardsToday} / {settings?.max_new_cards_per_day || 20}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span>Reviews completed:</span>
+                <span className="font-semibold text-emerald-600">{reviewsToday} / {settings?.max_reviews_per_day || 200}</span>
+              </div>
+            </div>
+            
+            {(hasDue || hasNew) && (
+              <div className={`mt-4 pt-4 border-t ${nightMode ? 'border-slate-700' : 'border-stone-200'}`}>
+                <p className={`text-sm font-medium mb-2 ${nightMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                  Cards Hidden by Limits:
+                </p>
+                <div className={`space-y-1 text-sm ${nightMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                  {hasDue && limitPromptType !== 'new' && (
+                    <p>• {cardCategories.dueCards.length} review cards blocked</p>
+                  )}
+                  {hasNew && (
+                    <p>• {cardCategories.newCards.length} new cards available</p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
+          
+          <p className={`text-sm ${nightMode ? 'text-slate-400' : 'text-slate-600'}`}>
+            You can extend today's limits (won't affect future days)
+          </p>
+          
           <div className="space-y-2">
-            {hasNew && (
+            {hasNew && limitPromptType !== 'review' && (
               <Button
                 onClick={() => {
                   setTempNewCardLimit((settings?.max_new_cards_per_day || 20) + 10);
                   setShowLimitPrompt(false);
+                  setLimitPromptType(null);
                 }}
                 className="w-full bg-amber-600 hover:bg-amber-700 text-white"
               >
-                Study 10 More New Cards (Today Only)
+                + 10 New Cards (Today Only)
+              </Button>
+            )}
+            {hasDue && (limitPromptType === 'review' || limitPromptType === 'both') && (
+              <Button
+                onClick={() => {
+                  setTempReviewLimit((settings?.max_reviews_per_day || 200) + 50);
+                  setShowLimitPrompt(false);
+                  setLimitPromptType(null);
+                }}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                + 50 Reviews (Today Only)
+              </Button>
+            )}
+            {hasNew && hasDue && limitPromptType === 'both' && (
+              <Button
+                onClick={() => {
+                  setTempNewCardLimit((settings?.max_new_cards_per_day || 20) + 10);
+                  setTempReviewLimit((settings?.max_reviews_per_day || 200) + 50);
+                  setShowLimitPrompt(false);
+                  setLimitPromptType(null);
+                }}
+                variant="outline"
+                className={`w-full ${nightMode ? 'border-amber-500 text-amber-400 hover:bg-amber-900/20' : 'border-amber-500 text-amber-700 hover:bg-amber-50'}`}
+              >
+                Extend Both Limits
               </Button>
             )}
             <Button
-              onClick={() => {
-                navigate(createPageUrl('FlashStudy?mode=' + mode + '&level=' + level));
-              }}
+              onClick={() => navigate(createPageUrl('FlashStudy?mode=' + mode + '&level=' + level))}
               className="w-full bg-teal-600 hover:bg-teal-700 text-white"
             >
               Switch to Flash Study (No Limits)
