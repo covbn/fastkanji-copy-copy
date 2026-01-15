@@ -307,7 +307,8 @@ export default function SpacedRepetition() {
       learningCards: [], 
       dueCards: [],
       totalLearning: 0,
-      totalUnseen: 0
+      totalUnseen: 0,
+      nextLearningCard: null
     };
     
     console.log('[SpacedRepetition] Building card categories from', vocabulary.length, 'vocabulary and', userProgress.length, 'progress records');
@@ -326,63 +327,65 @@ export default function SpacedRepetition() {
       graduating_interval: graduatingInterval,
       easy_interval: easyInterval,
       desired_retention: desiredRetention,
+      learning_lookahead_minutes: 20, // Anki default
     });
 
-    // Build queues using centralized logic
-    const queues = queueManager.buildQueues(vocabulary, progressMap, now);
+    // Build queues with lookahead if nothing else is available
+    // First try without lookahead
+    const queues = queueManager.buildQueues(vocabulary, progressMap, now, false);
+    
+    // If no cards available, try with lookahead
+    let finalQueues = queues;
+    if (queues.learning.length === 0 && queues.due.length === 0 && queues.new.length === 0) {
+      console.log('[SpacedRepetition] No cards available - trying with lookahead');
+      finalQueues = queueManager.buildQueues(vocabulary, progressMap, now, true);
+    }
 
     console.log('[SpacedRepetition] Queue counts:', {
-      unseenTotal: queues.totalUnseen,
-      learningTotal: queues.totalLearning,
-      learningDue: queues.learning.length,
-      dueCar: queues.due.length
+      unseenTotal: finalQueues.totalUnseen,
+      learningTotal: finalQueues.totalLearning,
+      learningDue: finalQueues.learning.length,
+      reviewDue: finalQueues.due.length,
+      nextLearningIn: finalQueues.nextLearningCard?.minutesUntilDue || 'N/A'
     });
 
     return { 
-      newCards: queues.new.map(c => c), 
-      learningCards: queues.learning.map(c => ({ word: c, progress: c.progress })), 
-      dueCards: queues.due.map(c => ({ word: c, progress: c.progress })),
-      totalLearning: queues.totalLearning,  // ALL Learning cards (including not yet due)
-      totalUnseen: queues.totalUnseen       // Total never-studied cards
+      newCards: finalQueues.new.map(c => c), 
+      learningCards: finalQueues.learning.map(c => ({ word: c, progress: c.progress })), 
+      dueCards: finalQueues.due.map(c => ({ word: c, progress: c.progress })),
+      totalLearning: finalQueues.totalLearning,
+      totalUnseen: finalQueues.totalUnseen,
+      nextLearningCard: finalQueues.nextLearningCard
     };
   }, [vocabulary, userProgress, maxNewCardsPerDay, maxReviewsPerDay, learningSteps, relearningSteps, graduatingInterval, easyInterval, desiredRetention]);
 
   const buildQueue = React.useMemo(() => {
-    const { newCards, learningCards, dueCards, totalLearning } = cardCategories;
+    const { newCards, learningCards, dueCards } = cardCategories;
     const queue = [];
     
-    console.log('[SpacedRepetition] Building study queue with Anki-like priority');
+    console.log('[SpacedRepetition] Building study queue - Anki priority');
     
-    // Priority 1: Learning cards DUE NOW (never blocked by any limits)
+    // Priority 1: Learning cards (already filtered to be due now or within lookahead)
     const learningWords = learningCards.map(l => l.word);
     queue.push(...learningWords);
-    console.log('[SpacedRepetition] Added', learningWords.length, 'learning cards due now (total learning:', totalLearning, ')');
+    console.log('[SpacedRepetition] ✓ Learning:', learningWords.length);
     
     // Priority 2: Due review cards (within daily limit)
     const remainingReviews = maxReviewsPerDay - reviewsToday;
     const dueWords = dueCards.map(d => d.word).slice(0, Math.max(0, remainingReviews));
     queue.push(...dueWords);
-    console.log('[SpacedRepetition] Added', dueWords.length, 'due cards (limit:', remainingReviews, ')');
+    console.log('[SpacedRepetition] ✓ Due:', dueWords.length, '(limit:', remainingReviews, ')');
     
-    // Priority 3: New cards (within daily limit AND respecting review limit)
+    // Priority 3: New cards (within daily limit AND no pending learning AND review limit allows)
     const remainingNew = maxNewCardsPerDay - newCardsToday;
-    
-    // 🎯 CRITICAL: If learning cards exist (even not due yet), don't add new cards
-    // User must finish their learning queue first before seeing new cards
-    const hasLearningInProgress = totalLearning > 0;
-    
-    // 🎯 ANKI BEHAVIOR: If review limit reached, block new cards (unless setting overrides)
     const reviewLimitReached = remainingReviews <= 0;
-    const canShowNew = !hasLearningInProgress && (newIgnoresReviewLimit || !reviewLimitReached);
+    const canShowNew = (newIgnoresReviewLimit || !reviewLimitReached) && remainingNew > 0;
     
-    const newWordsToAdd = canShowNew 
-      ? newCards.slice(0, Math.max(0, remainingNew))
-      : [];
-    
+    const newWordsToAdd = canShowNew ? newCards.slice(0, remainingNew) : [];
     queue.push(...newWordsToAdd);
-    console.log('[SpacedRepetition] Added', newWordsToAdd.length, 'new cards (new limit:', remainingNew, ', blocked by learning:', hasLearningInProgress, ', blocked by review:', !canShowNew, ')');
+    console.log('[SpacedRepetition] ✓ New:', newWordsToAdd.length, '(limit:', remainingNew, ', allowed:', canShowNew, ')');
     
-    console.log('[SpacedRepetition] Final queue size:', queue.length);
+    console.log('[SpacedRepetition] Final queue:', queue.length, 'cards');
     return queue;
   }, [cardCategories, maxNewCardsPerDay, maxReviewsPerDay, newCardsToday, reviewsToday, newIgnoresReviewLimit]);
 
@@ -494,95 +497,102 @@ export default function SpacedRepetition() {
   if (buildQueue.length === 0 && !showLimitPrompt) {
     const remainingNew = maxNewCardsPerDay - newCardsToday;
     const remainingReviews = maxReviewsPerDay - reviewsToday;
-    
-    // ✅ CORRECT: Check if cards are DUE (not just exist)
     const hasLearningDue = cardCategories.learningCards.length > 0;
     const hasDueDue = cardCategories.dueCards.length > 0;
     const hasNewAvailable = cardCategories.newCards.length > 0;
-    
-    // Total Learning cards (including not yet due)
     const totalLearningCount = cardCategories.totalLearning || 0;
+    const nextLearning = cardCategories.nextLearningCard;
     
-    console.log('[SpacedRepetition] 🎯 SESSION END CHECK:', {
+    console.log('[SpacedRepetition] Session end check:', {
       learningDue: hasLearningDue,
       learningTotal: totalLearningCount,
       dueDue: hasDueDue,
       newAvailable: hasNewAvailable,
       remainingNew,
-      remainingReviews
+      nextLearningIn: nextLearning?.minutesUntilDue || 'N/A'
     });
     
-    // 🎯 CRITICAL FIX: Never show limit prompts if Learning cards exist (even if not due yet)
-    // Learning cards are intraday - user needs to come back soon to review them
-    if (totalLearningCount > 0) {
-      console.log('[SpacedRepetition] ⏰ Learning cards exist but not due yet - showing "done for now" state');
-      // Fall through to "All Done for Today" screen which handles this case
-    } else {
-      // 🎯 ANKI BEHAVIOR: Detect WHY the queue is empty (only if NO learning cards exist)
-      const newLimitReached = remainingNew <= 0 && hasNewAvailable;
-      const reviewLimitReached = remainingReviews <= 0 && hasDueDue;
-      const reviewLimitBlocksNew = reviewLimitReached && hasNewAvailable && !newIgnoresReviewLimit;
-      
-      if (newLimitReached && reviewLimitReached && hasDueDue) {
-        console.log('[SpacedRepetition] ✋ Both limits reached - showing combined prompt');
-        setLimitPromptType('both');
-        setShowLimitPrompt(true);
-        return null;
-      } else if (reviewLimitReached && hasDueDue && !hasNewAvailable) {
-        console.log('[SpacedRepetition] ✋ Review limit reached - showing review prompt');
-        setLimitPromptType('review');
-        setShowLimitPrompt(true);
-        return null;
-      } else if (reviewLimitBlocksNew && !hasDueDue) {
-        console.log('[SpacedRepetition] ✋ Review limit blocking new cards - showing new prompt');
-        setLimitPromptType('new');
-        setShowLimitPrompt(true);
-        return null;
-      } else if (newLimitReached && !hasDueDue) {
-        console.log('[SpacedRepetition] ✋ New card limit reached - showing new prompt');
-        setLimitPromptType('new');
-        setShowLimitPrompt(true);
-        return null;
-      }
+    // Anki behavior: Detect termination reason
+    const newLimitReached = remainingNew <= 0 && hasNewAvailable;
+    const reviewLimitReached = remainingReviews <= 0 && hasDueDue;
+    
+    // If learning cards exist but not due, show "Done for now"
+    if (totalLearningCount > 0 && !hasLearningDue) {
+      return (
+        <div className={`h-screen flex items-center justify-center p-4 ${nightMode ? 'bg-slate-900' : 'bg-stone-50'}`}>
+          <div className="text-center space-y-6 max-w-md">
+            <div className="text-6xl">⏰</div>
+            <h2 className={`text-2xl font-semibold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`} style={{fontFamily: "'Crimson Pro', serif"}}>
+              Done for Now!
+            </h2>
+            <div className={`p-4 rounded-lg ${nightMode ? 'bg-slate-800 border border-slate-700' : 'bg-white border border-stone-200'}`}>
+              <p className={nightMode ? 'text-slate-300' : 'text-slate-700'}>
+                📊 Today's Progress:
+              </p>
+              <div className={`mt-3 space-y-2 text-sm ${nightMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                <p>New cards introduced: {newCardsToday} / {maxNewCardsPerDay}</p>
+                <p>Reviews completed: {reviewsToday} / {maxReviewsPerDay}</p>
+                <p className="text-amber-600 font-medium">{totalLearningCount} learning card{totalLearningCount !== 1 ? 's' : ''} in progress</p>
+                {nextLearning && (
+                  <p className="text-teal-600 font-medium">Next card in ~{nextLearning.minutesUntilDue} minute{nextLearning.minutesUntilDue !== 1 ? 's' : ''}</p>
+                )}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Button
+                onClick={() => navigate(createPageUrl('FlashStudy?mode=' + mode + '&level=' + level))}
+                className="w-full bg-teal-600 hover:bg-teal-700 text-white"
+              >
+                Continue with Flash Study (No Limits)
+              </Button>
+              <Button
+                onClick={() => navigate(createPageUrl('Home'))}
+                variant="outline"
+                className={`w-full ${nightMode ? 'border-slate-600 text-slate-300 hover:bg-slate-700' : ''}`}
+              >
+                Back to Home
+              </Button>
+            </div>
+          </div>
+        </div>
+      );
     }
     
-    // ✅ CORRECT: Session truly done - no eligible cards remain
+    // Check limit-based termination (only if no learning exists)
+    if (newLimitReached && !hasDueDue) {
+      setLimitPromptType('new');
+      setShowLimitPrompt(true);
+      return null;
+    } else if (reviewLimitReached && hasDueDue && !hasNewAvailable) {
+      setLimitPromptType('review');
+      setShowLimitPrompt(true);
+      return null;
+    } else if (newLimitReached && reviewLimitReached) {
+      setLimitPromptType('both');
+      setShowLimitPrompt(true);
+      return null;
+    }
+    
+    // Truly done - nothing available
     return (
       <div className={`h-screen flex items-center justify-center p-4 ${nightMode ? 'bg-slate-900' : 'bg-stone-50'}`}>
         <div className="text-center space-y-6 max-w-md">
           <div className="text-6xl">🎉</div>
           <h2 className={`text-2xl font-semibold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`} style={{fontFamily: "'Crimson Pro', serif"}}>
-            All Done for Today!
+            All Done!
           </h2>
           <div className={`p-4 rounded-lg ${nightMode ? 'bg-slate-800 border border-slate-700' : 'bg-white border border-stone-200'}`}>
-            <p className={nightMode ? 'text-slate-300' : 'text-slate-700'}>
-              📊 Today's Progress:
-            </p>
+            <p className={nightMode ? 'text-slate-300' : 'text-slate-700'}>📊 Today's Progress:</p>
             <div className={`mt-3 space-y-2 text-sm ${nightMode ? 'text-slate-400' : 'text-slate-600'}`}>
               <p>New cards introduced: {newCardsToday} / {maxNewCardsPerDay}</p>
               <p>Reviews completed: {reviewsToday} / {maxReviewsPerDay}</p>
-              {totalLearningCount > 0 && (
-                <p className="text-amber-600">Learning cards not yet due: {totalLearningCount}</p>
-              )}
             </div>
           </div>
-          <p className={nightMode ? 'text-slate-400' : 'text-slate-600'}>
-            {totalLearningCount > 0 
-              ? "Come back later to review your Learning cards!"
-              : "Perfect! All due cards reviewed."}
-          </p>
           <div className="space-y-2">
-            <Button
-              onClick={() => navigate(createPageUrl('FlashStudy?mode=' + mode + '&level=' + level))}
-              className="w-full bg-teal-600 hover:bg-teal-700 text-white"
-            >
-              Continue with Flash Study (No Limits)
+            <Button onClick={() => navigate(createPageUrl('FlashStudy?mode=' + mode + '&level=' + level))} className="w-full bg-teal-600 hover:bg-teal-700 text-white">
+              Continue with Flash Study
             </Button>
-            <Button
-              onClick={() => navigate(createPageUrl('Home'))}
-              variant="outline"
-              className={`w-full ${nightMode ? 'border-slate-600 text-slate-300 hover:bg-slate-700' : ''}`}
-            >
+            <Button onClick={() => navigate(createPageUrl('Home'))} variant="outline" className={`w-full ${nightMode ? 'border-slate-600 text-slate-300 hover:bg-slate-700' : ''}`}>
               Back to Home
             </Button>
           </div>
@@ -719,39 +729,6 @@ export default function SpacedRepetition() {
   }
 
   if (!currentCard) {
-    // Check if we're waiting for learning cards to become due
-    const totalLearningCount = cardCategories.totalLearning || 0;
-    const learningDueNow = cardCategories.learningCards?.length || 0;
-    
-    if (totalLearningCount > 0 && learningDueNow === 0) {
-      // Learning cards exist but aren't due yet - wait and refetch
-      console.log('[SpacedRepetition] ⏰ Waiting for learning cards to become due...');
-      
-      // Refetch every 2 seconds to check if cards are due
-      React.useEffect(() => {
-        const interval = setInterval(() => {
-          console.log('[SpacedRepetition] 🔄 Checking for due learning cards...');
-          refetchProgress();
-        }, 2000);
-        return () => clearInterval(interval);
-      }, []);
-      
-      return (
-        <div className={`h-screen flex items-center justify-center ${nightMode ? 'bg-slate-900' : 'bg-stone-50'}`}>
-          <div className="text-center space-y-4">
-            <div className="text-5xl">⏰</div>
-            <p className={`text-lg font-medium ${nightMode ? 'text-slate-200' : 'text-slate-800'}`}>
-              Waiting for next card...
-            </p>
-            <p className={`text-sm ${nightMode ? 'text-slate-400' : 'text-slate-600'}`}>
-              {totalLearningCount} learning card{totalLearningCount !== 1 ? 's' : ''} in progress
-            </p>
-            <div className="animate-pulse text-teal-600">⏳</div>
-          </div>
-        </div>
-      );
-    }
-    
     return (
       <div className="h-screen flex items-center justify-center">
         <div className="text-center space-y-4">

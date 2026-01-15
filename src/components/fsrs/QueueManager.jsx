@@ -22,6 +22,7 @@ export class FSRSQueueManager {
     this.graduatingInterval = settings.graduating_interval || 1; // days
     this.easyInterval = settings.easy_interval || 4; // days
     this.desiredRetention = settings.desired_retention || 0.9;
+    this.learningLookaheadMinutes = settings.learning_lookahead_minutes || 20; // Anki default
 
     // FSRS-4 algorithm parameters
     this.w = [0.4, 0.6, 2.4, 5.8, 4.93, 0.94, 0.86, 0.01, 1.49, 0.14, 0.94, 2.18, 0.05, 0.34, 1.26, 0.29, 2.61];
@@ -71,21 +72,29 @@ export class FSRSQueueManager {
    * Returns two types of counts:
    * - Queue counts: Cards that are DUE NOW and ready to study
    * - Total counts: All cards in each state (including not yet due)
+   * 
+   * With Anki-like learning lookahead support
    */
-  buildQueues(vocabularyList, progressMap, now = new Date()) {
+  buildQueues(vocabularyList, progressMap, now = new Date(), applyLookahead = false) {
+    const lookaheadWindow = applyLookahead ? this.addMinutes(now, this.learningLookaheadMinutes) : now;
+    
     const queues = {
       new: [],       // Cards ready to introduce (respects daily limit)
-      learning: [],  // Learning cards DUE NOW
+      learning: [],  // Learning cards DUE NOW (or within lookahead)
       due: [],       // Review cards DUE NOW
       
       // 🆕 TOTAL COUNTS (for UI display)
       totalLearning: 0,  // ALL Learning cards (including not yet due)
       totalUnseen: 0,    // Total cards never studied
+      nextLearningCard: null, // Next learning card and its due time (for "come back in X")
     };
+
+    let earliestLearningCard = null;
+    let earliestLearningTime = null;
 
     vocabularyList.forEach(vocab => {
       const progress = progressMap[vocab.id];
-      const classification = this.classifyCard(vocab, progress, now);
+      const classification = this.classifyCard(vocab, progress, applyLookahead ? lookaheadWindow : now);
 
       const cardData = {
         ...vocab,
@@ -106,6 +115,15 @@ export class FSRSQueueManager {
         const state = progress?.state;
         if (state === "Learning" || state === "Relearning") {
           queues.totalLearning++;
+          
+          // Track earliest learning card for "come back in X" display
+          const nextReview = progress?.next_review ? new Date(progress.next_review) : null;
+          if (nextReview && nextReview > now) {
+            if (!earliestLearningTime || nextReview < earliestLearningTime) {
+              earliestLearningTime = nextReview;
+              earliestLearningCard = cardData;
+            }
+          }
         }
       }
     });
@@ -130,11 +148,22 @@ export class FSRSQueueManager {
       return (a.vocab_index || 0) - (b.vocab_index || 0);
     });
 
+    // Set next learning card info
+    if (earliestLearningCard && earliestLearningTime) {
+      queues.nextLearningCard = {
+        card: earliestLearningCard,
+        dueTime: earliestLearningTime,
+        minutesUntilDue: Math.ceil((earliestLearningTime - now) / 60000)
+      };
+    }
+
     console.log('[QueueManager] Queue totals:', {
       unseenCards: queues.totalUnseen,
       learningTotal: queues.totalLearning,
       learningDue: queues.learning.length,
-      reviewDue: queues.due.length
+      reviewDue: queues.due.length,
+      nextLearningIn: queues.nextLearningCard?.minutesUntilDue || 'N/A',
+      lookaheadApplied: applyLookahead
     });
 
     return queues;
@@ -191,21 +220,24 @@ export class FSRSQueueManager {
 
     console.log(`[QueueManager] Applying rating ${rating} to card in state ${currentState}, step ${learningStep}`);
 
-    // NEW CARD FIRST RATING
+    // NEW CARD FIRST RATING - Anki-like behavior
     if (currentState === "New") {
       newState = "Learning";
       newLearningStep = 0;
 
-      if (rating === 1) { // Again
+      if (rating === 1) { // Again → ~1m
         newNextReview = this.addMinutes(now, this.learningSteps[0]);
         newDifficulty = 7;
-      } else if (rating === 2) { // Hard
-        newNextReview = this.addMinutes(now, this.learningSteps[0]);
+      } else if (rating === 2) { // Hard → ~6m (average of steps)
+        const avgMinutes = this.learningSteps.length >= 2 
+          ? (this.learningSteps[0] + this.learningSteps[1]) / 2
+          : this.learningSteps[0];
+        newNextReview = this.addMinutes(now, avgMinutes);
         newDifficulty = 6;
-      } else if (rating === 3) { // Good
+      } else if (rating === 3) { // Good → first step (~1m typically)
         newNextReview = this.addMinutes(now, this.learningSteps[0]);
         newDifficulty = 5;
-      } else if (rating === 4) { // Easy - graduate immediately
+      } else if (rating === 4) { // Easy → graduate immediately (~4d)
         newState = "Review";
         newNextReview = this.addDays(now, this.easyInterval);
         newStability = this.easyInterval;
@@ -214,20 +246,27 @@ export class FSRSQueueManager {
 
       console.log(`[QueueManager] New → ${newState}, next review: ${newNextReview.toISOString()}`);
     }
-    // LEARNING CARD
+    // LEARNING CARD - Anki-like behavior
     else if (currentState === "Learning") {
-      if (rating === 1) { // Again - restart learning
+      if (rating === 1) { // Again → restart (~1m)
         newLearningStep = 0;
         newNextReview = this.addMinutes(now, this.learningSteps[0]);
         newLapses = lapses + 1;
         console.log(`[QueueManager] Learning Again: reset to step 0`);
-      } else if (rating === 4) { // Easy - graduate immediately
+      } else if (rating === 2) { // Hard → repeat or average step
+        // Anki: Hard = repeat current step (or average if no repetition)
+        const currentStepMinutes = this.learningSteps[learningStep] || this.learningSteps[this.learningSteps.length - 1];
+        const nextStepMinutes = this.learningSteps[learningStep + 1];
+        const hardMinutes = nextStepMinutes ? (currentStepMinutes + nextStepMinutes) / 2 : currentStepMinutes;
+        newNextReview = this.addMinutes(now, hardMinutes);
+        console.log(`[QueueManager] Learning Hard: ${hardMinutes}m`);
+      } else if (rating === 4) { // Easy → graduate (~4d)
         newState = "Review";
         newNextReview = this.addDays(now, this.easyInterval);
         newStability = this.easyInterval;
         newDifficulty = Math.max(1, difficulty - 1);
         console.log(`[QueueManager] Learning Easy: graduate to Review`);
-      } else { // Hard or Good - advance
+      } else { // Good (rating === 3) → advance to next step or graduate
         const nextStep = learningStep + 1;
         if (nextStep >= this.learningSteps.length) {
           // Graduate to Review
