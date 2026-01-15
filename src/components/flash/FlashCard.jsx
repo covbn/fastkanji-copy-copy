@@ -56,8 +56,8 @@ export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSente
     }
   };
 
-  const handleAnswer = (correct) => {
-    onAnswer(correct);
+  const handleAnswer = (correct, rating = null) => {
+    onAnswer(correct, rating);
     setRevealed(false);
   };
 
@@ -175,26 +175,28 @@ export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSente
                     </motion.div>
                   )}
 
-                  {/* Action Buttons */}
-                  <div className="grid grid-cols-2 gap-2 pt-1">
-                    <Button
-                      onClick={() => handleAnswer(false)}
-                      size="sm"
-                      variant="outline"
-                      className="h-8 md:h-9 text-xs font-medium border-2 border-rose-300 text-rose-700 hover:bg-rose-50 hover:border-rose-400"
-                    >
-                      <X className="w-3 h-3 mr-1" />
-                      Wrong (1/←)
-                    </Button>
-                    <Button
-                      onClick={() => handleAnswer(true)}
-                      size="sm"
-                      className="h-8 md:h-9 text-xs font-medium bg-emerald-500 hover:bg-emerald-600 text-white"
-                    >
-                      <Check className="w-3 h-3 mr-1" />
-                      Correct (2/→)
-                    </Button>
-                  </div>
+                  {/* Action Buttons - only show if not hidden */}
+                  {!hideButtons && (
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      <Button
+                        onClick={() => handleAnswer(false)}
+                        size="sm"
+                        variant="outline"
+                        className="h-8 md:h-9 text-xs font-medium border-2 border-rose-300 text-rose-700 hover:bg-rose-50 hover:border-rose-400"
+                      >
+                        <X className="w-3 h-3 mr-1" />
+                        Wrong (1/←)
+                      </Button>
+                      <Button
+                        onClick={() => handleAnswer(true)}
+                        size="sm"
+                        className="h-8 md:h-9 text-xs font-medium bg-emerald-500 hover:bg-emerald-600 text-white"
+                      >
+                        <Check className="w-3 h-3 mr-1" />
+                        Correct (2/→)
+                      </Button>
+                    </div>
+                  )}
                 </motion.div>
               ) : (
                 <motion.div
