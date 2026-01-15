@@ -211,7 +211,7 @@ export default function Settings() {
       toast({
         title: "✅ Reset Complete",
         description: `Deleted ${data?.deletedCount || 0} progress records. Daily limits reset to 0.`,
-        duration: 5000,
+        duration: 3000,
       });
       
       console.log('[DEBUG] 🎉 UI updated successfully');
