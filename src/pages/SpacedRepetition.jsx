@@ -401,6 +401,30 @@ export default function SpacedRepetition() {
     return () => clearInterval(checkRestTime);
   }, [lastRestTime, nextRestDuration, showRest, sessionComplete, cardsStudied]);
 
+  /**
+   * Check if session should end based on card eligibility
+   */
+  const shouldEndSession = React.useCallback(() => {
+    const learningDueNow = cardCategories.learningCards?.length || 0;
+    const reviewDueNow = cardCategories.dueCards?.length || 0;
+    const newRemaining = Math.max(0, maxNewCardsPerDay - newCardsToday);
+    const newAvailable = cardCategories.newCards?.length || 0;
+    
+    const hasEligibleCards = learningDueNow > 0 || 
+                             reviewDueNow > 0 || 
+                             (newRemaining > 0 && newAvailable > 0);
+    
+    console.log('[SpacedRepetition] 🔍 Eligibility check:', {
+      learningDueNow,
+      reviewDueNow,
+      newRemaining,
+      newAvailable,
+      hasEligibleCards
+    });
+    
+    return !hasEligibleCards;
+  }, [cardCategories, maxNewCardsPerDay, newCardsToday]);
+
   const handleAnswer = (correct, rating = null) => {
     if (!currentCard) return;
     
@@ -432,9 +456,21 @@ export default function SpacedRepetition() {
     // 🚀 OPTIMISTIC UI: Move to next card IMMEDIATELY (non-blocking)
     const newQueue = studyQueue.slice(1);
 
+    // ✅ CHECK ELIGIBILITY: Don't end just because queue is empty - refetch will rebuild it
     if (newQueue.length === 0) {
-      console.log('[SpacedRepetition] Queue empty - completing session');
-      completeSession();
+      console.log('[SpacedRepetition] ⏳ Current queue empty - checking eligibility after background update');
+      
+      // Wait for background update, then check if session should truly end
+      setTimeout(() => {
+        refetchProgress().then(() => {
+          if (shouldEndSession()) {
+            console.log('[SpacedRepetition] ✅ No eligible cards remain - ending session');
+            completeSession();
+          } else {
+            console.log('[SpacedRepetition] ⚠️ Queue empty but eligible cards exist - will rebuild on next render');
+          }
+        });
+      }, 200);
       return;
     }
 
@@ -502,7 +538,7 @@ export default function SpacedRepetition() {
     // Total Learning cards (including not yet due)
     const totalLearningCount = cardCategories.totalLearning || 0;
     
-    console.log('[SpacedRepetition] Session end check:', {
+    console.log('[SpacedRepetition] 🎯 SESSION END CHECK:', {
       learningDue: hasLearningDue,
       dueDue: hasDueDue,
       newAvailable: hasNewAvailable,
@@ -516,33 +552,36 @@ export default function SpacedRepetition() {
     const reviewLimitReached = remainingReviews <= 0 && hasDueDue;
     const reviewLimitBlocksNew = reviewLimitReached && hasNewAvailable && !newIgnoresReviewLimit;
     
-    // Determine what kind of limit prompt to show
+    // ✅ CRITICAL: Only show limit prompt if NO eligible cards remain
+    // Don't trigger just because new limit reached - learning may still be due!
     if (!hasLearningDue) {
       if (newLimitReached && reviewLimitReached && hasDueDue) {
         // Both limits reached, and reviews blocked
-        console.log('[SpacedRepetition] Both limits reached - showing combined prompt');
+        console.log('[SpacedRepetition] ✋ Both limits reached - showing combined prompt');
         setLimitPromptType('both');
         setShowLimitPrompt(true);
         return null;
       } else if (reviewLimitReached && hasDueDue && !hasNewAvailable) {
         // Only review limit, no new cards available
-        console.log('[SpacedRepetition] Review limit reached - showing review prompt');
+        console.log('[SpacedRepetition] ✋ Review limit reached - showing review prompt');
         setLimitPromptType('review');
         setShowLimitPrompt(true);
         return null;
       } else if (reviewLimitBlocksNew && !hasDueDue) {
         // Review limit is blocking new cards (even though reviews are done)
-        console.log('[SpacedRepetition] Review limit blocking new cards - showing new prompt');
+        console.log('[SpacedRepetition] ✋ Review limit blocking new cards - showing new prompt');
         setLimitPromptType('new');
         setShowLimitPrompt(true);
         return null;
       } else if (newLimitReached && !hasDueDue) {
-        // Only new limit reached
-        console.log('[SpacedRepetition] New card limit reached - showing new prompt');
+        // Only new limit reached AND no due cards
+        console.log('[SpacedRepetition] ✋ New card limit reached - showing new prompt');
         setLimitPromptType('new');
         setShowLimitPrompt(true);
         return null;
       }
+    } else {
+      console.log('[SpacedRepetition] ⚠️ Learning cards still due - should not end session yet');
     }
     
     // ✅ CORRECT: Session truly done - no eligible cards remain
@@ -808,11 +847,16 @@ export default function SpacedRepetition() {
           onAnswer={handleAnswer}
           showExampleSentences={settings?.show_example_sentences !== false}
           hideButtons={true}
+          onRevealChange={(isRevealed) => {
+            // Pass reveal state to parent for grading buttons
+            setCurrentCard(prev => ({ ...prev, _revealed: isRevealed }));
+          }}
         />
         
         <GradingButtons
           onGrade={(rating) => handleAnswer(rating >= 3, rating)}
           nightMode={nightMode}
+          revealed={currentCard?._revealed}
         />
       </div>
     </div>

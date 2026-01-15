@@ -4,8 +4,14 @@ import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, X, Eye } from "lucide-react";
 
-export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSentences = true, hideButtons = false }) {
+export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSentences = true, hideButtons = false, onRevealChange }) {
   const [revealed, setRevealed] = useState(false);
+
+  React.useEffect(() => {
+    if (onRevealChange) {
+      onRevealChange(revealed);
+    }
+  }, [revealed, onRevealChange]);
 
   // Keyboard shortcuts
   React.useEffect(() => {

@@ -1,56 +1,55 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { XCircle, Zap, CheckCircle2, TrendingUp } from "lucide-react";
+import { XCircle, Zap, TrendingUp } from "lucide-react";
 
 /**
- * Anki-style grading buttons with 4 options
- * Maps to FSRS ratings: Again=1, Hard=2, Good=3, Easy=4
+ * 3-button grading system with Anki-like scheduling
+ * 
+ * SCHEDULING MAPPING:
+ * - Again (1): Failed recall → restart learning / lapse to relearning
+ * - Hard (2): Hard recall → advance learning step OR review with Hard difficulty
+ * - Easy (4): Easy recall → GRADUATE immediately (New/Learning → Review) OR extended review interval
+ * 
+ * INTERNAL BEHAVIOR (Good=3 removed from UI):
+ * - For Learning progression: Hard internally advances like Good but logs as Hard for FSRS
+ * - This preserves Anki-like step progression without requiring 4 buttons
  */
-export default function GradingButtons({ onGrade, disabled = false, nightMode = false }) {
+export default function GradingButtons({ onGrade, disabled = false, nightMode = false, revealed = false }) {
+  if (!revealed) return null;
+
   return (
-    <div className="grid grid-cols-4 gap-2 w-full max-w-2xl">
+    <div className="grid grid-cols-3 gap-3 w-full max-w-2xl">
       {/* Again (1) - Red */}
       <Button
         onClick={() => onGrade(1)}
         disabled={disabled}
-        className="flex flex-col items-center gap-1 h-auto py-4 bg-red-600 hover:bg-red-700 text-white"
+        className="flex flex-col items-center gap-1.5 h-auto py-5 bg-red-600 hover:bg-red-700 text-white shadow-md transition-all"
       >
-        <XCircle className="w-5 h-5" />
-        <span className="text-sm font-semibold">Again</span>
+        <XCircle className="w-6 h-6" />
+        <span className="text-base font-semibold">Again</span>
         <span className="text-xs opacity-80">&lt;1m</span>
       </Button>
 
-      {/* Hard (2) - Yellow */}
+      {/* Hard (2) - Amber */}
       <Button
         onClick={() => onGrade(2)}
         disabled={disabled}
-        className="flex flex-col items-center gap-1 h-auto py-4 bg-amber-600 hover:bg-amber-700 text-white"
+        className="flex flex-col items-center gap-1.5 h-auto py-5 bg-amber-600 hover:bg-amber-700 text-white shadow-md transition-all"
       >
-        <Zap className="w-5 h-5" />
-        <span className="text-sm font-semibold">Hard</span>
-        <span className="text-xs opacity-80">~10m</span>
+        <Zap className="w-6 h-6" />
+        <span className="text-base font-semibold">Hard</span>
+        <span className="text-xs opacity-80">Continue</span>
       </Button>
 
-      {/* Good (3) - Green */}
-      <Button
-        onClick={() => onGrade(3)}
-        disabled={disabled}
-        className="flex flex-col items-center gap-1 h-auto py-4 bg-emerald-600 hover:bg-emerald-700 text-white"
-      >
-        <CheckCircle2 className="w-5 h-5" />
-        <span className="text-sm font-semibold">Good</span>
-        <span className="text-xs opacity-80">Next step</span>
-      </Button>
-
-      {/* Easy (4) - Blue */}
+      {/* Easy (4) - Cyan */}
       <Button
         onClick={() => onGrade(4)}
         disabled={disabled}
-        className="flex flex-col items-center gap-1 h-auto py-4 bg-cyan-600 hover:bg-cyan-700 text-white"
+        className="flex flex-col items-center gap-1.5 h-auto py-5 bg-cyan-600 hover:bg-cyan-700 text-white shadow-md transition-all"
       >
-        <TrendingUp className="w-5 h-5" />
-        <span className="text-sm font-semibold">Easy</span>
-        <span className="text-xs opacity-80">Skip ahead</span>
+        <TrendingUp className="w-6 h-6" />
+        <span className="text-base font-semibold">Easy</span>
+        <span className="text-xs opacity-80">Graduate</span>
       </Button>
     </div>
   );
