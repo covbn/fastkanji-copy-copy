@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -8,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge"; // Added Badge import
-import { Settings as SettingsIcon, Moon, Sun, Clock, Save, Brain } from "lucide-react";
+import { Settings as SettingsIcon, Moon, Sun, Clock, Save, Brain, Bug, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function Settings() {
@@ -39,11 +38,14 @@ export default function Settings() {
     max_new_cards_per_day: 20,
     max_reviews_per_day: 200,
     desired_retention: 0.9,
-    learning_steps: [1, 10], // Default for FSRS-4 learning steps
-    relearning_steps: [10], // Default for FSRS-4 relearning steps
-    graduating_interval: 1, // Default for FSRS-4 graduating interval
-    easy_interval: 4, // Default for FSRS-4 easy interval
+    learning_steps: [1, 10],
+    relearning_steps: [10],
+    graduating_interval: 1,
+    easy_interval: 4,
+    debug_mode: false,
   });
+
+  const [debugStats, setDebugStats] = useState(null);
 
   useEffect(() => {
     if (settings) {
@@ -61,9 +63,43 @@ export default function Settings() {
         relearning_steps: settings.relearning_steps || [10],
         graduating_interval: settings.graduating_interval || 1,
         easy_interval: settings.easy_interval || 4,
+        debug_mode: settings.debug_mode || false,
       });
     }
   }, [settings]);
+
+  const { data: userProgress = [] } = useQuery({
+    queryKey: ['userProgress', user?.email],
+    queryFn: async () => {
+      if (!user) return [];
+      return base44.entities.UserProgress.filter({ user_email: user.email });
+    },
+    enabled: !!user && formData.debug_mode,
+  });
+
+  useEffect(() => {
+    if (formData.debug_mode && userProgress.length >= 0) {
+      const today = new Date().setHours(0, 0, 0, 0);
+      const todaysProgress = userProgress.filter(p => {
+        if (!p.last_reviewed) return false;
+        const reviewDate = new Date(p.last_reviewed).setHours(0, 0, 0, 0);
+        return reviewDate === today;
+      });
+
+      const stats = {
+        totalProgress: userProgress.length,
+        newState: userProgress.filter(p => p.state === "New").length,
+        learningState: userProgress.filter(p => p.state === "Learning").length,
+        reviewState: userProgress.filter(p => p.state === "Review").length,
+        relearningState: userProgress.filter(p => p.state === "Relearning").length,
+        newToday: todaysProgress.filter(p => p.reps === 1).length,
+        reviewsToday: todaysProgress.filter(p => p.state === "Review" && p.reps > 1).length,
+        dailyUsage: settings?.daily_usage_seconds || 0,
+        lastUsageDate: settings?.last_usage_date || 'N/A',
+      };
+      setDebugStats(stats);
+    }
+  }, [formData.debug_mode, userProgress, settings]);
 
   const nightMode = settings?.night_mode || false;
   const isPremium = settings?.subscription_status === 'premium'; // Added isPremium calculation
@@ -102,6 +138,35 @@ export default function Settings() {
 
   const handleSave = () => {
     saveSettingsMutation.mutate(formData);
+  };
+
+  const resetProgressMutation = useMutation({
+    mutationFn: async () => {
+      if (!user) return;
+      
+      // Delete all user progress
+      const allProgress = await base44.entities.UserProgress.filter({ user_email: user.email });
+      await Promise.all(allProgress.map(p => base44.entities.UserProgress.delete(p.id)));
+      
+      // Reset daily limits in settings
+      if (settings) {
+        await base44.entities.UserSettings.update(settings.id, {
+          daily_usage_seconds: 0,
+          last_usage_date: new Date().toISOString().split('T')[0],
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['userProgress'] });
+      queryClient.invalidateQueries({ queryKey: ['userSettings'] });
+      alert('All progress and daily limits reset!');
+    },
+  });
+
+  const handleResetProgress = () => {
+    if (window.confirm('⚠️ This will DELETE ALL card progress and reset daily limits. Are you sure?')) {
+      resetProgressMutation.mutate();
+    }
   };
 
   if (isLoading) {
@@ -340,6 +405,70 @@ export default function Settings() {
               />
               <p className={`text-xs ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>How many cards you want to study daily (for flash mode)</p>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Debug Tools */}
+        <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
+          <CardHeader className={`border-b ${nightMode ? 'border-slate-700' : 'border-stone-200'}`}>
+            <CardTitle className={`flex items-center gap-2 ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>
+              <Bug className="w-5 h-5" />
+              Debug Tools
+            </CardTitle>
+            <CardDescription className={nightMode ? 'text-slate-400' : 'text-slate-600'}>
+              Developer tools for testing
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-6 space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <Label className={`text-base font-medium ${nightMode ? 'text-slate-200' : 'text-slate-800'}`}>Debug Mode</Label>
+                <p className={`text-sm ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Show detailed stats and reset tools</p>
+              </div>
+              <Switch
+                checked={formData.debug_mode}
+                onCheckedChange={(checked) => setFormData({ ...formData, debug_mode: checked })}
+              />
+            </div>
+
+            {formData.debug_mode && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                className="space-y-4"
+              >
+                {debugStats && (
+                  <div className={`p-4 rounded-lg ${nightMode ? 'bg-slate-700 border border-slate-600' : 'bg-slate-50 border border-slate-200'}`}>
+                    <h4 className={`font-semibold mb-3 ${nightMode ? 'text-slate-200' : 'text-slate-800'}`}>📊 Debug Stats</h4>
+                    <div className={`grid grid-cols-2 gap-3 text-sm ${nightMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                      <div>Total Progress: <strong>{debugStats.totalProgress}</strong></div>
+                      <div>New State: <strong>{debugStats.newState}</strong></div>
+                      <div>Learning: <strong>{debugStats.learningState}</strong></div>
+                      <div>Review: <strong>{debugStats.reviewState}</strong></div>
+                      <div>Relearning: <strong>{debugStats.relearningState}</strong></div>
+                      <div>New Today: <strong className="text-cyan-600">{debugStats.newToday}</strong></div>
+                      <div>Reviews Today: <strong className="text-emerald-600">{debugStats.reviewsToday}</strong></div>
+                      <div>Daily Usage: <strong>{debugStats.dailyUsage}s</strong></div>
+                      <div className="col-span-2">Last Usage: <strong>{debugStats.lastUsageDate}</strong></div>
+                    </div>
+                  </div>
+                )}
+
+                <Button
+                  onClick={handleResetProgress}
+                  variant="destructive"
+                  className="w-full"
+                  disabled={resetProgressMutation.isPending}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  {resetProgressMutation.isPending ? 'Resetting...' : 'Reset All Progress & Daily Limits'}
+                </Button>
+
+                <p className={`text-xs ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  ⚠️ This will delete all card progress and reset daily new/review counts to 0. Use for testing only.
+                </p>
+              </motion.div>
+            )}
           </CardContent>
         </Card>
 
