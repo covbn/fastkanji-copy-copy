@@ -330,14 +330,17 @@ export default function SpacedRepetition() {
       learning_lookahead_minutes: 20, // Anki default
     });
 
-    // Build queues with lookahead if nothing else is available
+    // Build queues with lookahead if nothing strictly due
     // First try without lookahead
     const queues = queueManager.buildQueues(vocabulary, progressMap, now, false);
     
-    // If no cards available, try with lookahead
+    // Apply lookahead if: no learning due, no reviews due, and can't introduce new (due to limits)
+    const remainingNew = maxNewCardsPerDay - newCardsToday;
+    const canIntroduceNew = queues.new.length > 0 && remainingNew > 0;
+    
     let finalQueues = queues;
-    if (queues.learning.length === 0 && queues.due.length === 0 && queues.new.length === 0) {
-      console.log('[SpacedRepetition] No cards available - trying with lookahead');
+    if (queues.learning.length === 0 && queues.due.length === 0 && !canIntroduceNew) {
+      console.log('[SpacedRepetition] No strictly due cards and no new available - applying 20m lookahead');
       finalQueues = queueManager.buildQueues(vocabulary, progressMap, now, true);
     }
 
