@@ -348,16 +348,15 @@ export default function SpacedRepetition() {
   }, [vocabulary, userProgress, maxNewCardsPerDay, maxReviewsPerDay, learningSteps, relearningSteps, graduatingInterval, easyInterval, desiredRetention]);
 
   const buildQueue = React.useMemo(() => {
-    const { newCards, learningCards, dueCards } = cardCategories;
+    const { newCards, learningCards, dueCards, totalLearning } = cardCategories;
     const queue = [];
     
     console.log('[SpacedRepetition] Building study queue with Anki-like priority');
     
-    // Priority 1: Learning cards (all of them, they're already due)
-    // Learning cards are NEVER blocked by any limits (Anki behavior)
+    // Priority 1: Learning cards DUE NOW (never blocked by any limits)
     const learningWords = learningCards.map(l => l.word);
     queue.push(...learningWords);
-    console.log('[SpacedRepetition] Added', learningWords.length, 'learning cards (never blocked)');
+    console.log('[SpacedRepetition] Added', learningWords.length, 'learning cards due now (total learning:', totalLearning, ')');
     
     // Priority 2: Due review cards (within daily limit)
     const remainingReviews = maxReviewsPerDay - reviewsToday;
@@ -368,16 +367,20 @@ export default function SpacedRepetition() {
     // Priority 3: New cards (within daily limit AND respecting review limit)
     const remainingNew = maxNewCardsPerDay - newCardsToday;
     
+    // 🎯 CRITICAL: If learning cards exist (even not due yet), don't add new cards
+    // User must finish their learning queue first before seeing new cards
+    const hasLearningInProgress = totalLearning > 0;
+    
     // 🎯 ANKI BEHAVIOR: If review limit reached, block new cards (unless setting overrides)
     const reviewLimitReached = remainingReviews <= 0;
-    const canShowNew = newIgnoresReviewLimit || !reviewLimitReached;
+    const canShowNew = !hasLearningInProgress && (newIgnoresReviewLimit || !reviewLimitReached);
     
     const newWordsToAdd = canShowNew 
       ? newCards.slice(0, Math.max(0, remainingNew))
       : [];
     
     queue.push(...newWordsToAdd);
-    console.log('[SpacedRepetition] Added', newWordsToAdd.length, 'new cards (new limit:', remainingNew, ', review limit blocks:', !canShowNew, ')');
+    console.log('[SpacedRepetition] Added', newWordsToAdd.length, 'new cards (new limit:', remainingNew, ', blocked by learning:', hasLearningInProgress, ', blocked by review:', !canShowNew, ')');
     
     console.log('[SpacedRepetition] Final queue size:', queue.length);
     return queue;
@@ -716,6 +719,39 @@ export default function SpacedRepetition() {
   }
 
   if (!currentCard) {
+    // Check if we're waiting for learning cards to become due
+    const totalLearningCount = cardCategories.totalLearning || 0;
+    const learningDueNow = cardCategories.learningCards?.length || 0;
+    
+    if (totalLearningCount > 0 && learningDueNow === 0) {
+      // Learning cards exist but aren't due yet - wait and refetch
+      console.log('[SpacedRepetition] ⏰ Waiting for learning cards to become due...');
+      
+      // Refetch every 2 seconds to check if cards are due
+      React.useEffect(() => {
+        const interval = setInterval(() => {
+          console.log('[SpacedRepetition] 🔄 Checking for due learning cards...');
+          refetchProgress();
+        }, 2000);
+        return () => clearInterval(interval);
+      }, []);
+      
+      return (
+        <div className={`h-screen flex items-center justify-center ${nightMode ? 'bg-slate-900' : 'bg-stone-50'}`}>
+          <div className="text-center space-y-4">
+            <div className="text-5xl">⏰</div>
+            <p className={`text-lg font-medium ${nightMode ? 'text-slate-200' : 'text-slate-800'}`}>
+              Waiting for next card...
+            </p>
+            <p className={`text-sm ${nightMode ? 'text-slate-400' : 'text-slate-600'}`}>
+              {totalLearningCount} learning card{totalLearningCount !== 1 ? 's' : ''} in progress
+            </p>
+            <div className="animate-pulse text-teal-600">⏳</div>
+          </div>
+        </div>
+      );
+    }
+    
     return (
       <div className="h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
