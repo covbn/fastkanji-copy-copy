@@ -67,12 +67,20 @@ export class FSRSQueueManager {
 
   /**
    * Build study queues from vocabulary and progress data
+   * 
+   * Returns two types of counts:
+   * - Queue counts: Cards that are DUE NOW and ready to study
+   * - Total counts: All cards in each state (including not yet due)
    */
   buildQueues(vocabularyList, progressMap, now = new Date()) {
     const queues = {
-      new: [],
-      learning: [],
-      due: [],
+      new: [],       // Cards ready to introduce (respects daily limit)
+      learning: [],  // Learning cards DUE NOW
+      due: [],       // Review cards DUE NOW
+      
+      // 🆕 TOTAL COUNTS (for UI display)
+      totalLearning: 0,  // ALL Learning cards (including not yet due)
+      totalUnseen: 0,    // Total cards never studied
     };
 
     vocabularyList.forEach(vocab => {
@@ -87,10 +95,18 @@ export class FSRSQueueManager {
 
       if (classification === "new") {
         queues.new.push(cardData);
+        queues.totalUnseen++;
       } else if (classification === "learning") {
         queues.learning.push(cardData);
+        queues.totalLearning++;
       } else if (classification === "due") {
         queues.due.push(cardData);
+      } else if (classification === "notAvailable") {
+        // Count cards in Learning state but not yet due
+        const state = progress?.state;
+        if (state === "Learning" || state === "Relearning") {
+          queues.totalLearning++;
+        }
       }
     });
 
@@ -112,6 +128,13 @@ export class FSRSQueueManager {
     // New: keep in original order (or by vocab_index if available)
     queues.new.sort((a, b) => {
       return (a.vocab_index || 0) - (b.vocab_index || 0);
+    });
+
+    console.log('[QueueManager] Queue totals:', {
+      unseenCards: queues.totalUnseen,
+      learningTotal: queues.totalLearning,
+      learningDue: queues.learning.length,
+      reviewDue: queues.due.length
     });
 
     return queues;

@@ -295,7 +295,13 @@ export default function SpacedRepetition() {
   });
 
   const cardCategories = React.useMemo(() => {
-    if (!vocabulary.length) return { newCards: [], learningCards: [], dueCards: [] };
+    if (!vocabulary.length) return { 
+      newCards: [], 
+      learningCards: [], 
+      dueCards: [],
+      totalLearning: 0,
+      totalUnseen: 0
+    };
     
     console.log('[SpacedRepetition] Building card categories from', vocabulary.length, 'vocabulary and', userProgress.length, 'progress records');
     
@@ -319,15 +325,18 @@ export default function SpacedRepetition() {
     const queues = queueManager.buildQueues(vocabulary, progressMap, now);
 
     console.log('[SpacedRepetition] Queue counts:', {
-      new: queues.new.length,
-      learning: queues.learning.length,
-      due: queues.due.length
+      unseenTotal: queues.totalUnseen,
+      learningTotal: queues.totalLearning,
+      learningDue: queues.learning.length,
+      dueCar: queues.due.length
     });
 
     return { 
       newCards: queues.new.map(c => c), 
       learningCards: queues.learning.map(c => ({ word: c, progress: c.progress })), 
-      dueCards: queues.due.map(c => ({ word: c, progress: c.progress })) 
+      dueCards: queues.due.map(c => ({ word: c, progress: c.progress })),
+      totalLearning: queues.totalLearning,  // ALL Learning cards (including not yet due)
+      totalUnseen: queues.totalUnseen       // Total never-studied cards
     };
   }, [vocabulary, userProgress, maxNewCardsPerDay, maxReviewsPerDay, learningSteps, relearningSteps, graduatingInterval, easyInterval, desiredRetention]);
 
@@ -459,20 +468,34 @@ export default function SpacedRepetition() {
 
   if (buildQueue.length === 0 && !showLimitPrompt) {
     const remainingNew = maxNewCardsPerDay - newCardsToday;
-    const hasLearning = cardCategories.learningCards.length > 0;
-    const hasDue = cardCategories.dueCards.length > 0;
-    const hasNew = cardCategories.newCards.length > 0;
+    
+    // ✅ CORRECT: Check if cards are DUE (not just exist)
+    const hasLearningDue = cardCategories.learningCards.length > 0;
+    const hasDueDue = cardCategories.dueCards.length > 0;
+    const hasNewAvailable = cardCategories.newCards.length > 0;
+    
+    // Total Learning cards (including not yet due)
+    const totalLearningCount = cardCategories.totalLearning || 0;
+    
+    console.log('[SpacedRepetition] Session end check:', {
+      learningDue: hasLearningDue,
+      dueDue: hasDueDue,
+      newAvailable: hasNewAvailable,
+      remainingNew,
+      totalLearning: totalLearningCount
+    });
     
     // Detect WHY the queue is empty
-    const newLimitReached = remainingNew <= 0 && hasNew;
-    const reviewLimitReached = reviewsToday >= maxReviewsPerDay && hasDue;
+    const newLimitReached = remainingNew <= 0 && hasNewAvailable;
     
-    if (newLimitReached && !hasLearning && !hasDue) {
-      // Only new cards left but limit reached - show prompt
+    // ✅ CORRECT: Only show limit prompt if ONLY new cards remain
+    if (newLimitReached && !hasLearningDue && !hasDueDue) {
+      console.log('[SpacedRepetition] Showing new card limit prompt');
       setShowLimitPrompt(true);
       return null;
     }
     
+    // ✅ CORRECT: Session truly done - no eligible cards remain
     return (
       <div className={`h-screen flex items-center justify-center p-4 ${nightMode ? 'bg-slate-900' : 'bg-stone-50'}`}>
         <div className="text-center space-y-6 max-w-md">
@@ -485,14 +508,17 @@ export default function SpacedRepetition() {
               📊 Today's Progress:
             </p>
             <div className={`mt-3 space-y-2 text-sm ${nightMode ? 'text-slate-400' : 'text-slate-600'}`}>
-              <p>New cards: {newCardsToday} / {maxNewCardsPerDay}</p>
-              <p>Reviews: {reviewsToday} / {maxReviewsPerDay}</p>
+              <p>New cards introduced: {newCardsToday} / {maxNewCardsPerDay}</p>
+              <p>Reviews completed: {reviewsToday} / {maxReviewsPerDay}</p>
+              {totalLearningCount > 0 && (
+                <p className="text-amber-600">Learning cards not yet due: {totalLearningCount}</p>
+              )}
             </div>
           </div>
           <p className={nightMode ? 'text-slate-400' : 'text-slate-600'}>
-            {!hasLearning && !hasDue && !hasNew
-              ? "Perfect! You've reviewed all due cards and reached your daily limits."
-              : "No more cards due right now. Great work today!"}
+            {totalLearningCount > 0 
+              ? "Come back later to review your Learning cards!"
+              : "Perfect! All due cards reviewed."}
           </p>
           <div className="space-y-2">
             <Button
@@ -602,13 +628,23 @@ export default function SpacedRepetition() {
               <BookOpen className="w-3 h-3 md:w-4 md:h-4 text-cyan-600" />
               <span className={`text-xs md:text-sm ${nightMode ? 'text-slate-300' : 'text-slate-600'}`}>New:</span>
               <span className={`font-semibold text-cyan-700 text-sm md:text-base ${nightMode ? 'text-cyan-400' : ''}`}>
-                {cardCategories.newCards.length} <span className="text-xs opacity-60">({newCardsToday}/{maxNewCardsPerDay})</span>
+                {newCardsToday}/{maxNewCardsPerDay}
+              </span>
+              <span className={`text-xs opacity-50 ${nightMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                ({cardCategories.totalUnseen || 0} unseen)
               </span>
             </div>
             <div className="flex items-center gap-1.5 md:gap-2">
               <Brain className="w-3 h-3 md:w-4 md:h-4 text-amber-600" />
               <span className={`text-xs md:text-sm ${nightMode ? 'text-slate-300' : 'text-slate-600'}`}>Learning:</span>
-              <span className={`font-semibold text-amber-700 text-sm md:text-base ${nightMode ? 'text-amber-400' : ''}`}>{cardCategories.learningCards.length}</span>
+              <span className={`font-semibold text-amber-700 text-sm md:text-base ${nightMode ? 'text-amber-400' : ''}`}>
+                {cardCategories.totalLearning || 0}
+              </span>
+              {cardCategories.learningCards.length < (cardCategories.totalLearning || 0) && (
+                <span className={`text-xs opacity-50 ${nightMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                  ({cardCategories.learningCards.length} due)
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-1.5 md:gap-2">
               <Clock className="w-3 h-3 md:w-4 md:h-4 text-emerald-600" />
