@@ -384,11 +384,12 @@ export default function SpacedRepetition() {
   }, [cardCategories, maxNewCardsPerDay, maxReviewsPerDay, newCardsToday, reviewsToday, newIgnoresReviewLimit]);
 
   useEffect(() => {
-    if (buildQueue.length > 0 && studyQueue.length === 0) {
+    if (buildQueue.length > 0 && studyQueue.length === 0 && !sessionComplete) {
+      console.log('[SpacedRepetition] 🔄 Rebuilding queue with', buildQueue.length, 'cards');
       setStudyQueue(buildQueue);
       setCurrentCard(buildQueue[0]);
     }
-  }, [buildQueue, studyQueue.length]);
+  }, [buildQueue, studyQueue.length, sessionComplete]);
 
   useEffect(() => {
     const checkRestTime = setInterval(() => {
@@ -401,29 +402,7 @@ export default function SpacedRepetition() {
     return () => clearInterval(checkRestTime);
   }, [lastRestTime, nextRestDuration, showRest, sessionComplete, cardsStudied]);
 
-  /**
-   * Check if session should end based on card eligibility
-   */
-  const shouldEndSession = React.useCallback(() => {
-    const learningDueNow = cardCategories.learningCards?.length || 0;
-    const reviewDueNow = cardCategories.dueCards?.length || 0;
-    const newRemaining = Math.max(0, maxNewCardsPerDay - newCardsToday);
-    const newAvailable = cardCategories.newCards?.length || 0;
-    
-    const hasEligibleCards = learningDueNow > 0 || 
-                             reviewDueNow > 0 || 
-                             (newRemaining > 0 && newAvailable > 0);
-    
-    console.log('[SpacedRepetition] 🔍 Eligibility check:', {
-      learningDueNow,
-      reviewDueNow,
-      newRemaining,
-      newAvailable,
-      hasEligibleCards
-    });
-    
-    return !hasEligibleCards;
-  }, [cardCategories, maxNewCardsPerDay, newCardsToday]);
+
 
   const handleAnswer = (correct, rating = null) => {
     if (!currentCard) return;
@@ -445,38 +424,21 @@ export default function SpacedRepetition() {
 
     console.log('[SpacedRepetition] User answered with rating:', finalRating);
 
-    // 🎯 TRACK NEW CARD INTRODUCTIONS
-    // Only increment newCardsToday if this is the FIRST time this card is being studied
-    const isFirstTime = !currentCard.progress || currentCard.progress.reps === 0;
-    if (isFirstTime) {
-      console.log('[SpacedRepetition] 📊 New card introduced - incrementing newCardsToday');
-      setNewCardsToday(prev => prev + 1);
-    }
-
     // 🚀 OPTIMISTIC UI: Move to next card IMMEDIATELY (non-blocking)
     const newQueue = studyQueue.slice(1);
 
-    // ✅ CHECK ELIGIBILITY: Don't end just because queue is empty - refetch will rebuild it
+    // ✅ CRITICAL FIX: Never end session in handleAnswer
+    // Let the render cycle check eligibility after refetch completes
+    // Just clear the queue and let buildQueue rebuild it
     if (newQueue.length === 0) {
-      console.log('[SpacedRepetition] ⏳ Current queue empty - checking eligibility after background update');
-      
-      // Wait for background update, then check if session should truly end
-      setTimeout(() => {
-        refetchProgress().then(() => {
-          if (shouldEndSession()) {
-            console.log('[SpacedRepetition] ✅ No eligible cards remain - ending session');
-            completeSession();
-          } else {
-            console.log('[SpacedRepetition] ⚠️ Queue empty but eligible cards exist - will rebuild on next render');
-          }
-        });
-      }, 200);
-      return;
+      console.log('[SpacedRepetition] ⏳ Queue empty - clearing and will rebuild after refetch');
+      setStudyQueue([]);
+      setCurrentCard(null);
+    } else {
+      console.log('[SpacedRepetition] Moving to next card,', newQueue.length, 'cards remaining');
+      setStudyQueue(newQueue);
+      setCurrentCard(newQueue[0]);
     }
-
-    console.log('[SpacedRepetition] Moving to next card,', newQueue.length, 'cards remaining');
-    setStudyQueue(newQueue);
-    setCurrentCard(newQueue[0]);
 
     // 🚀 PERFORMANCE: Log card transition time
     requestAnimationFrame(() => {
@@ -491,7 +453,7 @@ export default function SpacedRepetition() {
       rating: finalRating
     });
 
-    // 🔄 BACKGROUND: Refetch progress after delay (non-blocking)
+    // 🔄 BACKGROUND: Refetch progress to rebuild queue
     setTimeout(() => {
       refetchProgress();
     }, 100);
