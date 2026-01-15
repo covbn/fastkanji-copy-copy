@@ -7,6 +7,7 @@ import { BookOpen, Brain, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 import FlashCard from "../components/flash/FlashCard";
+import GradingButtons from "../components/srs/GradingButtons";
 import AccuracyMeter from "../components/flash/AccuracyMeter";
 import RestInterval from "../components/flash/RestInterval";
 import SessionComplete from "../components/flash/SessionComplete";
@@ -225,26 +226,29 @@ export default function SpacedRepetition() {
   useEffect(() => {
     if (userProgress.length > 0) {
       const today = new Date().setHours(0, 0, 0, 0);
-      const todaysProgress = userProgress.filter(p => {
+      
+      // 🎯 COUNT NEW CARDS INTRODUCED TODAY
+      // A card is "new today" if it has reps=1 AND was last_reviewed today
+      const newToday = userProgress.filter(p => {
         if (!p.last_reviewed) return false;
         const reviewDate = new Date(p.last_reviewed).setHours(0, 0, 0, 0);
-        return reviewDate === today;
-      });
+        return reviewDate === today && p.reps === 1;
+      }).length;
       
-      // Count NEW cards that received their FIRST rating today (reps === 1 and was New -> Learning)
-      const newCards = todaysProgress.filter(p => 
-        p.reps === 1 && (p.state === "Learning" || p.state === "Review")
-      ).length;
+      // 🎯 COUNT REVIEWS DONE TODAY (Review state cards reviewed today, reps > 1)
+      const reviewsToday = userProgress.filter(p => {
+        if (!p.last_reviewed || p.state !== "Review") return false;
+        const reviewDate = new Date(p.last_reviewed).setHours(0, 0, 0, 0);
+        return reviewDate === today && p.reps > 1;
+      }).length;
       
-      // Count REVIEW cards that were reviewed today
-      const reviews = todaysProgress.filter(p => 
-        p.state === "Review" && p.reps > 1
-      ).length;
+      console.log('[SpacedRepetition] Daily stats - New introduced today:', newToday, ', Reviews completed today:', reviewsToday);
       
-      console.log('[SpacedRepetition] Daily stats - New today:', newCards, 'Reviews today:', reviews);
-      
-      setNewCardsToday(newCards);
-      setReviewsToday(reviews);
+      setNewCardsToday(newToday);
+      setReviewsToday(reviewsToday);
+    } else {
+      setNewCardsToday(0);
+      setReviewsToday(0);
     }
   }, [userProgress]);
 
@@ -397,7 +401,7 @@ export default function SpacedRepetition() {
     return () => clearInterval(checkRestTime);
   }, [lastRestTime, nextRestDuration, showRest, sessionComplete, cardsStudied]);
 
-  const handleAnswer = (correct) => {
+  const handleAnswer = (correct, rating = null) => {
     if (!currentCard) return;
     
     // 🚀 PERFORMANCE: Record tap time
@@ -405,17 +409,25 @@ export default function SpacedRepetition() {
     
     setCardsStudied(prev => prev + 1);
     
-    // Convert correct/incorrect to FSRS rating (1-4)
-    const rating = correct ? 3 : 1;
+    // Use provided rating, fallback to correct/incorrect conversion
+    const finalRating = rating !== null ? rating : (correct ? 3 : 1);
     
-    if (correct) {
+    if (finalRating >= 3) {
       setCorrectCount(prev => prev + 1);
     } else {
       setIncorrectCount(prev => prev + 1);
       setReviewAfterRest(prev => [...prev, currentCard]);
     }
 
-    console.log('[SpacedRepetition] User answered', correct ? 'correct' : 'incorrect', '- rating:', rating);
+    console.log('[SpacedRepetition] User answered with rating:', finalRating);
+
+    // 🎯 TRACK NEW CARD INTRODUCTIONS
+    // Only increment newCardsToday if this is the FIRST time this card is being studied
+    const isFirstTime = !currentCard.progress || currentCard.progress.reps === 0;
+    if (isFirstTime) {
+      console.log('[SpacedRepetition] 📊 New card introduced - incrementing newCardsToday');
+      setNewCardsToday(prev => prev + 1);
+    }
 
     // 🚀 OPTIMISTIC UI: Move to next card IMMEDIATELY (non-blocking)
     const newQueue = studyQueue.slice(1);
@@ -440,10 +452,10 @@ export default function SpacedRepetition() {
     // 🔄 BACKGROUND: Update progress in the background (non-blocking)
     updateProgressMutation.mutate({
       vocabularyId: currentCard.id,
-      rating
+      rating: finalRating
     });
 
-    // 🔄 BACKGROUND: Refetch progress after a short delay (non-blocking)
+    // 🔄 BACKGROUND: Refetch progress after delay (non-blocking)
     setTimeout(() => {
       refetchProgress();
     }, 100);
@@ -725,7 +737,7 @@ export default function SpacedRepetition() {
               <BookOpen className="w-3 h-3 md:w-4 md:h-4 text-cyan-600" />
               <span className={`text-xs md:text-sm ${nightMode ? 'text-slate-300' : 'text-slate-600'}`}>New:</span>
               <span className={`font-semibold text-cyan-700 text-sm md:text-base ${nightMode ? 'text-cyan-400' : ''}`}>
-                {newCardsToday}/{maxNewCardsPerDay}
+                {Math.max(0, maxNewCardsPerDay - newCardsToday)}
               </span>
               <span className={`text-xs opacity-50 ${nightMode ? 'text-slate-500' : 'text-slate-400'}`}>
                 ({cardCategories.totalUnseen || 0} unseen)
@@ -789,12 +801,18 @@ export default function SpacedRepetition() {
         </div>
       </div>
 
-      <div className="flex-1 flex items-center justify-center p-4 overflow-y-auto">
+      <div className="flex-1 flex flex-col items-center justify-center p-4 overflow-y-auto gap-6">
         <FlashCard
           vocabulary={currentCard}
           mode={mode}
           onAnswer={handleAnswer}
           showExampleSentences={settings?.show_example_sentences !== false}
+          hideButtons={true}
+        />
+        
+        <GradingButtons
+          onGrade={(rating) => handleAnswer(rating >= 3, rating)}
+          nightMode={nightMode}
         />
       </div>
     </div>
