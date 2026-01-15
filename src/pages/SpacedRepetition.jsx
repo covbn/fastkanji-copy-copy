@@ -502,48 +502,45 @@ export default function SpacedRepetition() {
     
     console.log('[SpacedRepetition] 🎯 SESSION END CHECK:', {
       learningDue: hasLearningDue,
+      learningTotal: totalLearningCount,
       dueDue: hasDueDue,
       newAvailable: hasNewAvailable,
       remainingNew,
-      remainingReviews,
-      totalLearning: totalLearningCount
+      remainingReviews
     });
     
-    // 🎯 ANKI BEHAVIOR: Detect WHY the queue is empty
-    const newLimitReached = remainingNew <= 0 && hasNewAvailable;
-    const reviewLimitReached = remainingReviews <= 0 && hasDueDue;
-    const reviewLimitBlocksNew = reviewLimitReached && hasNewAvailable && !newIgnoresReviewLimit;
-    
-    // ✅ CRITICAL: Only show limit prompt if NO eligible cards remain
-    // Don't trigger just because new limit reached - learning may still be due!
-    if (!hasLearningDue) {
+    // 🎯 CRITICAL FIX: Never show limit prompts if Learning cards exist (even if not due yet)
+    // Learning cards are intraday - user needs to come back soon to review them
+    if (totalLearningCount > 0) {
+      console.log('[SpacedRepetition] ⏰ Learning cards exist but not due yet - showing "done for now" state');
+      // Fall through to "All Done for Today" screen which handles this case
+    } else {
+      // 🎯 ANKI BEHAVIOR: Detect WHY the queue is empty (only if NO learning cards exist)
+      const newLimitReached = remainingNew <= 0 && hasNewAvailable;
+      const reviewLimitReached = remainingReviews <= 0 && hasDueDue;
+      const reviewLimitBlocksNew = reviewLimitReached && hasNewAvailable && !newIgnoresReviewLimit;
+      
       if (newLimitReached && reviewLimitReached && hasDueDue) {
-        // Both limits reached, and reviews blocked
         console.log('[SpacedRepetition] ✋ Both limits reached - showing combined prompt');
         setLimitPromptType('both');
         setShowLimitPrompt(true);
         return null;
       } else if (reviewLimitReached && hasDueDue && !hasNewAvailable) {
-        // Only review limit, no new cards available
         console.log('[SpacedRepetition] ✋ Review limit reached - showing review prompt');
         setLimitPromptType('review');
         setShowLimitPrompt(true);
         return null;
       } else if (reviewLimitBlocksNew && !hasDueDue) {
-        // Review limit is blocking new cards (even though reviews are done)
         console.log('[SpacedRepetition] ✋ Review limit blocking new cards - showing new prompt');
         setLimitPromptType('new');
         setShowLimitPrompt(true);
         return null;
       } else if (newLimitReached && !hasDueDue) {
-        // Only new limit reached AND no due cards
         console.log('[SpacedRepetition] ✋ New card limit reached - showing new prompt');
         setLimitPromptType('new');
         setShowLimitPrompt(true);
         return null;
       }
-    } else {
-      console.log('[SpacedRepetition] ⚠️ Learning cards still due - should not end session yet');
     }
     
     // ✅ CORRECT: Session truly done - no eligible cards remain
