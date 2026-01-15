@@ -7,11 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge"; // Added Badge import
-import { Settings as SettingsIcon, Moon, Sun, Clock, Save, Brain, Bug, Trash2 } from "lucide-react";
+import { Settings as SettingsIcon, Moon, Sun, Clock, Save, Brain, Bug, Trash2, CheckCircle2, XCircle } from "lucide-react";
 import { motion } from "framer-motion";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function Settings() {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   
   const { data: user } = useQuery({
     queryKey: ['user'],
@@ -68,13 +70,13 @@ export default function Settings() {
     }
   }, [settings]);
 
-  const { data: userProgress = [] } = useQuery({
+  const { data: userProgress = [], refetch: refetchProgress } = useQuery({
     queryKey: ['userProgress', user?.email],
     queryFn: async () => {
       if (!user) return [];
       return base44.entities.UserProgress.filter({ user_email: user.email });
     },
-    enabled: !!user && formData.debug_mode,
+    enabled: !!user, // Always enabled so data is ready
   });
 
   useEffect(() => {
@@ -142,30 +144,106 @@ export default function Settings() {
 
   const resetProgressMutation = useMutation({
     mutationFn: async () => {
-      if (!user) return;
+      console.log('[DEBUG] 🗑️ Starting reset operation...');
       
-      // Delete all user progress
-      const allProgress = await base44.entities.UserProgress.filter({ user_email: user.email });
-      await Promise.all(allProgress.map(p => base44.entities.UserProgress.delete(p.id)));
+      if (!user) {
+        throw new Error('No user found');
+      }
       
-      // Reset daily limits in settings
-      if (settings) {
-        await base44.entities.UserSettings.update(settings.id, {
-          daily_usage_seconds: 0,
-          last_usage_date: new Date().toISOString().split('T')[0],
-        });
+      try {
+        // Step 1: Fetch all user progress
+        console.log('[DEBUG] 📥 Fetching all user progress...');
+        const allProgress = await base44.entities.UserProgress.filter({ user_email: user.email });
+        console.log('[DEBUG] 📋 Found', allProgress.length, 'progress records');
+        
+        // Step 2: Delete all progress records
+        if (allProgress.length > 0) {
+          console.log('[DEBUG] 🔥 Deleting', allProgress.length, 'progress records...');
+          const deletePromises = allProgress.map(async (p) => {
+            console.log('[DEBUG]   - Deleting progress ID:', p.id);
+            return base44.entities.UserProgress.delete(p.id);
+          });
+          await Promise.all(deletePromises);
+          console.log('[DEBUG] ✅ All progress records deleted');
+        } else {
+          console.log('[DEBUG] ⚠️ No progress records to delete');
+        }
+        
+        // Step 3: Reset daily limits in settings
+        if (settings) {
+          console.log('[DEBUG] 🔄 Resetting daily usage counters...');
+          await base44.entities.UserSettings.update(settings.id, {
+            daily_usage_seconds: 0,
+            last_usage_date: new Date().toISOString().split('T')[0],
+          });
+          console.log('[DEBUG] ✅ Daily limits reset');
+        } else {
+          console.warn('[DEBUG] ⚠️ No settings found to reset');
+        }
+        
+        // Step 4: Verify reset
+        console.log('[DEBUG] 🔍 Verifying reset...');
+        const remainingProgress = await base44.entities.UserProgress.filter({ user_email: user.email });
+        console.log('[DEBUG] 📊 Remaining progress records:', remainingProgress.length);
+        
+        if (remainingProgress.length > 0) {
+          throw new Error(`Reset failed - ${remainingProgress.length} records still exist`);
+        }
+        
+        console.log('[DEBUG] 🎉 Reset complete and verified!');
+        return { deletedCount: allProgress.length };
+      } catch (error) {
+        console.error('[DEBUG] ❌ Reset failed:', error);
+        throw error;
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userProgress'] });
-      queryClient.invalidateQueries({ queryKey: ['userSettings'] });
-      alert('All progress and daily limits reset!');
+    onSuccess: async (data) => {
+      console.log('[DEBUG] 🔄 Invalidating queries and refetching...');
+      
+      // Invalidate all relevant queries
+      await queryClient.invalidateQueries({ queryKey: ['userProgress'] });
+      await queryClient.invalidateQueries({ queryKey: ['userSettings'] });
+      await queryClient.invalidateQueries({ queryKey: ['recentSessions'] });
+      
+      // Force refetch
+      await refetchProgress();
+      
+      toast({
+        title: "✅ Reset Complete",
+        description: `Deleted ${data?.deletedCount || 0} progress records. Daily limits reset to 0.`,
+        duration: 5000,
+      });
+      
+      console.log('[DEBUG] 🎉 UI updated successfully');
+    },
+    onError: (error) => {
+      console.error('[DEBUG] ❌ Reset mutation error:', error);
+      toast({
+        variant: "destructive",
+        title: "❌ Reset Failed",
+        description: error.message || "Failed to reset progress. Check console for details.",
+        duration: 5000,
+      });
     },
   });
 
   const handleResetProgress = () => {
-    if (window.confirm('⚠️ This will DELETE ALL card progress and reset daily limits. Are you sure?')) {
+    console.log('[DEBUG] 🖱️ Reset button clicked');
+    const confirmed = window.confirm(
+      '⚠️ RESET ALL PROGRESS\n\n' +
+      'This will:\n' +
+      '• Delete ALL card progress\n' +
+      '• Reset all scheduling data\n' +
+      '• Reset daily new/review counts to 0\n' +
+      '• Reset daily usage time to 0\n\n' +
+      'This cannot be undone. Continue?'
+    );
+    
+    if (confirmed) {
+      console.log('[DEBUG] ✅ User confirmed reset');
       resetProgressMutation.mutate();
+    } else {
+      console.log('[DEBUG] ❌ User cancelled reset');
     }
   };
 
@@ -463,6 +541,28 @@ export default function Settings() {
                   <Trash2 className="w-4 h-4 mr-2" />
                   {resetProgressMutation.isPending ? 'Resetting...' : 'Reset All Progress & Daily Limits'}
                 </Button>
+                
+                {resetProgressMutation.isSuccess && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className={`flex items-center gap-2 p-3 rounded-lg ${nightMode ? 'bg-emerald-900/50 text-emerald-300 border border-emerald-700' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span className="text-sm font-medium">Reset successful! All data cleared.</span>
+                  </motion.div>
+                )}
+                
+                {resetProgressMutation.isError && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className={`flex items-center gap-2 p-3 rounded-lg ${nightMode ? 'bg-red-900/50 text-red-300 border border-red-700' : 'bg-red-50 text-red-700 border border-red-200'}`}
+                  >
+                    <XCircle className="w-4 h-4" />
+                    <span className="text-sm font-medium">Reset failed: {resetProgressMutation.error?.message}</span>
+                  </motion.div>
+                )}
 
                 <p className={`text-xs ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>
                   ⚠️ This will delete all card progress and reset daily new/review counts to 0. Use for testing only.
