@@ -232,47 +232,57 @@ export default function SpacedRepetition() {
 
   useEffect(() => {
     if (userProgress.length > 0) {
-      const today = new Date().setHours(0, 0, 0, 0);
+      // Use Brussels timezone (Europe/Brussels = UTC+1/+2)
+      const nowBrussels = new Date();
+      const brusselsToday = new Date(nowBrussels.toLocaleString('en-US', { timeZone: 'Europe/Brussels' }));
+      brusselsToday.setHours(0, 0, 0, 0);
+      const todayTimestamp = brusselsToday.getTime();
 
-      // 🎯 COUNT NEW CARDS INTRODUCED TODAY
-      // A card is "introduced today" if its progress record was created today (first rating happened today)
+      // 🎯 COUNT NEW CARDS INTRODUCED TODAY (Brussels day boundary)
+      // A card is "new introduced today" if created_date is today AND reps >= 1 (first rating happened)
       const newToday = userProgress.filter(p => {
-        if (!p.created_date) return false;
-        const createdDate = new Date(p.created_date).setHours(0, 0, 0, 0);
-        return createdDate === today && p.reps > 0;
+        if (!p.created_date || !p.reps || p.reps === 0) return false;
+        const createdBrussels = new Date(new Date(p.created_date).toLocaleString('en-US', { timeZone: 'Europe/Brussels' }));
+        createdBrussels.setHours(0, 0, 0, 0);
+        return createdBrussels.getTime() === todayTimestamp;
       }).length;
       
-      // 🎯 COUNT REVIEWS DONE TODAY (Review state cards reviewed today, reps > 1)
+      // 🎯 COUNT REVIEWS DONE TODAY (Review state cards reviewed today)
       const reviewsToday = userProgress.filter(p => {
         if (!p.last_reviewed || p.state !== "Review") return false;
-        const reviewDate = new Date(p.last_reviewed).setHours(0, 0, 0, 0);
-        return reviewDate === today && p.reps > 1;
+        const reviewedBrussels = new Date(new Date(p.last_reviewed).toLocaleString('en-US', { timeZone: 'Europe/Brussels' }));
+        reviewedBrussels.setHours(0, 0, 0, 0);
+        return reviewedBrussels.getTime() === todayTimestamp && p.reps > 1;
       }).length;
       
-      console.log('[SpacedRepetition] Daily stats - New introduced today:', newToday, ', Reviews completed today:', reviewsToday);
+      console.log('[Stats] Brussels day boundary - New introduced:', newToday, ', Reviews:', reviewsToday);
       
       setNewCardsToday(newToday);
       setReviewsToday(reviewsToday);
       
-      // 🧹 Clean up pending set: remove IDs that are now in DB
+      // 🧹 Clean up pending set: remove IDs confirmed in DB with created_date today
       setPendingNewIntroCardIds(prev => {
         const newSet = new Set(prev);
+        let cleaned = 0;
         userProgress.forEach(p => {
-          if (p.created_date) {
-            const createdDate = new Date(p.created_date).setHours(0, 0, 0, 0);
-            if (createdDate === today && p.reps > 0) {
+          if (p.created_date && p.reps >= 1) {
+            const createdBrussels = new Date(new Date(p.created_date).toLocaleString('en-US', { timeZone: 'Europe/Brussels' }));
+            createdBrussels.setHours(0, 0, 0, 0);
+            if (createdBrussels.getTime() === todayTimestamp && newSet.has(p.vocabulary_id)) {
               newSet.delete(p.vocabulary_id);
+              cleaned++;
             }
           }
         });
-        if (newSet.size !== prev.size) {
-          console.log('[SpacedRepetition] Cleaned pending new intro IDs:', prev.size - newSet.size);
+        if (cleaned > 0) {
+          console.log('[Stats] Cleaned', cleaned, 'pending IDs now confirmed in DB');
         }
         return newSet;
       });
     } else {
       setNewCardsToday(0);
       setReviewsToday(0);
+      setPendingNewIntroCardIds(new Set()); // Clear pending if no progress
     }
   }, [userProgress]);
 
@@ -392,11 +402,23 @@ export default function SpacedRepetition() {
 
     // 🎯 EFFECTIVE NEW COUNT: DB count + pending introductions
     const effectiveNewIntroducedToday = newCardsToday + pendingNewIntroCardIds.size;
+    const remainingNewRaw = maxNewCardsPerDay - effectiveNewIntroducedToday;
+    const remainingNew = Math.max(0, remainingNewRaw);
 
-    console.log('[Queue] Building study queue - Anki priority');
-    console.log('[Queue] Effective limit:', maxNewCardsPerDay, '=', baseMaxNewCardsPerDay, '+', todayNewDelta);
+    console.log('[Queue] ========== BUILD QUEUE ==========');
+    console.log('[Queue] Effective limit:', maxNewCardsPerDay, '(base:', baseMaxNewCardsPerDay, '+ delta:', todayNewDelta, ')');
     console.log('[Queue] New introduced:', effectiveNewIntroducedToday, '(DB:', newCardsToday, '+ pending:', pendingNewIntroCardIds.size, ')');
-    console.log('[Queue] Can introduce more new?', effectiveNewIntroducedToday, '<', maxNewCardsPerDay, '=', effectiveNewIntroducedToday < maxNewCardsPerDay);
+    console.log('[Queue] Remaining new:', remainingNew, '(raw:', remainingNewRaw, ')');
+    
+    if (remainingNewRaw < 0) {
+      console.error('[Queue] ⚠️ ERROR: Negative remaining new!', {
+        effectiveLimit: maxNewCardsPerDay,
+        dbNew: newCardsToday,
+        pendingSize: pendingNewIntroCardIds.size,
+        pendingIds: Array.from(pendingNewIntroCardIds),
+        effectiveIntroduced: effectiveNewIntroducedToday
+      });
+    }
 
     // Priority 1: Learning cards (already filtered to be due now or within lookahead)
     const learningWords = learningCards.map(l => l.word).filter(w => !recentlyRatedIds.has(w.id));
@@ -404,21 +426,21 @@ export default function SpacedRepetition() {
     console.log('[Queue] ✓ Learning:', learningWords.length);
 
     // Priority 2: Due review cards (within daily limit)
-    const remainingReviews = maxReviewsPerDay - reviewsToday;
-    const dueWords = dueCards.map(d => d.word).filter(w => !recentlyRatedIds.has(w.id)).slice(0, Math.max(0, remainingReviews));
+    const remainingReviews = Math.max(0, maxReviewsPerDay - reviewsToday);
+    const dueWords = dueCards.map(d => d.word).filter(w => !recentlyRatedIds.has(w.id)).slice(0, remainingReviews);
     queue.push(...dueWords);
-    console.log('[Queue] ✓ Due:', dueWords.length);
+    console.log('[Queue] ✓ Due:', dueWords.length, '(remaining reviews:', remainingReviews, ')');
 
     // Priority 3: New cards (STRICT GATING with effective count)
-    const remainingNew = maxNewCardsPerDay - effectiveNewIntroducedToday;
     const reviewLimitReached = remainingReviews <= 0;
-    const canShowNew = (newIgnoresReviewLimit || !reviewLimitReached) && effectiveNewIntroducedToday < maxNewCardsPerDay;
+    const canIntroduceNew = (newIgnoresReviewLimit || !reviewLimitReached) && remainingNew > 0;
 
-    const newWordsToAdd = canShowNew ? newCards.filter(w => !recentlyRatedIds.has(w.id)).slice(0, Math.max(0, remainingNew)) : [];
+    const newWordsToAdd = canIntroduceNew ? newCards.filter(w => !recentlyRatedIds.has(w.id)).slice(0, remainingNew) : [];
     queue.push(...newWordsToAdd);
-    console.log('[Queue] ✓ New:', newWordsToAdd.length, '(remaining:', remainingNew, ', canShowNew:', canShowNew, ')');
+    console.log('[Queue] ✓ New:', newWordsToAdd.length, '(canIntroduce:', canIntroduceNew, ', available:', newCards.length, ')');
 
     console.log('[Queue] Final queue:', queue.length, 'cards');
+    console.log('[Queue] ====================================');
     return queue;
   }, [cardCategories, maxNewCardsPerDay, maxReviewsPerDay, newCardsToday, reviewsToday, newIgnoresReviewLimit, recentlyRatedIds, pendingNewIntroCardIds, baseMaxNewCardsPerDay, todayNewDelta]);
 
@@ -484,11 +506,15 @@ export default function SpacedRepetition() {
 
     // 🎯 CHECK IF THIS WAS A NEW CARD (first-time introduction)
     const existingProgress = userProgress.find(p => p.vocabulary_id === cardId);
-    const isNewCard = !existingProgress || existingProgress.reps === 0;
+    const isFirstRating = !existingProgress || existingProgress.reps === 0;
     
-    if (isNewCard && !pendingNewIntroCardIds.has(cardId)) {
-      console.log('[SpacedRepetition] 🆕 First-time rating of NEW card:', cardId);
-      setPendingNewIntroCardIds(prev => new Set([...prev, cardId]));
+    if (isFirstRating) {
+      if (!pendingNewIntroCardIds.has(cardId)) {
+        console.log('[Answer] 🆕 First-time rating of NEW card:', cardId, '- adding to pending');
+        setPendingNewIntroCardIds(prev => new Set([...prev, cardId]));
+      } else {
+        console.log('[Answer] Card', cardId, 'already in pending set');
+      }
     }
 
     // Clear from recently rated after refetch completes
@@ -737,6 +763,7 @@ export default function SpacedRepetition() {
                   console.log('[EXTEND] ===== +10 New Cards CLICKED =====');
                   console.log('[EXTEND] Before:', {
                     settingsExists: !!settings,
+                    settingsId: settings?.id,
                     todayNewDelta,
                     baseLimit: baseMaxNewCardsPerDay,
                     currentEffective: maxNewCardsPerDay,
@@ -747,7 +774,23 @@ export default function SpacedRepetition() {
                   });
                   
                   if (!settings) {
-                    console.error('[EXTEND] ERROR: No settings found!');
+                    console.error('[EXTEND] ERROR: No settings found, creating defaults...');
+                    if (!user) {
+                      console.error('[EXTEND] ERROR: No user found!');
+                      return;
+                    }
+                    // Create default settings
+                    const newSettings = await base44.entities.UserSettings.create({
+                      user_email: user.email,
+                      today_new_delta: 10,
+                      last_usage_date: today
+                    });
+                    console.log('[EXTEND] Created settings:', newSettings.id);
+                    await queryClient.invalidateQueries(['userSettings']);
+                    setShowLimitPrompt(false);
+                    setLimitPromptType(null);
+                    setStudyMode('STUDYING');
+                    console.log('[EXTEND] ===== EXTENSION COMPLETE (new settings) =====');
                     return;
                   }
                   
@@ -780,7 +823,19 @@ export default function SpacedRepetition() {
             {hasDue && (limitPromptType === 'review' || limitPromptType === 'both') && (
               <Button
                 onClick={async () => {
-                  if (!settings) return;
+                  if (!settings) {
+                    if (!user) return;
+                    await base44.entities.UserSettings.create({
+                      user_email: user.email,
+                      today_review_delta: 50,
+                      last_usage_date: today
+                    });
+                    await queryClient.invalidateQueries(['userSettings']);
+                    setShowLimitPrompt(false);
+                    setLimitPromptType(null);
+                    setStudyMode('STUDYING');
+                    return;
+                  }
                   const newDelta = todayReviewDelta + 50;
                   await base44.entities.UserSettings.update(settings.id, {
                     today_review_delta: newDelta,
@@ -800,7 +855,20 @@ export default function SpacedRepetition() {
             {hasNew && hasDue && limitPromptType === 'both' && (
               <Button
                 onClick={async () => {
-                  if (!settings) return;
+                  if (!settings) {
+                    if (!user) return;
+                    await base44.entities.UserSettings.create({
+                      user_email: user.email,
+                      today_new_delta: 10,
+                      today_review_delta: 50,
+                      last_usage_date: today
+                    });
+                    await queryClient.invalidateQueries(['userSettings']);
+                    setShowLimitPrompt(false);
+                    setLimitPromptType(null);
+                    setStudyMode('STUDYING');
+                    return;
+                  }
                   const newNewDelta = todayNewDelta + 10;
                   const newReviewDelta = todayReviewDelta + 50;
                   await base44.entities.UserSettings.update(settings.id, {
