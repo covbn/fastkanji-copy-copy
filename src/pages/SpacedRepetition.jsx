@@ -81,10 +81,13 @@ export default function SpacedRepetition() {
   const [pendingNewIntroCardIds, setPendingNewIntroCardIds] = useState(new Set());
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [currentUsage, setCurrentUsage] = useState(0);
-  const [tempNewCardLimit, setTempNewCardLimit] = useState(null);
-  const [tempReviewLimit, setTempReviewLimit] = useState(null);
   const [showLimitPrompt, setShowLimitPrompt] = useState(false);
   const [limitPromptType, setLimitPromptType] = useState(null); // 'new', 'review', or 'both'
+  
+  // Today-only extension deltas (persisted in settings)
+  const today = new Date().toISOString().split('T')[0];
+  const todayNewDelta = settings?.last_usage_date === today ? (settings?.today_new_delta || 0) : 0;
+  const todayReviewDelta = settings?.last_usage_date === today ? (settings?.today_review_delta || 0) : 0;
   
   const { data: allVocabulary = [], isLoading: isLoadingAll } = useQuery({
     queryKey: ['allVocabulary'],
@@ -124,8 +127,10 @@ export default function SpacedRepetition() {
   const totalUsage = baseUsage + currentUsage;
   const remainingSeconds = Math.max(0, dailyLimit - totalUsage);
   
-  const maxNewCardsPerDay = tempNewCardLimit || settings?.max_new_cards_per_day || 20;
-  const maxReviewsPerDay = tempReviewLimit || settings?.max_reviews_per_day || 200;
+  const baseMaxNewCardsPerDay = settings?.max_new_cards_per_day || 20;
+  const baseMaxReviewsPerDay = settings?.max_reviews_per_day || 200;
+  const maxNewCardsPerDay = baseMaxNewCardsPerDay + todayNewDelta;
+  const maxReviewsPerDay = baseMaxReviewsPerDay + todayReviewDelta;
   const newIgnoresReviewLimit = settings?.new_ignores_review_limit || false; // Anki default: OFF
   const desiredRetention = settings?.desired_retention || 0.9;
   const learningSteps = settings?.learning_steps || [1, 10];
@@ -421,8 +426,12 @@ export default function SpacedRepetition() {
       console.log('[SpacedRepetition] 🔄 Rebuilding queue with', buildQueue.length, 'cards');
       setStudyQueue(buildQueue);
       setCurrentCard(buildQueue[0]);
+    } else if (buildQueue.length === 0 && studyQueue.length === 0 && currentCard && !isTransitioning) {
+      // Queue rebuild complete and still empty - clear current card to show end screen
+      console.log('[SpacedRepetition] Queue rebuild complete, no cards available - clearing current card');
+      setCurrentCard(null);
     }
-  }, [buildQueue, studyQueue.length, sessionComplete]);
+  }, [buildQueue, studyQueue.length, sessionComplete, currentCard, isTransitioning]);
 
   useEffect(() => {
     const checkRestTime = setInterval(() => {
@@ -482,13 +491,12 @@ export default function SpacedRepetition() {
     // 🚀 OPTIMISTIC UI: Move to next card IMMEDIATELY (non-blocking)
     const newQueue = studyQueue.slice(1);
 
-    // ✅ CRITICAL FIX: Never end session in handleAnswer
-    // Let the render cycle check eligibility after refetch completes
-    // Just clear the queue and let buildQueue rebuild it
+    // ✅ CRITICAL: Keep current card visible until next card is ready
+    // Don't set currentCard to null - this prevents blank screen flash
     if (newQueue.length === 0) {
-      console.log('[SpacedRepetition] ⏳ Queue empty - clearing and will rebuild after refetch');
+      console.log('[SpacedRepetition] ⏳ Queue empty - will rebuild after refetch (keeping current card visible)');
       setStudyQueue([]);
-      setCurrentCard(null);
+      // DON'T set currentCard(null) - let queue rebuild handle it
     } else {
       console.log('[SpacedRepetition] Moving to next card,', newQueue.length, 'cards remaining');
       setStudyQueue(newQueue);
@@ -684,11 +692,11 @@ export default function SpacedRepetition() {
             <div className={`space-y-2 text-sm ${nightMode ? 'text-slate-400' : 'text-slate-600'}`}>
               <div className="flex justify-between items-center">
                 <span>New cards introduced:</span>
-                <span className="font-semibold text-cyan-600">{newCardsToday} / {settings?.max_new_cards_per_day || 20}</span>
+                <span className="font-semibold text-cyan-600">{newCardsToday} / {maxNewCardsPerDay}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span>Reviews completed:</span>
-                <span className="font-semibold text-emerald-600">{reviewsToday} / {settings?.max_reviews_per_day || 200}</span>
+                <span className="font-semibold text-emerald-600">{reviewsToday} / {maxReviewsPerDay}</span>
               </div>
             </div>
             
@@ -717,12 +725,16 @@ export default function SpacedRepetition() {
             {hasNew && limitPromptType !== 'review' && (
               <Button
                 onClick={async () => {
-                  const newLimit = (settings?.max_new_cards_per_day || 20) + 10;
-                  setTempNewCardLimit(newLimit);
+                  if (!settings) return;
+                  // Cumulative extension: add 10 to today's delta
+                  const newDelta = todayNewDelta + 10;
+                  await base44.entities.UserSettings.update(settings.id, {
+                    today_new_delta: newDelta,
+                    last_usage_date: today
+                  });
+                  await queryClient.invalidateQueries(['userSettings']);
                   setShowLimitPrompt(false);
                   setLimitPromptType(null);
-                  // Force immediate queue rebuild
-                  await queryClient.invalidateQueries(['userProgress']);
                 }}
                 className="w-full bg-amber-600 hover:bg-amber-700 text-white"
               >
@@ -732,12 +744,16 @@ export default function SpacedRepetition() {
             {hasDue && (limitPromptType === 'review' || limitPromptType === 'both') && (
               <Button
                 onClick={async () => {
-                  const newLimit = (settings?.max_reviews_per_day || 200) + 50;
-                  setTempReviewLimit(newLimit);
+                  if (!settings) return;
+                  // Cumulative extension: add 50 to today's delta
+                  const newDelta = todayReviewDelta + 50;
+                  await base44.entities.UserSettings.update(settings.id, {
+                    today_review_delta: newDelta,
+                    last_usage_date: today
+                  });
+                  await queryClient.invalidateQueries(['userSettings']);
                   setShowLimitPrompt(false);
                   setLimitPromptType(null);
-                  // Force immediate queue rebuild
-                  await queryClient.invalidateQueries(['userProgress']);
                 }}
                 className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
               >
@@ -747,14 +763,18 @@ export default function SpacedRepetition() {
             {hasNew && hasDue && limitPromptType === 'both' && (
               <Button
                 onClick={async () => {
-                  const newNewLimit = (settings?.max_new_cards_per_day || 20) + 10;
-                  const newReviewLimit = (settings?.max_reviews_per_day || 200) + 50;
-                  setTempNewCardLimit(newNewLimit);
-                  setTempReviewLimit(newReviewLimit);
+                  if (!settings) return;
+                  // Cumulative extension: add to both deltas
+                  const newNewDelta = todayNewDelta + 10;
+                  const newReviewDelta = todayReviewDelta + 50;
+                  await base44.entities.UserSettings.update(settings.id, {
+                    today_new_delta: newNewDelta,
+                    today_review_delta: newReviewDelta,
+                    last_usage_date: today
+                  });
+                  await queryClient.invalidateQueries(['userSettings']);
                   setShowLimitPrompt(false);
                   setLimitPromptType(null);
-                  // Force immediate queue rebuild
-                  await queryClient.invalidateQueries(['userProgress']);
                 }}
                 variant="outline"
                 className={`w-full ${nightMode ? 'border-amber-500 text-amber-400 hover:bg-amber-900/20' : 'border-amber-500 text-amber-700 hover:bg-amber-50'}`}
