@@ -716,10 +716,13 @@ export default function SpacedRepetition() {
           <div className="space-y-2">
             {hasNew && limitPromptType !== 'review' && (
               <Button
-                onClick={() => {
-                  setTempNewCardLimit((settings?.max_new_cards_per_day || 20) + 10);
+                onClick={async () => {
+                  const newLimit = (settings?.max_new_cards_per_day || 20) + 10;
+                  setTempNewCardLimit(newLimit);
                   setShowLimitPrompt(false);
                   setLimitPromptType(null);
+                  // Force immediate queue rebuild
+                  await queryClient.invalidateQueries(['userProgress']);
                 }}
                 className="w-full bg-amber-600 hover:bg-amber-700 text-white"
               >
@@ -728,10 +731,13 @@ export default function SpacedRepetition() {
             )}
             {hasDue && (limitPromptType === 'review' || limitPromptType === 'both') && (
               <Button
-                onClick={() => {
-                  setTempReviewLimit((settings?.max_reviews_per_day || 200) + 50);
+                onClick={async () => {
+                  const newLimit = (settings?.max_reviews_per_day || 200) + 50;
+                  setTempReviewLimit(newLimit);
                   setShowLimitPrompt(false);
                   setLimitPromptType(null);
+                  // Force immediate queue rebuild
+                  await queryClient.invalidateQueries(['userProgress']);
                 }}
                 className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
               >
@@ -740,11 +746,15 @@ export default function SpacedRepetition() {
             )}
             {hasNew && hasDue && limitPromptType === 'both' && (
               <Button
-                onClick={() => {
-                  setTempNewCardLimit((settings?.max_new_cards_per_day || 20) + 10);
-                  setTempReviewLimit((settings?.max_reviews_per_day || 200) + 50);
+                onClick={async () => {
+                  const newNewLimit = (settings?.max_new_cards_per_day || 20) + 10;
+                  const newReviewLimit = (settings?.max_reviews_per_day || 200) + 50;
+                  setTempNewCardLimit(newNewLimit);
+                  setTempReviewLimit(newReviewLimit);
                   setShowLimitPrompt(false);
                   setLimitPromptType(null);
+                  // Force immediate queue rebuild
+                  await queryClient.invalidateQueries(['userProgress']);
                 }}
                 variant="outline"
                 className={`w-full ${nightMode ? 'border-amber-500 text-amber-400 hover:bg-amber-900/20' : 'border-amber-500 text-amber-700 hover:bg-amber-50'}`}
