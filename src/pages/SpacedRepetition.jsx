@@ -79,6 +79,7 @@ export default function SpacedRepetition() {
   const [reviewsToday, setReviewsToday] = useState(0);
   const [recentlyRatedIds, setRecentlyRatedIds] = useState(new Set());
   const [pendingNewIntroCardIds, setPendingNewIntroCardIds] = useState(new Set());
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [currentUsage, setCurrentUsage] = useState(0);
   const [tempNewCardLimit, setTempNewCardLimit] = useState(null);
   const [tempReviewLimit, setTempReviewLimit] = useState(null);
@@ -508,8 +509,13 @@ export default function SpacedRepetition() {
     });
 
     // 🔄 BACKGROUND: Refetch progress to rebuild queue (non-blocking)
+    // Set transitioning flag to prevent premature end screen
+    setIsTransitioning(true);
     setTimeout(() => {
-      refetchProgress();
+      refetchProgress().finally(() => {
+        // Small delay to ensure queue rebuild completes
+        setTimeout(() => setIsTransitioning(false), 50);
+      });
     }, 100);
   };
 
@@ -542,7 +548,8 @@ export default function SpacedRepetition() {
     );
   }
 
-  if (buildQueue.length === 0 && !showLimitPrompt) {
+  // 🚫 GUARD: Never show end screen while transitioning between cards
+  if (buildQueue.length === 0 && !showLimitPrompt && !isTransitioning) {
     const effectiveNewIntroducedToday = newCardsToday + pendingNewIntroCardIds.size;
     const remainingNew = maxNewCardsPerDay - effectiveNewIntroducedToday;
     const remainingReviews = maxReviewsPerDay - reviewsToday;
