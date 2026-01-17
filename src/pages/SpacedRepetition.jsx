@@ -817,6 +817,7 @@ export default function SpacedRepetition() {
 
       <div className="flex-1 flex flex-col items-center justify-center p-4 overflow-y-auto gap-6">
         <FlashCard
+          key={currentCard.id}
           vocabulary={currentCard}
           mode={mode}
           onAnswer={handleAnswer}
