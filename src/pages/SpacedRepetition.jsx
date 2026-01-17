@@ -84,11 +84,6 @@ export default function SpacedRepetition() {
   const [showLimitPrompt, setShowLimitPrompt] = useState(false);
   const [limitPromptType, setLimitPromptType] = useState(null); // 'new', 'review', or 'both'
   
-  // Today-only extension deltas (persisted in settings)
-  const today = new Date().toISOString().split('T')[0];
-  const todayNewDelta = settings?.last_usage_date === today ? (settings?.today_new_delta || 0) : 0;
-  const todayReviewDelta = settings?.last_usage_date === today ? (settings?.today_review_delta || 0) : 0;
-  
   const { data: allVocabulary = [], isLoading: isLoadingAll } = useQuery({
     queryKey: ['allVocabulary'],
     queryFn: () => base44.entities.Vocabulary.list(),
@@ -127,6 +122,9 @@ export default function SpacedRepetition() {
   const totalUsage = baseUsage + currentUsage;
   const remainingSeconds = Math.max(0, dailyLimit - totalUsage);
   
+  // Today-only extension deltas (persisted in settings)
+  const todayNewDelta = settings?.last_usage_date === today ? (settings?.today_new_delta || 0) : 0;
+  const todayReviewDelta = settings?.last_usage_date === today ? (settings?.today_review_delta || 0) : 0;
   const baseMaxNewCardsPerDay = settings?.max_new_cards_per_day || 20;
   const baseMaxReviewsPerDay = settings?.max_reviews_per_day || 200;
   const maxNewCardsPerDay = baseMaxNewCardsPerDay + todayNewDelta;
