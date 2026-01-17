@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -20,6 +19,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { Toaster } from "@/components/ui/toaster";
 
 const navigationItems = [
   {
@@ -296,6 +296,7 @@ export default function Layout({ children, currentPageName }) {
           </div>
         </main>
       </div>
+      <Toaster />
     </SidebarProvider>
   );
 }

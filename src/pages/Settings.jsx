@@ -208,12 +208,13 @@ export default function Settings() {
       // Force refetch
       await refetchProgress();
       
-      toast({
+      const toastId = toast({
         title: "✅ Reset Complete",
         description: `Deleted ${data?.deletedCount || 0} progress records. Daily limits reset to 0.`,
         duration: 3000,
       });
       
+      console.log('[DEBUG] 🎉 Toast created with ID:', toastId);
       console.log('[DEBUG] 🎉 UI updated successfully');
     },
     onError: (error) => {
