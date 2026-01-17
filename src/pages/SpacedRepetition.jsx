@@ -65,6 +65,8 @@ export default function SpacedRepetition() {
   const levelParam = urlParams.get('level') || 'N5';
   const level = levelParam.toUpperCase();
 
+  // 🎯 STATE MACHINE: STUDYING | ADVANCING | DONE
+  const [studyMode, setStudyMode] = useState('STUDYING');
   const [studyQueue, setStudyQueue] = useState([]);
   const [currentCard, setCurrentCard] = useState(null);
   const [cardsStudied, setCardsStudied] = useState(0);
@@ -79,7 +81,6 @@ export default function SpacedRepetition() {
   const [reviewsToday, setReviewsToday] = useState(0);
   const [recentlyRatedIds, setRecentlyRatedIds] = useState(new Set());
   const [pendingNewIntroCardIds, setPendingNewIntroCardIds] = useState(new Set());
-  const [isTransitioning, setIsTransitioning] = useState(false);
   const [currentUsage, setCurrentUsage] = useState(0);
   const [showLimitPrompt, setShowLimitPrompt] = useState(false);
   const [limitPromptType, setLimitPromptType] = useState(null); // 'new', 'review', or 'both'
@@ -419,17 +420,20 @@ export default function SpacedRepetition() {
     return queue;
   }, [cardCategories, maxNewCardsPerDay, maxReviewsPerDay, newCardsToday, reviewsToday, newIgnoresReviewLimit, recentlyRatedIds, pendingNewIntroCardIds]);
 
+  // 🎯 QUEUE REBUILD EFFECT: Transition between state machine modes
   useEffect(() => {
     if (buildQueue.length > 0 && studyQueue.length === 0 && !sessionComplete) {
       console.log('[SpacedRepetition] 🔄 Rebuilding queue with', buildQueue.length, 'cards');
       setStudyQueue(buildQueue);
       setCurrentCard(buildQueue[0]);
-    } else if (buildQueue.length === 0 && studyQueue.length === 0 && currentCard && !isTransitioning) {
-      // Queue rebuild complete and still empty - clear current card to show end screen
-      console.log('[SpacedRepetition] Queue rebuild complete, no cards available - clearing current card');
+      setStudyMode('STUDYING');
+    } else if (buildQueue.length === 0 && studyQueue.length === 0 && studyMode === 'ADVANCING') {
+      // Queue rebuild complete and still empty - transition to DONE
+      console.log('[SpacedRepetition] Queue rebuild complete, no cards available - mode → DONE');
+      setStudyMode('DONE');
       setCurrentCard(null);
     }
-  }, [buildQueue, studyQueue.length, sessionComplete, currentCard, isTransitioning]);
+  }, [buildQueue, studyQueue.length, sessionComplete, studyMode]);
 
   useEffect(() => {
     const checkRestTime = setInterval(() => {
@@ -489,16 +493,15 @@ export default function SpacedRepetition() {
     // 🚀 OPTIMISTIC UI: Move to next card IMMEDIATELY (non-blocking)
     const newQueue = studyQueue.slice(1);
 
-    // ✅ CRITICAL: Keep current card visible until next card is ready
-    // Don't set currentCard to null - this prevents blank screen flash
     if (newQueue.length === 0) {
-      console.log('[SpacedRepetition] ⏳ Queue empty - will rebuild after refetch (keeping current card visible)');
+      console.log('[SpacedRepetition] ⏳ Queue empty - mode → ADVANCING (keeping current card visible)');
       setStudyQueue([]);
-      // DON'T set currentCard(null) - let queue rebuild handle it
+      setStudyMode('ADVANCING'); // Keep card visible, show we're computing next
     } else {
       console.log('[SpacedRepetition] Moving to next card,', newQueue.length, 'cards remaining');
       setStudyQueue(newQueue);
       setCurrentCard(newQueue[0]);
+      setStudyMode('STUDYING');
     }
 
     // 🚀 PERFORMANCE: Log card transition time
@@ -515,13 +518,8 @@ export default function SpacedRepetition() {
     });
 
     // 🔄 BACKGROUND: Refetch progress to rebuild queue (non-blocking)
-    // Set transitioning flag to prevent premature end screen
-    setIsTransitioning(true);
     setTimeout(() => {
-      refetchProgress().finally(() => {
-        // Small delay to ensure queue rebuild completes
-        setTimeout(() => setIsTransitioning(false), 50);
-      });
+      refetchProgress();
     }, 100);
   };
 
@@ -554,8 +552,8 @@ export default function SpacedRepetition() {
     );
   }
 
-  // 🚫 GUARD: Never show end screen while transitioning between cards
-  if (buildQueue.length === 0 && !showLimitPrompt && !isTransitioning) {
+  // 🚫 GUARD: Only show end screen when in DONE mode
+  if (studyMode === 'DONE' && buildQueue.length === 0 && !showLimitPrompt) {
     const effectiveNewIntroducedToday = newCardsToday + pendingNewIntroCardIds.size;
     const remainingNew = maxNewCardsPerDay - effectiveNewIntroducedToday;
     const remainingReviews = maxReviewsPerDay - reviewsToday;
@@ -723,16 +721,36 @@ export default function SpacedRepetition() {
             {hasNew && limitPromptType !== 'review' && (
               <Button
                 onClick={async () => {
-                  if (!settings) return;
+                  console.log('[DEBUG] +10 New Cards clicked', {
+                    settingsExists: !!settings,
+                    todayNewDelta,
+                    baseLimit: baseMaxNewCardsPerDay,
+                    currentEffective: maxNewCardsPerDay,
+                    newToday: newCardsToday
+                  });
+                  
+                  if (!settings) {
+                    console.error('[DEBUG] No settings found!');
+                    return;
+                  }
+                  
                   // Cumulative extension: add 10 to today's delta
                   const newDelta = todayNewDelta + 10;
+                  console.log('[DEBUG] Updating delta:', todayNewDelta, '→', newDelta);
+                  
                   await base44.entities.UserSettings.update(settings.id, {
                     today_new_delta: newDelta,
                     last_usage_date: today
                   });
+                  
+                  console.log('[DEBUG] Settings updated, invalidating queries');
                   await queryClient.invalidateQueries(['userSettings']);
+                  await queryClient.invalidateQueries(['userProgress']);
+                  
+                  console.log('[DEBUG] Clearing limit prompt, back to STUDYING');
                   setShowLimitPrompt(false);
                   setLimitPromptType(null);
+                  setStudyMode('STUDYING');
                 }}
                 className="w-full bg-amber-600 hover:bg-amber-700 text-white"
               >
@@ -743,15 +761,16 @@ export default function SpacedRepetition() {
               <Button
                 onClick={async () => {
                   if (!settings) return;
-                  // Cumulative extension: add 50 to today's delta
                   const newDelta = todayReviewDelta + 50;
                   await base44.entities.UserSettings.update(settings.id, {
                     today_review_delta: newDelta,
                     last_usage_date: today
                   });
                   await queryClient.invalidateQueries(['userSettings']);
+                  await queryClient.invalidateQueries(['userProgress']);
                   setShowLimitPrompt(false);
                   setLimitPromptType(null);
+                  setStudyMode('STUDYING');
                 }}
                 className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
               >
@@ -762,7 +781,6 @@ export default function SpacedRepetition() {
               <Button
                 onClick={async () => {
                   if (!settings) return;
-                  // Cumulative extension: add to both deltas
                   const newNewDelta = todayNewDelta + 10;
                   const newReviewDelta = todayReviewDelta + 50;
                   await base44.entities.UserSettings.update(settings.id, {
@@ -771,8 +789,10 @@ export default function SpacedRepetition() {
                     last_usage_date: today
                   });
                   await queryClient.invalidateQueries(['userSettings']);
+                  await queryClient.invalidateQueries(['userProgress']);
                   setShowLimitPrompt(false);
                   setLimitPromptType(null);
+                  setStudyMode('STUDYING');
                 }}
                 variant="outline"
                 className={`w-full ${nightMode ? 'border-amber-500 text-amber-400 hover:bg-amber-900/20' : 'border-amber-500 text-amber-700 hover:bg-amber-50'}`}
@@ -815,7 +835,8 @@ export default function SpacedRepetition() {
     return <RestInterval onContinue={continueAfterRest} duration={restDurationSeconds} />;
   }
 
-  if (!currentCard) {
+  // 🎯 RENDER: Only show spinner if truly no card (initial load)
+  if (!currentCard && studyMode !== 'ADVANCING') {
     return (
       <div className={`h-screen flex items-center justify-center ${nightMode ? 'bg-slate-900' : ''}`}>
         <div className="text-center space-y-4">
@@ -824,6 +845,11 @@ export default function SpacedRepetition() {
         </div>
       </div>
     );
+  }
+  
+  // 🎯 RENDER: If ADVANCING mode, keep showing current card (or show inline loading)
+  if (studyMode === 'ADVANCING' && currentCard) {
+    // Continue rendering study UI below with a subtle indicator
   }
 
   return (
@@ -900,24 +926,36 @@ export default function SpacedRepetition() {
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center p-4 overflow-y-auto gap-6">
-        <FlashCard
-          key={currentCard.id}
-          vocabulary={currentCard}
-          mode={mode}
-          onAnswer={handleAnswer}
-          showExampleSentences={settings?.show_example_sentences !== false}
-          hideButtons={true}
-          onRevealChange={(isRevealed) => {
-            // Pass reveal state to parent for grading buttons
-            setCurrentCard(prev => ({ ...prev, _revealed: isRevealed }));
-          }}
-        />
+        {studyMode === 'ADVANCING' && (
+          <div className={`mb-2 px-3 py-1.5 rounded-full text-xs ${nightMode ? 'bg-slate-700 text-slate-300' : 'bg-stone-200 text-slate-600'}`}>
+            Loading next card...
+          </div>
+        )}
         
-        <GradingButtons
-          onGrade={(rating) => handleAnswer(rating >= 3, rating)}
-          nightMode={nightMode}
-          revealed={currentCard?._revealed}
-        />
+        {currentCard && (
+          <>
+            <FlashCard
+              key={currentCard.id}
+              vocabulary={currentCard}
+              mode={mode}
+              onAnswer={handleAnswer}
+              showExampleSentences={settings?.show_example_sentences !== false}
+              hideButtons={true}
+              onRevealChange={(isRevealed) => {
+                // Pass reveal state to parent for grading buttons
+                setCurrentCard(prev => ({ ...prev, _revealed: isRevealed }));
+              }}
+            />
+            
+            {studyMode === 'STUDYING' && (
+              <GradingButtons
+                onGrade={(rating) => handleAnswer(rating >= 3, rating)}
+                nightMode={nightMode}
+                revealed={currentCard?._revealed}
+              />
+            )}
+          </>
+        )}
       </div>
     </div>
   );
