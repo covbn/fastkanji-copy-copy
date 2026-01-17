@@ -79,7 +79,6 @@ export default function SpacedRepetition() {
   const [reviewsToday, setReviewsToday] = useState(0);
   const [recentlyRatedIds, setRecentlyRatedIds] = useState(new Set());
   const [pendingNewIntroCardIds, setPendingNewIntroCardIds] = useState(new Set());
-  const [isRefetching, setIsRefetching] = useState(false);
   const [currentUsage, setCurrentUsage] = useState(0);
   const [tempNewCardLimit, setTempNewCardLimit] = useState(null);
   const [tempReviewLimit, setTempReviewLimit] = useState(null);
@@ -508,12 +507,9 @@ export default function SpacedRepetition() {
       rating: finalRating
     });
 
-    // 🔄 BACKGROUND: Refetch progress to rebuild queue
-    setIsRefetching(true);
+    // 🔄 BACKGROUND: Refetch progress to rebuild queue (non-blocking)
     setTimeout(() => {
-      refetchProgress().finally(() => {
-        setIsRefetching(false);
-      });
+      refetchProgress();
     }, 100);
   };
 
@@ -546,7 +542,7 @@ export default function SpacedRepetition() {
     );
   }
 
-  if (buildQueue.length === 0 && !showLimitPrompt && !isRefetching) {
+  if (buildQueue.length === 0 && !showLimitPrompt) {
     const effectiveNewIntroducedToday = newCardsToday + pendingNewIntroCardIds.size;
     const remainingNew = maxNewCardsPerDay - effectiveNewIntroducedToday;
     const remainingReviews = maxReviewsPerDay - reviewsToday;
@@ -563,17 +559,12 @@ export default function SpacedRepetition() {
       newAvailable: hasNewAvailable,
       remainingNew,
       effectiveNewIntroduced: effectiveNewIntroducedToday,
-      nextLearningIn: nextLearning?.minutesUntilDue || 'N/A',
-      isRefetching
+      nextLearningIn: nextLearning?.minutesUntilDue || 'N/A'
     });
     
-    // Anki behavior: Detect termination reason
-    // Only consider limit "reached" if we've actually hit it, not if we're negative
-    const newLimitReached = effectiveNewIntroducedToday >= maxNewCardsPerDay && hasNewAvailable;
-    const reviewLimitReached = reviewsToday >= maxReviewsPerDay && hasDueDue;
-    
-    // If learning cards exist but not due, show "Done for now"
-    if (totalLearningCount > 0 && !hasLearningDue) {
+    // 🎯 CRITICAL: If ANY learning cards exist (even if not due now), prioritize that over limit screens
+    // Learning cards are ongoing reviews that must be completed regardless of daily limits
+    if (totalLearningCount > 0) {
       return (
         <div className={`h-screen flex items-center justify-center p-4 ${nightMode ? 'bg-slate-900' : 'bg-stone-50'}`}>
           <div className="text-center space-y-6 max-w-md">
@@ -613,6 +604,11 @@ export default function SpacedRepetition() {
         </div>
       );
     }
+    
+    // Anki behavior: Detect termination reason (only if NO learning exists)
+    // Only consider limit "reached" if we've actually hit it, not if we're negative
+    const newLimitReached = effectiveNewIntroducedToday >= maxNewCardsPerDay && hasNewAvailable;
+    const reviewLimitReached = reviewsToday >= maxReviewsPerDay && hasDueDue;
     
     // Check limit-based termination (only if no learning exists)
     if (newLimitReached && !hasDueDue) {
@@ -784,14 +780,12 @@ export default function SpacedRepetition() {
     return <RestInterval onContinue={continueAfterRest} duration={restDurationSeconds} />;
   }
 
-  if (!currentCard || isRefetching) {
+  if (!currentCard) {
     return (
       <div className={`h-screen flex items-center justify-center ${nightMode ? 'bg-slate-900' : ''}`}>
         <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
-          <p className={nightMode ? 'text-slate-400' : 'text-slate-600'}>
-            {isRefetching ? 'Loading next card...' : 'Preparing cards...'}
-          </p>
+          <p className={nightMode ? 'text-slate-400' : 'text-slate-600'}>Preparing cards...</p>
         </div>
       </div>
     );
