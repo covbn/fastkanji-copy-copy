@@ -78,6 +78,7 @@ export default function SpacedRepetition() {
   const [newCardsToday, setNewCardsToday] = useState(0);
   const [reviewsToday, setReviewsToday] = useState(0);
   const [recentlyRatedIds, setRecentlyRatedIds] = useState(new Set());
+  const [pendingNewIntroCardIds, setPendingNewIntroCardIds] = useState(new Set());
   const [currentUsage, setCurrentUsage] = useState(0);
   const [tempNewCardLimit, setTempNewCardLimit] = useState(null);
   const [tempReviewLimit, setTempReviewLimit] = useState(null);
@@ -247,6 +248,23 @@ export default function SpacedRepetition() {
       
       setNewCardsToday(newToday);
       setReviewsToday(reviewsToday);
+      
+      // 🧹 Clean up pending set: remove IDs that are now in DB
+      setPendingNewIntroCardIds(prev => {
+        const newSet = new Set(prev);
+        userProgress.forEach(p => {
+          if (p.created_date) {
+            const createdDate = new Date(p.created_date).setHours(0, 0, 0, 0);
+            if (createdDate === today && p.reps > 0) {
+              newSet.delete(p.vocabulary_id);
+            }
+          }
+        });
+        if (newSet.size !== prev.size) {
+          console.log('[SpacedRepetition] Cleaned pending new intro IDs:', prev.size - newSet.size);
+        }
+        return newSet;
+      });
     } else {
       setNewCardsToday(0);
       setReviewsToday(0);
@@ -367,7 +385,11 @@ export default function SpacedRepetition() {
     const { newCards, learningCards, dueCards } = cardCategories;
     const queue = [];
 
+    // 🎯 EFFECTIVE NEW COUNT: DB count + pending introductions
+    const effectiveNewIntroducedToday = newCardsToday + pendingNewIntroCardIds.size;
+
     console.log('[SpacedRepetition] Building study queue - Anki priority');
+    console.log('[SpacedRepetition] Effective new introduced today:', effectiveNewIntroducedToday, '(DB:', newCardsToday, '+ pending:', pendingNewIntroCardIds.size, ')');
 
     // Priority 1: Learning cards (already filtered to be due now or within lookahead)
     const learningWords = learningCards.map(l => l.word).filter(w => !recentlyRatedIds.has(w.id));
@@ -380,18 +402,18 @@ export default function SpacedRepetition() {
     queue.push(...dueWords);
     console.log('[SpacedRepetition] ✓ Due:', dueWords.length, '(limit:', remainingReviews, ')');
 
-    // Priority 3: New cards (within daily limit AND no pending learning AND review limit allows)
-    const remainingNew = maxNewCardsPerDay - newCardsToday;
+    // Priority 3: New cards (STRICT GATING with effective count)
+    const remainingNew = maxNewCardsPerDay - effectiveNewIntroducedToday;
     const reviewLimitReached = remainingReviews <= 0;
-    const canShowNew = (newIgnoresReviewLimit || !reviewLimitReached) && remainingNew > 0;
+    const canShowNew = (newIgnoresReviewLimit || !reviewLimitReached) && effectiveNewIntroducedToday < maxNewCardsPerDay;
 
-    const newWordsToAdd = canShowNew ? newCards.filter(w => !recentlyRatedIds.has(w.id)).slice(0, remainingNew) : [];
+    const newWordsToAdd = canShowNew ? newCards.filter(w => !recentlyRatedIds.has(w.id)).slice(0, Math.max(0, remainingNew)) : [];
     queue.push(...newWordsToAdd);
-    console.log('[SpacedRepetition] ✓ New:', newWordsToAdd.length, '(limit:', remainingNew, ', allowed:', canShowNew, ')');
+    console.log('[SpacedRepetition] ✓ New:', newWordsToAdd.length, '(remaining:', remainingNew, ', allowed:', canShowNew, ')');
 
     console.log('[SpacedRepetition] Final queue:', queue.length, 'cards');
     return queue;
-  }, [cardCategories, maxNewCardsPerDay, maxReviewsPerDay, newCardsToday, reviewsToday, newIgnoresReviewLimit, recentlyRatedIds]);
+  }, [cardCategories, maxNewCardsPerDay, maxReviewsPerDay, newCardsToday, reviewsToday, newIgnoresReviewLimit, recentlyRatedIds, pendingNewIntroCardIds]);
 
   useEffect(() => {
     if (buildQueue.length > 0 && studyQueue.length === 0 && !sessionComplete) {
@@ -437,6 +459,15 @@ export default function SpacedRepetition() {
     // 🛡️ Prevent this card from appearing again immediately
     const cardId = currentCard.id;
     setRecentlyRatedIds(prev => new Set([...prev, cardId]));
+
+    // 🎯 CHECK IF THIS WAS A NEW CARD (first-time introduction)
+    const existingProgress = userProgress.find(p => p.vocabulary_id === cardId);
+    const isNewCard = !existingProgress || existingProgress.reps === 0;
+    
+    if (isNewCard && !pendingNewIntroCardIds.has(cardId)) {
+      console.log('[SpacedRepetition] 🆕 First-time rating of NEW card:', cardId);
+      setPendingNewIntroCardIds(prev => new Set([...prev, cardId]));
+    }
 
     // Clear from recently rated after refetch completes
     setTimeout(() => {
@@ -765,7 +796,7 @@ export default function SpacedRepetition() {
               <BookOpen className="w-3 h-3 md:w-4 md:h-4 text-cyan-600" />
               <span className={`text-xs md:text-sm ${nightMode ? 'text-slate-300' : 'text-slate-600'}`}>New:</span>
               <span className={`font-semibold text-cyan-700 text-sm md:text-base ${nightMode ? 'text-cyan-400' : ''}`}>
-                {Math.max(0, maxNewCardsPerDay - newCardsToday)}
+                {Math.max(0, maxNewCardsPerDay - newCardsToday - pendingNewIntroCardIds.size)}
               </span>
               <span className={`text-xs opacity-50 ${nightMode ? 'text-slate-500' : 'text-slate-400'}`}>
                 ({cardCategories.totalUnseen || 0} unseen)

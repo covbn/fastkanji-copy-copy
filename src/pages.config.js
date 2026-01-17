@@ -6,9 +6,9 @@ import Home from './pages/Home';
 import Profile from './pages/Profile';
 import Progress from './pages/Progress';
 import Settings from './pages/Settings';
-import SpacedRepetition from './pages/SpacedRepetition';
 import Subscription from './pages/Subscription';
 import Welcome from './pages/Welcome';
+import SpacedRepetition from './pages/SpacedRepetition';
 import __Layout from './Layout.jsx';
 
 
@@ -21,9 +21,9 @@ export const PAGES = {
     "Profile": Profile,
     "Progress": Progress,
     "Settings": Settings,
-    "SpacedRepetition": SpacedRepetition,
     "Subscription": Subscription,
     "Welcome": Welcome,
+    "SpacedRepetition": SpacedRepetition,
 }
 
 export const pagesConfig = {
