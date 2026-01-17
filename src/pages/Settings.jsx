@@ -108,7 +108,7 @@ export default function Settings() {
 
   const saveSettingsMutation = useMutation({
     mutationFn: async (data) => {
-      if (!user) return;
+      if (!user) throw new Error('User not found');
       
       // Ensure integer values are actually integers, especially after parsing from input
       const dataToSave = {
@@ -135,6 +135,19 @@ export default function Settings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['userSettings'] });
+      toast({
+        title: "✅ Settings Saved",
+        description: "Your preferences have been updated successfully.",
+        duration: 3000,
+      });
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "❌ Save Failed",
+        description: error.message || "Failed to save settings. Please try again.",
+        duration: 5000,
+      });
     },
   });
 
@@ -579,15 +592,7 @@ export default function Settings() {
           </Button>
         </div>
 
-        {saveSettingsMutation.isSuccess && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center text-emerald-600 font-medium"
-          >
-            Settings saved successfully!
-          </motion.div>
-        )}
+
       </div>
     </div>
   );
