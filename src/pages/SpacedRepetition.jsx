@@ -761,54 +761,32 @@ export default function SpacedRepetition() {
               <Button
                 onClick={async () => {
                   console.log('[EXTEND] ===== +10 New Cards CLICKED =====');
+                  
+                  if (!settings) {
+                    console.error('[EXTEND] ERROR: No settings found!');
+                    alert('Settings not found. Please go to Settings page first.');
+                    return;
+                  }
+                  
                   console.log('[EXTEND] Before:', {
-                    settingsExists: !!settings,
-                    settingsId: settings?.id,
                     todayNewDelta,
                     baseLimit: baseMaxNewCardsPerDay,
                     currentEffective: maxNewCardsPerDay,
                     newToday: newCardsToday,
-                    pending: pendingNewIntroCardIds.size,
-                    effectiveNew: newCardsToday + pendingNewIntroCardIds.size,
-                    unseenNew: cardCategories.newCards.length
+                    pending: pendingNewIntroCardIds.size
                   });
                   
-                  if (!settings) {
-                    console.error('[EXTEND] ERROR: No settings found, creating defaults...');
-                    if (!user) {
-                      console.error('[EXTEND] ERROR: No user found!');
-                      return;
-                    }
-                    // Create default settings
-                    const newSettings = await base44.entities.UserSettings.create({
-                      user_email: user.email,
-                      today_new_delta: 10,
-                      last_usage_date: today
-                    });
-                    console.log('[EXTEND] Created settings:', newSettings.id);
-                    await queryClient.invalidateQueries(['userSettings']);
-                    setShowLimitPrompt(false);
-                    setLimitPromptType(null);
-                    setStudyMode('STUDYING');
-                    console.log('[EXTEND] ===== EXTENSION COMPLETE (new settings) =====');
-                    return;
-                  }
-                  
-                  // Cumulative extension: add 10 to today's delta
                   const newDelta = todayNewDelta + 10;
                   console.log('[EXTEND] Updating delta:', todayNewDelta, '→', newDelta);
-                  console.log('[EXTEND] New effective limit will be:', baseMaxNewCardsPerDay, '+', newDelta, '=', baseMaxNewCardsPerDay + newDelta);
                   
                   await base44.entities.UserSettings.update(settings.id, {
                     today_new_delta: newDelta,
                     last_usage_date: today
                   });
                   
-                  console.log('[EXTEND] Settings updated, invalidating queries...');
                   await queryClient.invalidateQueries(['userSettings']);
                   await queryClient.invalidateQueries(['userProgress']);
                   
-                  console.log('[EXTEND] Queries invalidated, clearing prompt...');
                   setShowLimitPrompt(false);
                   setLimitPromptType(null);
                   setStudyMode('STUDYING');
@@ -824,16 +802,7 @@ export default function SpacedRepetition() {
               <Button
                 onClick={async () => {
                   if (!settings) {
-                    if (!user) return;
-                    await base44.entities.UserSettings.create({
-                      user_email: user.email,
-                      today_review_delta: 50,
-                      last_usage_date: today
-                    });
-                    await queryClient.invalidateQueries(['userSettings']);
-                    setShowLimitPrompt(false);
-                    setLimitPromptType(null);
-                    setStudyMode('STUDYING');
+                    alert('Settings not found. Please go to Settings page first.');
                     return;
                   }
                   const newDelta = todayReviewDelta + 50;
@@ -856,17 +825,7 @@ export default function SpacedRepetition() {
               <Button
                 onClick={async () => {
                   if (!settings) {
-                    if (!user) return;
-                    await base44.entities.UserSettings.create({
-                      user_email: user.email,
-                      today_new_delta: 10,
-                      today_review_delta: 50,
-                      last_usage_date: today
-                    });
-                    await queryClient.invalidateQueries(['userSettings']);
-                    setShowLimitPrompt(false);
-                    setLimitPromptType(null);
-                    setStudyMode('STUDYING');
+                    alert('Settings not found. Please go to Settings page first.');
                     return;
                   }
                   const newNewDelta = todayNewDelta + 10;
