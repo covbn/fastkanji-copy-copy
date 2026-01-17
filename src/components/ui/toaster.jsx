@@ -9,14 +9,11 @@ import {
 } from "@/components/ui/toast";
 
 export function Toaster() {
-  const { toasts, dismiss } = useToast();
-
-  console.log('[TOASTER] Rendering with', toasts.length, 'toasts');
+  const { toasts } = useToast();
 
   return (
     <ToastProvider>
       {toasts.map(function ({ id, title, description, action, ...props }) {
-        console.log('[TOASTER] Rendering toast ID:', id, 'open:', props.open);
         return (
           <Toast key={id} {...props}>
             <div className="grid gap-1">
@@ -26,14 +23,7 @@ export function Toaster() {
               )}
             </div>
             {action}
-            <ToastClose 
-              onClick={(e) => {
-                console.log('[TOASTER] Close button clicked for toast ID:', id);
-                e.preventDefault();
-                e.stopPropagation();
-                dismiss(id);
-              }} 
-            />
+            <ToastClose />
           </Toast>
         );
       })}
