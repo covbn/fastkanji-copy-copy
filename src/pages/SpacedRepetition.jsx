@@ -763,29 +763,10 @@ export default function SpacedRepetition() {
                   console.log('[EXTEND] ===== +10 New Cards CLICKED =====');
                   
                   if (!settings) {
-                    if (!user) {
-                      alert('User not found. Please refresh the page.');
-                      return;
+                    console.error('[EXTEND] No settings found - redirecting to Settings page');
+                    if (confirm('Settings not configured yet. Go to Settings page to set them up?')) {
+                      navigate(createPageUrl('Settings'));
                     }
-                    console.log('[EXTEND] No settings found, creating with defaults...');
-                    // Create settings with all defaults
-                    const newSettings = await base44.entities.UserSettings.create({
-                      user_email: user.email,
-                      max_new_cards_per_day: 20,
-                      max_reviews_per_day: 200,
-                      desired_retention: 0.9,
-                      learning_steps: [1, 10],
-                      relearning_steps: [10],
-                      graduating_interval: 1,
-                      easy_interval: 4,
-                      today_new_delta: 10,
-                      last_usage_date: today
-                    });
-                    console.log('[EXTEND] Settings created:', newSettings.id);
-                    await queryClient.invalidateQueries(['userSettings']);
-                    setShowLimitPrompt(false);
-                    setLimitPromptType(null);
-                    setStudyMode('STUDYING');
                     return;
                   }
                   
@@ -823,23 +804,9 @@ export default function SpacedRepetition() {
               <Button
                 onClick={async () => {
                   if (!settings) {
-                    if (!user) return;
-                    await base44.entities.UserSettings.create({
-                      user_email: user.email,
-                      max_new_cards_per_day: 20,
-                      max_reviews_per_day: 200,
-                      desired_retention: 0.9,
-                      learning_steps: [1, 10],
-                      relearning_steps: [10],
-                      graduating_interval: 1,
-                      easy_interval: 4,
-                      today_review_delta: 50,
-                      last_usage_date: today
-                    });
-                    await queryClient.invalidateQueries(['userSettings']);
-                    setShowLimitPrompt(false);
-                    setLimitPromptType(null);
-                    setStudyMode('STUDYING');
+                    if (confirm('Settings not configured yet. Go to Settings page to set them up?')) {
+                      navigate(createPageUrl('Settings'));
+                    }
                     return;
                   }
                   const newDelta = todayReviewDelta + 50;
@@ -862,24 +829,9 @@ export default function SpacedRepetition() {
               <Button
                 onClick={async () => {
                   if (!settings) {
-                    if (!user) return;
-                    await base44.entities.UserSettings.create({
-                      user_email: user.email,
-                      max_new_cards_per_day: 20,
-                      max_reviews_per_day: 200,
-                      desired_retention: 0.9,
-                      learning_steps: [1, 10],
-                      relearning_steps: [10],
-                      graduating_interval: 1,
-                      easy_interval: 4,
-                      today_new_delta: 10,
-                      today_review_delta: 50,
-                      last_usage_date: today
-                    });
-                    await queryClient.invalidateQueries(['userSettings']);
-                    setShowLimitPrompt(false);
-                    setLimitPromptType(null);
-                    setStudyMode('STUDYING');
+                    if (confirm('Settings not configured yet. Go to Settings page to set them up?')) {
+                      navigate(createPageUrl('Settings'));
+                    }
                     return;
                   }
                   const newNewDelta = todayNewDelta + 10;
