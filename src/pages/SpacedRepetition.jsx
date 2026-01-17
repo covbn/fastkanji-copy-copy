@@ -79,6 +79,7 @@ export default function SpacedRepetition() {
   const [reviewsToday, setReviewsToday] = useState(0);
   const [recentlyRatedIds, setRecentlyRatedIds] = useState(new Set());
   const [pendingNewIntroCardIds, setPendingNewIntroCardIds] = useState(new Set());
+  const [isRefetching, setIsRefetching] = useState(false);
   const [currentUsage, setCurrentUsage] = useState(0);
   const [tempNewCardLimit, setTempNewCardLimit] = useState(null);
   const [tempReviewLimit, setTempReviewLimit] = useState(null);
@@ -508,8 +509,11 @@ export default function SpacedRepetition() {
     });
 
     // 🔄 BACKGROUND: Refetch progress to rebuild queue
+    setIsRefetching(true);
     setTimeout(() => {
-      refetchProgress();
+      refetchProgress().finally(() => {
+        setIsRefetching(false);
+      });
     }, 100);
   };
 
@@ -542,8 +546,9 @@ export default function SpacedRepetition() {
     );
   }
 
-  if (buildQueue.length === 0 && !showLimitPrompt) {
-    const remainingNew = maxNewCardsPerDay - newCardsToday;
+  if (buildQueue.length === 0 && !showLimitPrompt && !isRefetching) {
+    const effectiveNewIntroducedToday = newCardsToday + pendingNewIntroCardIds.size;
+    const remainingNew = maxNewCardsPerDay - effectiveNewIntroducedToday;
     const remainingReviews = maxReviewsPerDay - reviewsToday;
     const hasLearningDue = cardCategories.learningCards.length > 0;
     const hasDueDue = cardCategories.dueCards.length > 0;
@@ -557,12 +562,15 @@ export default function SpacedRepetition() {
       dueDue: hasDueDue,
       newAvailable: hasNewAvailable,
       remainingNew,
-      nextLearningIn: nextLearning?.minutesUntilDue || 'N/A'
+      effectiveNewIntroduced: effectiveNewIntroducedToday,
+      nextLearningIn: nextLearning?.minutesUntilDue || 'N/A',
+      isRefetching
     });
     
     // Anki behavior: Detect termination reason
-    const newLimitReached = remainingNew <= 0 && hasNewAvailable;
-    const reviewLimitReached = remainingReviews <= 0 && hasDueDue;
+    // Only consider limit "reached" if we've actually hit it, not if we're negative
+    const newLimitReached = effectiveNewIntroducedToday >= maxNewCardsPerDay && hasNewAvailable;
+    const reviewLimitReached = reviewsToday >= maxReviewsPerDay && hasDueDue;
     
     // If learning cards exist but not due, show "Done for now"
     if (totalLearningCount > 0 && !hasLearningDue) {
@@ -776,12 +784,14 @@ export default function SpacedRepetition() {
     return <RestInterval onContinue={continueAfterRest} duration={restDurationSeconds} />;
   }
 
-  if (!currentCard) {
+  if (!currentCard || isRefetching) {
     return (
-      <div className="h-screen flex items-center justify-center">
+      <div className={`h-screen flex items-center justify-center ${nightMode ? 'bg-slate-900' : ''}`}>
         <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
-          <p className="text-slate-600">Preparing cards...</p>
+          <p className={nightMode ? 'text-slate-400' : 'text-slate-600'}>
+            {isRefetching ? 'Loading next card...' : 'Preparing cards...'}
+          </p>
         </div>
       </div>
     );
