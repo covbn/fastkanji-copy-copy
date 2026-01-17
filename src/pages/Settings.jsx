@@ -108,7 +108,9 @@ export default function Settings() {
 
   const saveSettingsMutation = useMutation({
     mutationFn: async (data) => {
-      if (!user) throw new Error('User not found');
+      if (!user?.email) {
+        throw new Error('User not authenticated');
+      }
       
       // Ensure integer values are actually integers, especially after parsing from input
       const dataToSave = {
@@ -124,13 +126,17 @@ export default function Settings() {
         // desired_retention is already a float
       };
 
-      if (settings) {
+      if (settings?.id) {
+        console.log('[Settings] Updating existing settings:', settings.id);
         return base44.entities.UserSettings.update(settings.id, dataToSave);
       } else {
-        return base44.entities.UserSettings.create({
-          ...dataToSave,
+        console.log('[Settings] Creating new settings for user:', user.email);
+        const newSettings = await base44.entities.UserSettings.create({
           user_email: user.email,
+          ...dataToSave,
         });
+        console.log('[Settings] Created successfully:', newSettings.id);
+        return newSettings;
       }
     },
     onSuccess: () => {
@@ -142,6 +148,7 @@ export default function Settings() {
       });
     },
     onError: (error) => {
+      console.error('[Settings] Save error:', error);
       toast({
         variant: "destructive",
         title: "❌ Save Failed",
@@ -152,6 +159,16 @@ export default function Settings() {
   });
 
   const handleSave = () => {
+    if (!user?.email) {
+      toast({
+        variant: "destructive",
+        title: "❌ Error",
+        description: "You must be logged in to save settings.",
+        duration: 5000,
+      });
+      return;
+    }
+    console.log('[Settings] Saving with user:', user.email, 'settings exists:', !!settings);
     saveSettingsMutation.mutate(formData);
   };
 
