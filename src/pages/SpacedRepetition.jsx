@@ -77,6 +77,7 @@ export default function SpacedRepetition() {
   const [lastRestTime, setLastRestTime] = useState(Date.now());
   const [newCardsToday, setNewCardsToday] = useState(0);
   const [reviewsToday, setReviewsToday] = useState(0);
+  const [recentlyRatedIds, setRecentlyRatedIds] = useState(new Set());
   const [currentUsage, setCurrentUsage] = useState(0);
   const [tempNewCardLimit, setTempNewCardLimit] = useState(null);
   const [tempReviewLimit, setTempReviewLimit] = useState(null);
@@ -226,13 +227,13 @@ export default function SpacedRepetition() {
   useEffect(() => {
     if (userProgress.length > 0) {
       const today = new Date().setHours(0, 0, 0, 0);
-      
+
       // 🎯 COUNT NEW CARDS INTRODUCED TODAY
-      // A card is "new today" if it has reps=1 AND was last_reviewed today
+      // A card is "introduced today" if its progress record was created today (first rating happened today)
       const newToday = userProgress.filter(p => {
-        if (!p.last_reviewed) return false;
-        const reviewDate = new Date(p.last_reviewed).setHours(0, 0, 0, 0);
-        return reviewDate === today && p.reps === 1;
+        if (!p.created_date) return false;
+        const createdDate = new Date(p.created_date).setHours(0, 0, 0, 0);
+        return createdDate === today && p.reps > 0;
       }).length;
       
       // 🎯 COUNT REVIEWS DONE TODAY (Review state cards reviewed today, reps > 1)
@@ -365,32 +366,32 @@ export default function SpacedRepetition() {
   const buildQueue = React.useMemo(() => {
     const { newCards, learningCards, dueCards } = cardCategories;
     const queue = [];
-    
+
     console.log('[SpacedRepetition] Building study queue - Anki priority');
-    
+
     // Priority 1: Learning cards (already filtered to be due now or within lookahead)
-    const learningWords = learningCards.map(l => l.word);
+    const learningWords = learningCards.map(l => l.word).filter(w => !recentlyRatedIds.has(w.id));
     queue.push(...learningWords);
-    console.log('[SpacedRepetition] ✓ Learning:', learningWords.length);
-    
+    console.log('[SpacedRepetition] ✓ Learning:', learningWords.length, '(excluded recently rated:', learningCards.length - learningWords.length, ')');
+
     // Priority 2: Due review cards (within daily limit)
     const remainingReviews = maxReviewsPerDay - reviewsToday;
-    const dueWords = dueCards.map(d => d.word).slice(0, Math.max(0, remainingReviews));
+    const dueWords = dueCards.map(d => d.word).filter(w => !recentlyRatedIds.has(w.id)).slice(0, Math.max(0, remainingReviews));
     queue.push(...dueWords);
     console.log('[SpacedRepetition] ✓ Due:', dueWords.length, '(limit:', remainingReviews, ')');
-    
+
     // Priority 3: New cards (within daily limit AND no pending learning AND review limit allows)
     const remainingNew = maxNewCardsPerDay - newCardsToday;
     const reviewLimitReached = remainingReviews <= 0;
     const canShowNew = (newIgnoresReviewLimit || !reviewLimitReached) && remainingNew > 0;
-    
-    const newWordsToAdd = canShowNew ? newCards.slice(0, remainingNew) : [];
+
+    const newWordsToAdd = canShowNew ? newCards.filter(w => !recentlyRatedIds.has(w.id)).slice(0, remainingNew) : [];
     queue.push(...newWordsToAdd);
     console.log('[SpacedRepetition] ✓ New:', newWordsToAdd.length, '(limit:', remainingNew, ', allowed:', canShowNew, ')');
-    
+
     console.log('[SpacedRepetition] Final queue:', queue.length, 'cards');
     return queue;
-  }, [cardCategories, maxNewCardsPerDay, maxReviewsPerDay, newCardsToday, reviewsToday, newIgnoresReviewLimit]);
+  }, [cardCategories, maxNewCardsPerDay, maxReviewsPerDay, newCardsToday, reviewsToday, newIgnoresReviewLimit, recentlyRatedIds]);
 
   useEffect(() => {
     if (buildQueue.length > 0 && studyQueue.length === 0 && !sessionComplete) {
@@ -415,15 +416,15 @@ export default function SpacedRepetition() {
 
   const handleAnswer = (correct, rating = null) => {
     if (!currentCard) return;
-    
+
     // 🚀 PERFORMANCE: Record tap time
     const tapTime = performance.now();
-    
+
     setCardsStudied(prev => prev + 1);
-    
+
     // Use provided rating, fallback to correct/incorrect conversion
     const finalRating = rating !== null ? rating : (correct ? 3 : 1);
-    
+
     if (finalRating >= 3) {
       setCorrectCount(prev => prev + 1);
     } else {
@@ -432,6 +433,19 @@ export default function SpacedRepetition() {
     }
 
     console.log('[SpacedRepetition] User answered with rating:', finalRating);
+
+    // 🛡️ Prevent this card from appearing again immediately
+    const cardId = currentCard.id;
+    setRecentlyRatedIds(prev => new Set([...prev, cardId]));
+
+    // Clear from recently rated after refetch completes
+    setTimeout(() => {
+      setRecentlyRatedIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(cardId);
+        return newSet;
+      });
+    }, 500);
 
     // 🚀 OPTIMISTIC UI: Move to next card IMMEDIATELY (non-blocking)
     const newQueue = studyQueue.slice(1);
@@ -458,7 +472,7 @@ export default function SpacedRepetition() {
 
     // 🔄 BACKGROUND: Update progress in the background (non-blocking)
     updateProgressMutation.mutate({
-      vocabularyId: currentCard.id,
+      vocabularyId: cardId,
       rating: finalRating
     });
 
