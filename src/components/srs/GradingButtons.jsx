@@ -15,6 +15,23 @@ import { XCircle, Zap, TrendingUp } from "lucide-react";
  * - This preserves Anki-like step progression without requiring 4 buttons
  */
 export default function GradingButtons({ onGrade, disabled = false, nightMode = false, revealed = false }) {
+  React.useEffect(() => {
+    if (!revealed || disabled) return;
+
+    const handleKeyPress = (e) => {
+      if (e.key === '1') {
+        onGrade(1); // Again
+      } else if (e.key === '2') {
+        onGrade(2); // Hard
+      } else if (e.key === '3') {
+        onGrade(4); // Easy (mapped to 3 key for convenience)
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [revealed, disabled, onGrade]);
+
   if (!revealed) return null;
 
   return (
@@ -27,7 +44,7 @@ export default function GradingButtons({ onGrade, disabled = false, nightMode = 
       >
         <XCircle className="w-6 h-6" />
         <span className="text-base font-semibold">Again</span>
-        <span className="text-xs opacity-80">&lt;1m</span>
+        <span className="text-xs opacity-80">&lt;1m · Press 1</span>
       </Button>
 
       {/* Hard (2) - Amber */}
@@ -38,7 +55,7 @@ export default function GradingButtons({ onGrade, disabled = false, nightMode = 
       >
         <Zap className="w-6 h-6" />
         <span className="text-base font-semibold">Hard</span>
-        <span className="text-xs opacity-80">Continue</span>
+        <span className="text-xs opacity-80">Continue · Press 2</span>
       </Button>
 
       {/* Easy (4) - Cyan */}
@@ -49,7 +66,7 @@ export default function GradingButtons({ onGrade, disabled = false, nightMode = 
       >
         <TrendingUp className="w-6 h-6" />
         <span className="text-base font-semibold">Easy</span>
-        <span className="text-xs opacity-80">Graduate</span>
+        <span className="text-xs opacity-80">Graduate · Press 3</span>
       </Button>
     </div>
   );
