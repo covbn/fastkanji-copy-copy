@@ -8,6 +8,7 @@ import { getCardState } from './sm2Anki';
 
 const MINUTES_TO_MS = 60 * 1000;
 const DAYS_TO_MS = 24 * 60 * 60 * 1000;
+const LEARNING_LOOKAHEAD_MINUTES = 20; // Anki default: show learning cards up to 20 min early
 
 /**
  * Build study queues with Anki-like priority
@@ -43,31 +44,34 @@ export function buildQueues(vocabulary, userProgress, now, options) {
       queues.totalUnseen++;
       queues.newCards.push({ ...vocab, _cardState: card });
     } else if (card.state === CARD_STATES.LEARNING || card.state === CARD_STATES.RELEARNING) {
-      queues.totalLearning++;
+        queues.totalLearning++;
 
-      // Check if this is intraday (< 1 day) or interday (>= 1 day)
-      const dueInMs = card.dueAt - now;
-      const isIntraday = dueInMs < DAYS_TO_MS;
+        // Check if this is intraday (< 1 day) or interday (>= 1 day)
+        const dueInMs = card.dueAt - now;
+        const isIntraday = dueInMs < DAYS_TO_MS;
+        const lookaheadMs = LEARNING_LOOKAHEAD_MINUTES * MINUTES_TO_MS;
 
-      if (isIntraday && card.dueAt <= now) {
-        // Intraday learning due now
-        queues.intradayLearning.push({ ...vocab, _cardState: card, _dueAt: card.dueAt });
-      } else if (!isIntraday) {
-        // Interday learning (crossed day boundary)
-        if (card.dueAt <= now) {
-          queues.interdayLearning.push({ ...vocab, _cardState: card, _dueAt: card.dueAt });
+        if (isIntraday) {
+          // Intraday learning: show if due now OR within lookahead
+          if (card.dueAt <= now + lookaheadMs) {
+            queues.intradayLearning.push({ ...vocab, _cardState: card, _dueAt: card.dueAt });
+          }
+        } else if (!isIntraday) {
+          // Interday learning (crossed day boundary)
+          if (card.dueAt <= now) {
+            queues.interdayLearning.push({ ...vocab, _cardState: card, _dueAt: card.dueAt });
+          }
         }
-      }
 
-      // Track next learning card
-      if (card.dueAt > now) {
-        if (!earliestLearningDue || card.dueAt < earliestLearningDue.dueAt) {
-          earliestLearningDue = {
-            dueAt: card.dueAt,
-            minutesUntilDue: Math.ceil((card.dueAt - now) / MINUTES_TO_MS)
-          };
+        // Track next learning card (beyond lookahead)
+        if (card.dueAt > now + lookaheadMs) {
+          if (!earliestLearningDue || card.dueAt < earliestLearningDue.dueAt) {
+            earliestLearningDue = {
+              dueAt: card.dueAt,
+              minutesUntilDue: Math.ceil((card.dueAt - now) / MINUTES_TO_MS)
+            };
+          }
         }
-      }
     } else if (card.state === CARD_STATES.REVIEW) {
       if (card.dueAt <= now) {
         queues.reviewDue.push({ ...vocab, _cardState: card, _dueAt: card.dueAt });
@@ -96,7 +100,7 @@ export function buildQueues(vocabulary, userProgress, now, options) {
 }
 
 /**
- * Get next card to study based on Anki priority rules
+ * Get next card to study based on Anki priority rules with lookahead
  * @param {QueueInfo} queues
  * @param {TodayStats} todayStats
  * @param {SchedulerOptions} options
@@ -104,10 +108,10 @@ export function buildQueues(vocabulary, userProgress, now, options) {
  * @returns {Object|null} Next vocabulary item or null
  */
 export function getNextCard(queues, todayStats, options, recentlyRatedIds = new Set()) {
-  // Priority 1: Intraday learning due now
+  // Priority 1: Intraday learning (includes lookahead cards)
   const nextIntraday = queues.intradayLearning.find(v => !recentlyRatedIds.has(v.id));
   if (nextIntraday) {
-    console.log('[Queue] Selected: intraday learning');
+    console.log('[Queue] Selected: intraday learning (with lookahead)');
     return nextIntraday;
   }
 
@@ -141,25 +145,25 @@ export function getNextCard(queues, todayStats, options, recentlyRatedIds = new 
     }
   }
 
-  console.log('[Queue] No cards available');
+  console.log('[Queue] No cards available (all beyond lookahead or limits reached)');
   return null;
 }
 
 /**
- * Determine session end state
+ * Determine session end state (with lookahead logic)
  * @param {QueueInfo} queues
  * @param {TodayStats} todayStats
  * @param {SchedulerOptions} options
  * @returns {{isDone: boolean, reason: string, hasLearningPending: boolean}}
  */
 export function getSessionEndState(queues, todayStats, options) {
-  const hasIntradayLearning = queues.intradayLearning.length > 0;
+  const hasIntradayLearning = queues.intradayLearning.length > 0; // Includes lookahead
   const hasInterdayLearning = queues.interdayLearning.length > 0;
   const hasReviewDue = queues.reviewDue.length > 0;
   const hasNewAvailable = queues.newCards.length > 0;
-  const hasLearningPending = queues.totalLearning > 0;
+  const hasLearningBeyondLookahead = queues.totalLearning > 0 && !hasIntradayLearning && !hasInterdayLearning;
 
-  // If learning exists (any state), prioritize that in messaging
+  // CRITICAL: If ANY learning cards are within lookahead, session MUST continue
   if (hasIntradayLearning || hasInterdayLearning) {
     return {
       isDone: false,
@@ -174,7 +178,8 @@ export function getSessionEndState(queues, todayStats, options) {
   const newLimitReached = remainingNew <= 0 && hasNewAvailable;
   const reviewLimitReached = remainingReviews <= 0 && hasReviewDue;
 
-  if (hasLearningPending) {
+  // Learning cards exist but beyond lookahead - show "next card at X"
+  if (hasLearningBeyondLookahead) {
     return {
       isDone: true,
       reason: 'learning_pending',
@@ -182,6 +187,7 @@ export function getSessionEndState(queues, todayStats, options) {
     };
   }
 
+  // Limit-based termination (only if no learning exists)
   if (newLimitReached && !hasReviewDue) {
     return {
       isDone: true,
