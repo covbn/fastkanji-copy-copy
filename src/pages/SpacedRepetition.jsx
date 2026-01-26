@@ -17,7 +17,7 @@ import SessionComplete from "../components/flash/SessionComplete";
 import { DEFAULT_OPTIONS } from "../components/scheduler/types";
 import { getCardState, applyRating, cardToProgress } from "../components/scheduler/sm2Anki";
 import { buildQueues, getNextCard as getNextCardFromQueue, getSessionEndState } from "../components/scheduler/queue";
-import { calculateTodayStats } from "../components/scheduler/todayStats";
+import { calculateTodayStats, getTodayDateString } from "../components/scheduler/todayStats";
 
 export default function SpacedRepetition() {
   const navigate = useNavigate();
@@ -202,22 +202,29 @@ export default function SpacedRepetition() {
     // Use new calculateTodayStats from scheduler
     const stats = calculateTodayStats(userProgress);
     
-    console.log('[SR] Today stats:', stats);
+    console.log('[SR] ========== MOUNT/RELOAD STATS ==========');
+    console.log('[SR] Progress records loaded:', userProgress.length);
+    console.log('[SR] Stats from DB:', stats);
+    console.log('[SR] Daily new limit:', maxNewCardsPerDay);
+    console.log('[SR] New remaining:', maxNewCardsPerDay - stats.newIntroducedToday);
+    console.log('[SR] ========================================');
     
     setNewCardsToday(stats.newIntroducedToday);
     setReviewsToday(stats.reviewsDoneToday);
     
-    // Clean up pending set
+    // Clean up pending set - remove cards that are now persisted
     setPendingNewIntroCardIds(prev => {
       const newSet = new Set(prev);
       userProgress.forEach(p => {
         if (p.created_date && p.reps >= 1 && newSet.has(p.vocabulary_id)) {
+          console.log('[SR] Removing', p.vocabulary_id, 'from pending - now persisted');
           newSet.delete(p.vocabulary_id);
         }
       });
+      console.log('[SR] Pending new cards after cleanup:', newSet.size, Array.from(newSet));
       return newSet;
     });
-  }, [userProgress]);
+  }, [userProgress, maxNewCardsPerDay]);
 
   const updateProgressMutation = useMutation({
     mutationFn: async ({ vocabularyId, rating }) => {
@@ -345,9 +352,13 @@ export default function SpacedRepetition() {
     const remainingNew = Math.max(0, remainingNewRaw);
 
     console.log('[Queue] ========== BUILD QUEUE ==========');
+    console.log('[Queue] Day:', getTodayDateString());
     console.log('[Queue] Effective limit:', maxNewCardsPerDay, '(base:', baseMaxNewCardsPerDay, '+ delta:', todayNewDelta, ')');
-    console.log('[Queue] New introduced:', effectiveNewIntroducedToday, '(DB:', newCardsToday, '+ pending:', pendingNewIntroCardIds.size, ')');
+    console.log('[Queue] New from DB (persisted today):', newCardsToday);
+    console.log('[Queue] Pending in memory (not saved yet):', pendingNewIntroCardIds.size, Array.from(pendingNewIntroCardIds));
+    console.log('[Queue] Effective new introduced:', effectiveNewIntroducedToday, '=', newCardsToday, '+', pendingNewIntroCardIds.size);
     console.log('[Queue] Remaining new:', remainingNew, '(raw:', remainingNewRaw, ')');
+    console.log('[Queue] Available new cards:', newCards.length);
     
     if (remainingNewRaw < 0) {
       console.error('[Queue] ⚠️ ERROR: Negative remaining new!', {

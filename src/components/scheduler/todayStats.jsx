@@ -31,7 +31,11 @@ export function calculateTodayStats(userProgress) {
     if (!p.created_date || !p.reps || p.reps === 0) return false;
     const createdBrussels = new Date(new Date(p.created_date).toLocaleString('en-US', { timeZone: 'Europe/Brussels' }));
     createdBrussels.setHours(0, 0, 0, 0);
-    return createdBrussels.getTime() === todayTimestamp;
+    const isToday = createdBrussels.getTime() === todayTimestamp;
+    if (isToday) {
+      console.log('[TodayStats] New card introduced today:', p.vocabulary_id, 'created:', p.created_date, 'reps:', p.reps);
+    }
+    return isToday;
   }).length;
 
   // Count reviews done today
@@ -48,7 +52,12 @@ export function calculateTodayStats(userProgress) {
     return reviewedBrussels.getTime() === todayTimestamp;
   }).length;
 
-  console.log('[TodayStats] Brussels day boundary - New:', newIntroduced, ', Reviews:', reviewsDone);
+  console.log('[TodayStats] ========== DAILY STATS ==========');
+  console.log('[TodayStats] Day key:', getTodayDateString());
+  console.log('[TodayStats] Total progress records:', userProgress.length);
+  console.log('[TodayStats] New introduced today:', newIntroduced);
+  console.log('[TodayStats] Reviews done today:', reviewsDone);
+  console.log('[TodayStats] ===================================');
 
   return {
     date: getTodayDateString(),
@@ -61,7 +70,7 @@ export function calculateTodayStats(userProgress) {
  * Get today's date string in Brussels timezone
  * @returns {string} YYYY-MM-DD
  */
-function getTodayDateString() {
+export function getTodayDateString() {
   const nowBrussels = new Date();
   const brusselsDate = new Date(nowBrussels.toLocaleString('en-US', { timeZone: 'Europe/Brussels' }));
   return brusselsDate.toISOString().split('T')[0];
