@@ -7,16 +7,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, Brain, Clock, CheckCircle, Search } from "lucide-react";
 import { motion } from "framer-motion";
+import { normalizeVocabArray } from "@/components/utils/vocabNormalizer";
 
 export default function CardBrowser() {
   const [searchQuery, setSearchQuery] = useState("");
   const [stateFilter, setStateFilter] = useState("all");
   const [levelFilter, setLevelFilter] = useState("all");
 
-  const { data: allVocabulary = [], isLoading: isLoadingVocab } = useQuery({
+  const { data: rawVocabulary = [], isLoading: isLoadingVocab } = useQuery({
     queryKey: ['allVocabulary'],
     queryFn: () => base44.entities.Vocabulary.list(),
   });
+
+  // Normalize vocabulary data (single source of truth)
+  const allVocabulary = React.useMemo(() => {
+    const normalized = normalizeVocabArray(rawVocabulary);
+    console.log('[CardBrowser] Loaded', rawVocabulary.length, 'raw vocab,', normalized.length, 'normalized cards');
+    return normalized;
+  }, [rawVocabulary]);
 
   const { data: user } = useQuery({
     queryKey: ['user'],

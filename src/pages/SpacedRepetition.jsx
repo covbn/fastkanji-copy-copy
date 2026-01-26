@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { BookOpen, Brain, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { normalizeVocabArray } from "@/components/utils/vocabNormalizer";
 
 import FlashCard from "../components/flash/FlashCard";
 import GradingButtons from "../components/srs/GradingButtons";
@@ -47,14 +48,19 @@ export default function SpacedRepetition() {
   const [showLimitPrompt, setShowLimitPrompt] = useState(false);
   const [limitPromptType, setLimitPromptType] = useState(null); // 'new', 'review', or 'both'
   
-  const { data: allVocabulary = [], isLoading: isLoadingAll } = useQuery({
+  const { data: rawVocabulary = [], isLoading: isLoadingAll } = useQuery({
     queryKey: ['allVocabulary'],
     queryFn: () => base44.entities.Vocabulary.list(),
   });
 
+  // Normalize and filter vocabulary
   const vocabulary = React.useMemo(() => {
-    return allVocabulary.filter(v => v.level === level);
-  }, [allVocabulary, level]);
+    const normalized = normalizeVocabArray(rawVocabulary);
+    console.log('[SR] Loaded', rawVocabulary.length, 'raw vocab,', normalized.length, 'normalized, filtering for', level);
+    const filtered = normalized.filter(v => v.level === level);
+    console.log('[SR] Filtered to', filtered.length, 'cards for level', level);
+    return filtered;
+  }, [rawVocabulary, level]);
 
   const { data: user } = useQuery({
     queryKey: ['user'],

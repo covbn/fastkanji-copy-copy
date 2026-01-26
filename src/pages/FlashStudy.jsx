@@ -34,14 +34,19 @@ export default function FlashStudy() {
   const [cardStreaks, setCardStreaks] = useState(new Map());
   const [currentUsage, setCurrentUsage] = useState(0);
   
-  const { data: allVocabulary = [], isLoading: isLoadingAll } = useQuery({
+  const { data: rawVocabulary = [], isLoading: isLoadingAll } = useQuery({
     queryKey: ['allVocabulary'],
     queryFn: () => base44.entities.Vocabulary.list(),
   });
 
+  // Normalize and filter vocabulary
   const vocabulary = React.useMemo(() => {
-    return allVocabulary.filter(v => v.level === level);
-  }, [allVocabulary, level]);
+    const normalized = normalizeVocabArray(rawVocabulary);
+    console.log('[FlashStudy] Loaded', rawVocabulary.length, 'raw vocab,', normalized.length, 'normalized, filtering for', level);
+    const filtered = normalized.filter(v => v.level === level);
+    console.log('[FlashStudy] Filtered to', filtered.length, 'cards for level', level);
+    return filtered;
+  }, [rawVocabulary, level]);
 
   const { data: user } = useQuery({
     queryKey: ['user'],
