@@ -199,7 +199,19 @@ export default function Settings() {
           console.log('[DEBUG] ⚠️ No progress records to delete');
         }
         
-        // Step 3: Reset daily limits in settings
+        // Step 3: Clear localStorage daily limit deltas
+        console.log('[DEBUG] 🧹 Clearing localStorage daily limit deltas...');
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('sr:newLimitDelta:')) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+        console.log('[DEBUG] ✅ Cleared', keysToRemove.length, 'localStorage delta keys');
+        
+        // Step 4: Reset daily limits in settings
         if (settings) {
           console.log('[DEBUG] 🔄 Resetting daily usage counters...');
           await base44.entities.UserSettings.update(settings.id, {
@@ -211,7 +223,7 @@ export default function Settings() {
           console.warn('[DEBUG] ⚠️ No settings found to reset');
         }
         
-        // Step 4: Verify reset
+        // Step 5: Verify reset
         console.log('[DEBUG] 🔍 Verifying reset...');
         const remainingProgress = await base44.entities.UserProgress.filter({ user_email: user.email });
         console.log('[DEBUG] 📊 Remaining progress records:', remainingProgress.length);
