@@ -641,9 +641,9 @@ if (doneReason === 'DAILY_LIMIT_REACHED') {
             <div className="space-y-2">
               <Button
                 onClick={async () => {
+                  console.warn('[EXTEND] clicked');
                   if (!settings) return;
                   const currentDayKey = new Date().toISOString().split('T')[0];
-                  console.log('[EXTEND] click +10 dayKey=', currentDayKey, 'currentDelta=', todayNewDelta);
                   
                   const newDelta = todayNewDelta + 10;
                   await base44.entities.UserSettings.update(settings.id, {
@@ -651,13 +651,15 @@ if (doneReason === 'DAILY_LIMIT_REACHED') {
                     last_usage_date: currentDayKey
                   });
                   
-                  console.log('[EXTEND] after persist delta=', newDelta);
-                  
                   await queryClient.invalidateQueries(['userSettings']);
                   await queryClient.invalidateQueries(['userProgress']);
                   setLimitLogOnce(false);
                   setDoneReason(null);
                   setStudyMode('STUDYING');
+                  
+                  const newEffectiveLimit = baseMaxNewCardsPerDay + newDelta;
+                  const newRemainingToday = newEffectiveLimit - newCardsToday;
+                  console.warn('[EXTEND] done', { newEffectiveLimit, newRemainingToday });
                 }}
                 className="w-full bg-amber-600 hover:bg-amber-700 text-white"
               >

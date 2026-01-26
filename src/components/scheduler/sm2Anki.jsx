@@ -61,8 +61,6 @@ export function applyRating(card, rating, now, options = DEFAULT_OPTIONS) {
   
   const todayDelta = { newIntroduced: 0, reviewsDone: 0 };
 
-  console.log('[SM2] Applying rating', rating, 'to card in state', card.state);
-
   switch (card.state) {
     case CARD_STATES.NEW:
       return handleNewCard(newCard, rating, now, options, todayDelta);
@@ -77,7 +75,6 @@ export function applyRating(card, rating, now, options = DEFAULT_OPTIONS) {
       return handleRelearningCard(newCard, rating, now, options, todayDelta);
     
     default:
-      console.error('[SM2] Unknown card state:', card.state);
       return { card: newCard, todayDelta };
   }
 }
@@ -97,13 +94,11 @@ function handleNewCard(card, rating, now, options, todayDelta) {
   if (rating === RATINGS.EASY) {
     // Easy: immediate graduation to Review
     graduateCard(card, options.easyInterval, options.startingEase, now);
-    console.log('[SM2] New→Review (Easy): interval =', card.intervalDays, 'days');
   } else if (rating === RATINGS.AGAIN) {
     // Again: start learning from first step
     card.state = CARD_STATES.LEARNING;
     card.stepIndex = 0;
     card.dueAt = now + card.steps[0] * MINUTES_TO_MS;
-    console.log('[SM2] New→Learning: step 0, due in', card.steps[0], 'min');
   } else {
     // Hard/Good: start learning, advance to appropriate step
     card.state = CARD_STATES.LEARNING;
@@ -112,12 +107,10 @@ function handleNewCard(card, rating, now, options, todayDelta) {
       const avgStep = (card.steps[0] + card.steps[1]) / 2;
       card.dueAt = now + avgStep * MINUTES_TO_MS;
       card.stepIndex = 0;
-      console.log('[SM2] New→Learning (Hard): avg step =', avgStep, 'min');
     } else {
       // Good: advance to next step (or graduate)
       card.stepIndex = 0;
       card.dueAt = now + card.steps[0] * MINUTES_TO_MS;
-      console.log('[SM2] New→Learning (Good): step 0, due in', card.steps[0], 'min');
     }
   }
 
@@ -135,33 +128,26 @@ function handleLearningCard(card, rating, now, options, todayDelta) {
   if (rating === RATINGS.EASY) {
     // Easy: graduate immediately
     graduateCard(card, options.easyInterval, options.startingEase, now);
-    console.log('[SM2] Learning→Review (Easy): interval =', card.intervalDays, 'days');
   } else if (rating === RATINGS.AGAIN) {
     // Again: back to first step
     card.stepIndex = 0;
     card.dueAt = now + card.steps[0] * MINUTES_TO_MS;
-    console.log('[SM2] Learning (Again): reset to step 0');
   } else if (rating === RATINGS.HARD) {
     // Hard: repeat current step or average with next
     if (card.stepIndex === 0 && card.steps.length > 1) {
       const avgStep = (card.steps[0] + card.steps[1]) / 2;
       card.dueAt = now + avgStep * MINUTES_TO_MS;
-      console.log('[SM2] Learning (Hard): avg =', avgStep, 'min');
     } else {
       card.dueAt = now + card.steps[card.stepIndex] * MINUTES_TO_MS;
-      console.log('[SM2] Learning (Hard): repeat step', card.stepIndex);
     }
   } else if (rating === RATINGS.GOOD) {
     // Good: advance to next step or graduate
     card.stepIndex++;
     if (card.stepIndex >= card.steps.length) {
-      // Completed all steps - graduate
       graduateCard(card, options.graduatingInterval, options.startingEase, now);
-      console.log('[SM2] Learning→Review (Good): interval =', card.intervalDays, 'days');
     } else {
       const nextStep = card.steps[card.stepIndex];
       card.dueAt = now + nextStep * MINUTES_TO_MS;
-      console.log('[SM2] Learning (Good): advance to step', card.stepIndex, '=', nextStep, 'min');
     }
   }
 
@@ -185,9 +171,7 @@ function handleReviewCard(card, rating, now, options, todayDelta) {
     card.steps = [...options.relearningSteps];
     card.stepIndex = 0;
     card.dueAt = now + card.steps[0] * MINUTES_TO_MS;
-    // Store minimum interval for after relearning
-    card.intervalDays = Math.max(1, Math.floor(currentInterval * 0.5)); // Reset to ~50%
-    console.log('[SM2] Review→Relearning (Again): ease =', card.ease, ', minInterval =', card.intervalDays);
+    card.intervalDays = Math.max(1, Math.floor(currentInterval * 0.5));
   } else {
     // Hard/Good/Easy: adjust ease and compute next interval
     let newInterval;
@@ -195,15 +179,11 @@ function handleReviewCard(card, rating, now, options, todayDelta) {
     if (rating === RATINGS.HARD) {
       card.ease = Math.max(1.3, card.ease + options.hardEasePenalty);
       newInterval = currentInterval * options.hardIntervalMultiplier * options.intervalModifier;
-      console.log('[SM2] Review (Hard): ease =', card.ease, ', interval =', newInterval);
     } else if (rating === RATINGS.GOOD) {
-      // Good: ease unchanged
       newInterval = currentInterval * card.ease * options.intervalModifier;
-      console.log('[SM2] Review (Good): ease =', card.ease, ', interval =', newInterval);
     } else if (rating === RATINGS.EASY) {
       card.ease = card.ease + options.easyEaseBonus;
       newInterval = currentInterval * card.ease * options.easyBonus * options.intervalModifier;
-      console.log('[SM2] Review (Easy): ease =', card.ease, ', interval =', newInterval);
     }
 
     card.intervalDays = Math.max(1, Math.round(newInterval));
@@ -222,37 +202,28 @@ function handleRelearningCard(card, rating, now, options, todayDelta) {
   }
 
   if (rating === RATINGS.EASY) {
-    // Easy: graduate back to Review with stored interval
     card.state = CARD_STATES.REVIEW;
     card.dueAt = now + (card.intervalDays || 1) * DAYS_TO_MS;
-    console.log('[SM2] Relearning→Review (Easy): interval =', card.intervalDays, 'days');
   } else if (rating === RATINGS.AGAIN) {
-    // Again: back to first relearning step
     card.stepIndex = 0;
     card.dueAt = now + card.steps[0] * MINUTES_TO_MS;
-    console.log('[SM2] Relearning (Again): reset to step 0');
   } else if (rating === RATINGS.HARD) {
     // Hard: repeat current step
     if (card.stepIndex === 0 && card.steps.length > 1) {
       const avgStep = (card.steps[0] + card.steps[1]) / 2;
       card.dueAt = now + avgStep * MINUTES_TO_MS;
-      console.log('[SM2] Relearning (Hard): avg =', avgStep, 'min');
     } else {
       card.dueAt = now + card.steps[card.stepIndex] * MINUTES_TO_MS;
-      console.log('[SM2] Relearning (Hard): repeat step', card.stepIndex);
     }
   } else if (rating === RATINGS.GOOD) {
     // Good: advance to next step or graduate
     card.stepIndex++;
     if (card.stepIndex >= card.steps.length) {
-      // Completed relearning - return to Review
       card.state = CARD_STATES.REVIEW;
       card.dueAt = now + (card.intervalDays || 1) * DAYS_TO_MS;
-      console.log('[SM2] Relearning→Review (Good): interval =', card.intervalDays, 'days');
     } else {
       const nextStep = card.steps[card.stepIndex];
       card.dueAt = now + nextStep * MINUTES_TO_MS;
-      console.log('[SM2] Relearning (Good): advance to step', card.stepIndex, '=', nextStep, 'min');
     }
   }
 

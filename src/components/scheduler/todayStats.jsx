@@ -3,7 +3,7 @@
  * @file components/scheduler/todayStats.js
  */
 
-const DEBUG_SCHEDULER = true; // Set to false to disable verbose logging
+const DEBUG_SCHEDULER = false;
 let lastLoggedStats = null;
 
 /**
