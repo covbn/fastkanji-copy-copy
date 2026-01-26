@@ -49,6 +49,10 @@ export default function SpacedRepetition() {
   const [showLimitPrompt, setShowLimitPrompt] = useState(false);
   const [limitPromptType, setLimitPromptType] = useState(null); // 'new', 'review', or 'both'
   
+  const handleRevealChange = useCallback((isRevealed) => {
+    setCurrentCard(prev => ({ ...prev, _revealed: isRevealed }));
+  }, []);
+  
   const { data: rawVocabulary = [], isLoading: isLoadingAll } = useQuery({
     queryKey: ['allVocabulary'],
     queryFn: () => base44.entities.Vocabulary.list(),
@@ -863,9 +867,7 @@ export default function SpacedRepetition() {
               onAnswer={handleAnswer}
               showExampleSentences={settings?.show_example_sentences !== false}
               hideButtons={true}
-              onRevealChange={React.useCallback((isRevealed) => {
-                setCurrentCard(prev => ({ ...prev, _revealed: isRevealed }));
-              }, [])}
+              onRevealChange={handleRevealChange}
             />
             
             {studyMode === 'STUDYING' && (
