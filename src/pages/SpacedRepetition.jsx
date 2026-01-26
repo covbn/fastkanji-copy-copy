@@ -306,6 +306,8 @@ export default function SpacedRepetition() {
     };
   }, [vocabulary, userProgress, maxNewCardsPerDay, maxReviewsPerDay, learningSteps, relearningSteps, graduatingInterval, easyInterval, newIgnoresReviewLimit, newCardsToday]);
 
+  const [limitLogOnce, setLimitLogOnce] = useState(false);
+
   const buildQueue = React.useMemo(() => {
     if (!statsReady) return [];
 
@@ -313,6 +315,12 @@ export default function SpacedRepetition() {
     const queue = [];
 
     const remainingNew = Math.max(0, maxNewCardsPerDay - newCardsToday);
+    
+    if (!limitLogOnce) {
+      console.log('[LIMIT] base=', baseMaxNewCardsPerDay, 'delta=', todayNewDelta, 'effective=', maxNewCardsPerDay, 'introducedToday=', newCardsToday);
+      setLimitLogOnce(true);
+    }
+    
     const learningWords = learningCards.map(l => l.word).filter(w => !recentlyRatedIds.has(w.id));
     queue.push(...learningWords);
 
@@ -329,7 +337,7 @@ export default function SpacedRepetition() {
     }
 
     return queue;
-  }, [cardCategories, maxNewCardsPerDay, maxReviewsPerDay, newCardsToday, reviewsToday, newIgnoresReviewLimit, recentlyRatedIds, statsReady]);
+  }, [cardCategories, maxNewCardsPerDay, maxReviewsPerDay, newCardsToday, reviewsToday, newIgnoresReviewLimit, recentlyRatedIds, statsReady, baseMaxNewCardsPerDay, todayNewDelta, limitLogOnce]);
 
   const getNoCardsReason = useCallback(() => {
     const remainingNew = Math.max(0, maxNewCardsPerDay - newCardsToday);
@@ -368,7 +376,6 @@ export default function SpacedRepetition() {
     const isNewCard = cardState === 'New';
     
     if (isNewCard && !canIntroduceNew) {
-      console.error('[SR ERROR] New card selected while daily cap reached');
       const nextNonNew = studyQueue.slice(1).find(card => {
         const prog = userProgress.find(p => p.vocabulary_id === card.id);
         return prog && prog.state !== 'New';
@@ -377,10 +384,8 @@ export default function SpacedRepetition() {
       if (nextNonNew) {
         setStudyQueue(prev => prev.slice(1));
         setCurrentCard(nextNonNew);
-        console.log('[PICK] source=auto-skip cardState=', nextNonNew._cardState?.state || 'Unknown', 'canIntroduceNew=', canIntroduceNew);
       } else {
         const reason = getNoCardsReason();
-        console.log('[DONE] reason=', reason, 'canIntroduceNew=', canIntroduceNew, 'availableNew=', cardCategories.newCards.length, 'learningNow=', cardCategories.learningCards.length, 'reviewDue=', cardCategories.dueCards.length);
         setDoneReason(reason);
         setStudyMode('DONE');
         setCurrentCard(null);
@@ -421,21 +426,18 @@ export default function SpacedRepetition() {
       if (nextCard) {
         const progress = userProgress.find(p => p.vocabulary_id === nextCard.id);
         const cardState = progress ? progress.state : 'New';
-        console.log('[PICK] source=', source, 'cardState=', cardState, 'canIntroduceNew=', canIntroduceNew);
         
         setStudyQueue(buildQueue);
         setCurrentCard(nextCard);
         setStudyMode('STUDYING');
       } else {
         const reason = getNoCardsReason();
-        console.log('[DONE] reason=', reason, 'canIntroduceNew=', canIntroduceNew, 'availableNew=', cardCategories.newCards.length, 'learningNow=', cardCategories.learningCards.length, 'reviewDue=', cardCategories.dueCards.length);
         setDoneReason(reason);
         setStudyMode('DONE');
         setCurrentCard(null);
       }
     } else if (buildQueue.length === 0 && studyQueue.length === 0 && (studyMode === 'ADVANCING' || studyMode === 'STUDYING')) {
       const reason = getNoCardsReason();
-      console.log('[DONE] reason=', reason, 'canIntroduceNew=', maxNewCardsPerDay - newCardsToday > 0, 'availableNew=', cardCategories.newCards.length);
       setDoneReason(reason);
       setStudyMode('DONE');
       setCurrentCard(null);
@@ -472,7 +474,6 @@ export default function SpacedRepetition() {
     const remainingNew = maxNewCardsPerDay - newCardsToday;
     
     if (isNewCard && remainingNew <= 0) {
-      console.log('[GRADE BLOCKED]');
       setRecentlyRatedIds(prev => new Set([...prev, cardId]));
       
       const nextNonNew = studyQueue.slice(1).find(card => {
@@ -486,7 +487,6 @@ export default function SpacedRepetition() {
         setStudyMode('STUDYING');
       } else {
         const reason = getNoCardsReason();
-        console.log('[DONE] reason=', reason, 'canIntroduceNew=false');
         setDoneReason(reason);
         setStudyQueue([]);
         setStudyMode('DONE');
@@ -642,13 +642,20 @@ if (doneReason === 'DAILY_LIMIT_REACHED') {
               <Button
                 onClick={async () => {
                   if (!settings) return;
+                  const currentDayKey = new Date().toISOString().split('T')[0];
+                  console.log('[EXTEND] click +10 dayKey=', currentDayKey, 'currentDelta=', todayNewDelta);
+                  
                   const newDelta = todayNewDelta + 10;
                   await base44.entities.UserSettings.update(settings.id, {
                     today_new_delta: newDelta,
-                    last_usage_date: today
+                    last_usage_date: currentDayKey
                   });
+                  
+                  console.log('[EXTEND] after persist delta=', newDelta);
+                  
                   await queryClient.invalidateQueries(['userSettings']);
                   await queryClient.invalidateQueries(['userProgress']);
+                  setLimitLogOnce(false);
                   setDoneReason(null);
                   setStudyMode('STUDYING');
                 }}
