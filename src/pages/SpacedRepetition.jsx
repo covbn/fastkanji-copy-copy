@@ -193,102 +193,79 @@ export default function SpacedRepetition() {
   }, [isPremium, sessionComplete, baseUsage, dailyLimit, sessionStartTime, today, navigate, settings]);
 
   useEffect(() => {
-    if (userProgress.length > 0) {
-      // Use Brussels timezone (Europe/Brussels = UTC+1/+2)
-      const nowBrussels = new Date();
-      const brusselsToday = new Date(nowBrussels.toLocaleString('en-US', { timeZone: 'Europe/Brussels' }));
-      brusselsToday.setHours(0, 0, 0, 0);
-      const todayTimestamp = brusselsToday.getTime();
-
-      // 🎯 COUNT NEW CARDS INTRODUCED TODAY (Brussels day boundary)
-      // A card is "new introduced today" if created_date is today AND reps >= 1 (first rating happened)
-      const newToday = userProgress.filter(p => {
-        if (!p.created_date || !p.reps || p.reps === 0) return false;
-        const createdBrussels = new Date(new Date(p.created_date).toLocaleString('en-US', { timeZone: 'Europe/Brussels' }));
-        createdBrussels.setHours(0, 0, 0, 0);
-        return createdBrussels.getTime() === todayTimestamp;
-      }).length;
-      
-      // 🎯 COUNT REVIEWS DONE TODAY (Review state cards reviewed today)
-      const reviewsToday = userProgress.filter(p => {
-        if (!p.last_reviewed || p.state !== "Review") return false;
-        const reviewedBrussels = new Date(new Date(p.last_reviewed).toLocaleString('en-US', { timeZone: 'Europe/Brussels' }));
-        reviewedBrussels.setHours(0, 0, 0, 0);
-        return reviewedBrussels.getTime() === todayTimestamp && p.reps > 1;
-      }).length;
-      
-      console.log('[Stats] Brussels day boundary - New introduced:', newToday, ', Reviews:', reviewsToday);
-      
-      setNewCardsToday(newToday);
-      setReviewsToday(reviewsToday);
-      
-      // 🧹 Clean up pending set: remove IDs confirmed in DB with created_date today
-      setPendingNewIntroCardIds(prev => {
-        const newSet = new Set(prev);
-        let cleaned = 0;
-        userProgress.forEach(p => {
-          if (p.created_date && p.reps >= 1) {
-            const createdBrussels = new Date(new Date(p.created_date).toLocaleString('en-US', { timeZone: 'Europe/Brussels' }));
-            createdBrussels.setHours(0, 0, 0, 0);
-            if (createdBrussels.getTime() === todayTimestamp && newSet.has(p.vocabulary_id)) {
-              newSet.delete(p.vocabulary_id);
-              cleaned++;
-            }
-          }
-        });
-        if (cleaned > 0) {
-          console.log('[Stats] Cleaned', cleaned, 'pending IDs now confirmed in DB');
+    // Use new calculateTodayStats from scheduler
+    const stats = calculateTodayStats(userProgress);
+    
+    console.log('[SR] Today stats:', stats);
+    
+    setNewCardsToday(stats.newIntroducedToday);
+    setReviewsToday(stats.reviewsDoneToday);
+    
+    // Clean up pending set
+    setPendingNewIntroCardIds(prev => {
+      const newSet = new Set(prev);
+      userProgress.forEach(p => {
+        if (p.created_date && p.reps >= 1 && newSet.has(p.vocabulary_id)) {
+          newSet.delete(p.vocabulary_id);
         }
-        return newSet;
       });
-    } else {
-      setNewCardsToday(0);
-      setReviewsToday(0);
-      setPendingNewIntroCardIds(new Set()); // Clear pending if no progress
-    }
+      return newSet;
+    });
   }, [userProgress]);
 
   const updateProgressMutation = useMutation({
     mutationFn: async ({ vocabularyId, rating }) => {
       if (!user) return null;
       
-      console.log(`[SpacedRepetition] Updating progress for ${vocabularyId} with rating ${rating}`);
+      console.log(`[SR] Updating progress for ${vocabularyId} with rating ${rating}`);
       
       const existing = await base44.entities.UserProgress.filter({
         vocabulary_id: vocabularyId,
         user_email: user.email
       });
 
-      const now = new Date();
-      const queueManager = new FSRSQueueManager({
-        max_new_cards_per_day: maxNewCardsPerDay,
-        max_reviews_per_day: maxReviewsPerDay,
-        learning_steps: learningSteps,
-        relearning_steps: relearningSteps,
-        graduating_interval: graduatingInterval,
-        easy_interval: easyInterval,
-        desired_retention: desiredRetention,
-      });
+      const now = Date.now();
+      const options = {
+        maxNewCardsPerDay,
+        maxReviewsPerDay,
+        learningSteps,
+        relearningSteps,
+        graduatingInterval,
+        easyInterval,
+        startingEase: 2.5,
+        hardIntervalMultiplier: 1.2,
+        easyBonus: 1.3,
+        intervalModifier: 1.0,
+        lapseEasePenalty: -0.2,
+        hardEasePenalty: -0.15,
+        easyEaseBonus: 0.15,
+        newIgnoresReviewLimit
+      };
 
-      // Find the card
-      const card = vocabulary.find(v => v.id === vocabularyId);
-      if (!card) {
-        console.error('[SpacedRepetition] Card not found:', vocabularyId);
+      // Find the vocabulary item
+      const vocab = vocabulary.find(v => v.id === vocabularyId);
+      if (!vocab) {
+        console.error('[SR] Vocabulary not found:', vocabularyId);
         return null;
       }
 
       const progress = existing.length > 0 ? existing[0] : null;
 
-      // Apply rating using centralized queue manager
-      const updatedProgress = queueManager.applyRating(card, progress, rating, now);
-      updatedProgress.user_email = user.email;
+      // Get current card state
+      const card = getCardState(progress, vocab);
 
-      console.log('[SpacedRepetition] Updated progress:', updatedProgress);
+      // Apply rating using new SM-2 scheduler
+      const result = applyRating(card, rating, now, options);
+      
+      console.log('[SR] Rating result:', result);
+
+      // Convert to database format
+      const progressData = cardToProgress(result.card, user.email);
 
       if (existing.length > 0) {
-        return await base44.entities.UserProgress.update(progress.id, updatedProgress);
+        return await base44.entities.UserProgress.update(progress.id, progressData);
       } else {
-        return await base44.entities.UserProgress.create(updatedProgress);
+        return await base44.entities.UserProgress.create(progressData);
       }
     },
     onSuccess: () => {
@@ -298,65 +275,59 @@ export default function SpacedRepetition() {
   });
 
   const cardCategories = React.useMemo(() => {
-    if (!vocabulary.length) return { 
-      newCards: [], 
-      learningCards: [], 
-      dueCards: [],
-      totalLearning: 0,
-      totalUnseen: 0,
-      nextLearningCard: null
-    };
-    
-    console.log('[SpacedRepetition] Building card categories from', vocabulary.length, 'vocabulary and', userProgress.length, 'progress records');
-    
-    const now = new Date();
-    const progressMap = {};
-    userProgress.forEach(p => {
-      progressMap[p.vocabulary_id] = p;
-    });
-
-    const queueManager = new FSRSQueueManager({
-      max_new_cards_per_day: maxNewCardsPerDay,
-      max_reviews_per_day: maxReviewsPerDay,
-      learning_steps: learningSteps,
-      relearning_steps: relearningSteps,
-      graduating_interval: graduatingInterval,
-      easy_interval: easyInterval,
-      desired_retention: desiredRetention,
-      learning_lookahead_minutes: 20, // Anki default
-    });
-
-    // Build queues with lookahead if nothing strictly due
-    // First try without lookahead
-    const queues = queueManager.buildQueues(vocabulary, progressMap, now, false);
-    
-    // Apply lookahead if: no learning due, no reviews due, and can't introduce new (due to limits)
-    const remainingNew = maxNewCardsPerDay - newCardsToday;
-    const canIntroduceNew = queues.new.length > 0 && remainingNew > 0;
-    
-    let finalQueues = queues;
-    if (queues.learning.length === 0 && queues.due.length === 0 && !canIntroduceNew) {
-      console.log('[SpacedRepetition] No strictly due cards and no new available - applying 20m lookahead');
-      finalQueues = queueManager.buildQueues(vocabulary, progressMap, now, true);
+    if (!vocabulary.length) {
+      console.log('[SR] No vocabulary loaded');
+      return { 
+        newCards: [], 
+        learningCards: [], 
+        dueCards: [],
+        totalLearning: 0,
+        totalUnseen: 0,
+        nextLearningCard: null
+      };
     }
+    
+    console.log('[SR] Building queues from', vocabulary.length, 'vocabulary and', userProgress.length, 'progress records');
+    
+    const now = Date.now();
+    const options = {
+      maxNewCardsPerDay,
+      maxReviewsPerDay,
+      learningSteps,
+      relearningSteps,
+      graduatingInterval,
+      easyInterval,
+      startingEase: 2.5,
+      hardIntervalMultiplier: 1.2,
+      easyBonus: 1.3,
+      intervalModifier: 1.0,
+      lapseEasePenalty: -0.2,
+      hardEasePenalty: -0.15,
+      easyEaseBonus: 0.15,
+      newIgnoresReviewLimit
+    };
 
-    console.log('[SpacedRepetition] Queue counts:', {
-      unseenTotal: finalQueues.totalUnseen,
-      learningTotal: finalQueues.totalLearning,
-      learningDue: finalQueues.learning.length,
-      reviewDue: finalQueues.due.length,
-      nextLearningIn: finalQueues.nextLearningCard?.minutesUntilDue || 'N/A'
+    // Build queues using new scheduler
+    const queues = buildQueues(vocabulary, userProgress, now, options);
+
+    console.log('[SR] Queues built:', {
+      intradayLearning: queues.intradayLearning.length,
+      interdayLearning: queues.interdayLearning.length,
+      reviewDue: queues.reviewDue.length,
+      newCards: queues.newCards.length,
+      totalLearning: queues.totalLearning,
+      totalUnseen: queues.totalUnseen
     });
 
-    return { 
-      newCards: finalQueues.new.map(c => c), 
-      learningCards: finalQueues.learning.map(c => ({ word: c, progress: c.progress })), 
-      dueCards: finalQueues.due.map(c => ({ word: c, progress: c.progress })),
-      totalLearning: finalQueues.totalLearning,
-      totalUnseen: finalQueues.totalUnseen,
-      nextLearningCard: finalQueues.nextLearningCard
+    return {
+      newCards: queues.newCards,
+      learningCards: [...queues.intradayLearning, ...queues.interdayLearning].map(v => ({ word: v, progress: v._cardState })),
+      dueCards: queues.reviewDue.map(v => ({ word: v, progress: v._cardState })),
+      totalLearning: queues.totalLearning,
+      totalUnseen: queues.totalUnseen,
+      nextLearningCard: queues.nextLearningCard
     };
-  }, [vocabulary, userProgress, maxNewCardsPerDay, maxReviewsPerDay, learningSteps, relearningSteps, graduatingInterval, easyInterval, desiredRetention]);
+  }, [vocabulary, userProgress, maxNewCardsPerDay, maxReviewsPerDay, learningSteps, relearningSteps, graduatingInterval, easyInterval, newIgnoresReviewLimit, newCardsToday]);
 
   const buildQueue = React.useMemo(() => {
     const { newCards, learningCards, dueCards } = cardCategories;
