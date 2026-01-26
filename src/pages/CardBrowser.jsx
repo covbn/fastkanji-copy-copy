@@ -276,8 +276,8 @@ export default function CardBrowser() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Levels</SelectItem>
-                  {getUiLevels().map(level => (
-                    <SelectItem key={level} value={level}>{level}</SelectItem>
+                  {getUiLevels().map(lvl => (
+                    <SelectItem key={lvl} value={lvl}>{lvl}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
