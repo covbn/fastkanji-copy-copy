@@ -645,7 +645,10 @@ if (doneReason === 'DAILY_LIMIT_REACHED') {
                     const dayKey = new Date().toISOString().split('T')[0];
                     console.warn('[EXTEND] 1 start', { dayKey, baseLimit: baseMaxNewCardsPerDay, currentDelta: todayNewDelta });
                     
-                    if (!settings) return;
+                    if (!settings || !user) {
+                      console.error('[EXTEND] ERROR: settings or user not loaded');
+                      return;
+                    }
                     
                     const nextDelta = todayNewDelta + 10;
                     console.warn('[EXTEND] 2 beforePersist', { nextDelta });
@@ -655,13 +658,13 @@ if (doneReason === 'DAILY_LIMIT_REACHED') {
                       last_usage_date: dayKey
                     });
                     
-                    const savedDelta = nextDelta;
-                    console.warn('[EXTEND] 3 afterPersist', { savedDelta });
+                    console.warn('[EXTEND] 3 afterPersist', { savedDelta: nextDelta });
                     
-                    await queryClient.invalidateQueries(['userSettings']);
-                    await queryClient.invalidateQueries(['userProgress']);
+                    await queryClient.invalidateQueries(['userSettings', user.email]);
                     setLimitLogOnce(false);
                     setDoneReason(null);
+                    setStudyQueue([]);
+                    setCurrentCard(null);
                     setStudyMode('STUDYING');
                   } catch (e) {
                     console.error('[EXTEND] ERROR', e);
