@@ -11,50 +11,12 @@ import GradingButtons from "../components/srs/GradingButtons";
 import AccuracyMeter from "../components/flash/AccuracyMeter";
 import RestInterval from "../components/flash/RestInterval";
 import SessionComplete from "../components/flash/SessionComplete";
-import FSRSQueueManager from "../components/fsrs/QueueManager";
 
-// Legacy FSRS-4 class - kept for backward compatibility
-class FSRS4 {
-  constructor(params = {}) {
-    this.w = params.w || [0.4, 0.6, 2.4, 5.8, 4.93, 0.94, 0.86, 0.01, 1.49, 0.14, 0.94, 2.18, 0.05, 0.34, 1.26, 0.29, 2.61];
-    this.requestRetention = params.requestRetention || 0.9;
-    this.maximumInterval = params.maximumInterval || 36500;
-  }
-
-  calculateStability(state, difficulty, stability, rating) {
-    if (state === "New") {
-      return this.w[rating - 1];
-    }
-    
-    if (state === "Review" || state === "Relearning") {
-      if (rating === 1) {
-        return this.w[11] * Math.pow(difficulty, -this.w[12]) * (Math.pow(stability + 1, this.w[13]) - 1) * Math.exp((1 - this.w[14]) * stability);
-      } else if (rating === 2) {
-        return stability * (1 + Math.exp(this.w[15]) * (11 - difficulty) * Math.pow(stability, -this.w[16]) * (Math.exp((1 - this.w[14]) * stability) - 1));
-      } else if (rating === 3) {
-        return stability * (1 + Math.exp(this.w[8]) * (11 - difficulty) * Math.pow(stability, -this.w[9]) * (Math.exp((1 - this.w[10]) * stability) - 1));
-      } else {
-        return stability * (1 + Math.exp(this.w[15]) * (11 - difficulty) * Math.pow(stability, -this.w[16]) * (Math.exp((1 - this.w[10]) * stability) - 1));
-      }
-    }
-    
-    return stability;
-  }
-
-  calculateDifficulty(difficulty, rating) {
-    const newDifficulty = difficulty - this.w[6] * (rating - 3);
-    return Math.min(Math.max(newDifficulty, 1), 10);
-  }
-
-  calculateInterval(stability, desiredRetention) {
-    const interval = Math.round(stability * Math.log(desiredRetention) / Math.log(0.9));
-    return Math.min(Math.max(interval, 1), this.maximumInterval);
-  }
-
-  getRetrievability(elapsedDays, stability) {
-    return Math.pow(1 + elapsedDays / (9 * stability), -1);
-  }
-}
+// New Anki-style SM-2 scheduler
+import { DEFAULT_OPTIONS } from "../components/scheduler/types";
+import { getCardState, applyRating, cardToProgress } from "../components/scheduler/sm2Anki";
+import { buildQueues, getNextCard as getNextCardFromQueue, getSessionEndState } from "../components/scheduler/queue";
+import { calculateTodayStats } from "../components/scheduler/todayStats";
 
 export default function SpacedRepetition() {
   const navigate = useNavigate();
