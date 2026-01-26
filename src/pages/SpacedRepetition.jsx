@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { BookOpen, Brain, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { normalizeVocabArray } from "@/components/utils/vocabNormalizer";
+import { normalizeVocabArray, uiLevelToDatasetLevel, datasetLevelToUiLevel } from "@/components/utils/vocabNormalizer";
 
 import FlashCard from "../components/flash/FlashCard";
 import GradingButtons from "../components/srs/GradingButtons";
@@ -25,8 +25,7 @@ export default function SpacedRepetition() {
   
   const urlParams = new URLSearchParams(window.location.search);
   const mode = urlParams.get('mode') || 'kanji_to_meaning';
-  const levelParam = urlParams.get('level') || 'N5';
-  const level = levelParam.toUpperCase();
+  const uiLevel = (urlParams.get('level') || 'N5').toUpperCase();
 
   // 🎯 STATE MACHINE: STUDYING | ADVANCING | DONE
   const [studyMode, setStudyMode] = useState('STUDYING');
@@ -53,14 +52,15 @@ export default function SpacedRepetition() {
     queryFn: () => base44.entities.Vocabulary.list(),
   });
 
-  // Normalize and filter vocabulary
+  // Normalize and filter vocabulary (use UI level for filtering after normalization)
   const vocabulary = React.useMemo(() => {
     const normalized = normalizeVocabArray(rawVocabulary);
-    console.log('[SR] Loaded', rawVocabulary.length, 'raw vocab,', normalized.length, 'normalized, filtering for', level);
-    const filtered = normalized.filter(v => v.level === level);
-    console.log('[SR] Filtered to', filtered.length, 'cards for level', level);
+    console.log('[SR] Loaded', rawVocabulary.length, 'raw vocab,', normalized.length, 'normalized');
+    console.log('[SR] UI level:', uiLevel, 'filtering normalized cards');
+    const filtered = normalized.filter(v => v.level === uiLevel);
+    console.log('[SR] Filtered to', filtered.length, 'cards for UI level', uiLevel);
     return filtered;
-  }, [rawVocabulary, level]);
+  }, [rawVocabulary, uiLevel]);
 
   const { data: user } = useQuery({
     queryKey: ['user'],
@@ -161,7 +161,7 @@ export default function SpacedRepetition() {
     
     createSessionMutation.mutate({
       mode,
-      level,
+      level: uiLevel,
       total_cards: correctCount + incorrectCount,
       correct_answers: correctCount,
       accuracy: correctCount + incorrectCount > 0 ? (correctCount / (correctCount + incorrectCount)) * 100 : 0,

@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, Brain, Clock, CheckCircle, Search } from "lucide-react";
 import { motion } from "framer-motion";
-import { normalizeVocabArray } from "@/components/utils/vocabNormalizer";
+import { normalizeVocabArray, getUiLevels } from "@/components/utils/vocabNormalizer";
 
 export default function CardBrowser() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -276,11 +276,9 @@ export default function CardBrowser() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Levels</SelectItem>
-                  <SelectItem value="N5">N5</SelectItem>
-                  <SelectItem value="N4">N4</SelectItem>
-                  <SelectItem value="N3">N3</SelectItem>
-                  <SelectItem value="N2">N2</SelectItem>
-                  <SelectItem value="N1">N1</SelectItem>
+                  {getUiLevels().map(level => (
+                    <SelectItem key={level} value={level}>{level}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

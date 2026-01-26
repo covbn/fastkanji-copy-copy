@@ -37,8 +37,9 @@ export function normalizeVocabRowToCard(vocabRow) {
     hiragana: cleanText(vocabRow.hiragana),
     meaning: cleanText(vocabRow.meaning),
     
-    // Metadata
-    level: vocabRow.level || 'N5', // Default to N5 if missing
+    // Metadata (map dataset level to UI level for display)
+    level: datasetLevelToUiLevel(vocabRow.level || 'N4'),
+    datasetLevel: vocabRow.level || 'N4', // Keep original for debugging
     part_of_speech: vocabRow.part_of_speech || '',
 
     // Audio and visual
@@ -71,18 +72,49 @@ export function normalizeVocabArray(vocabRows) {
 }
 
 /**
- * Get display-friendly level label
- * @param {string} level - Level code (N5, N4, N3, N2, N1, N0, etc.)
- * @returns {string} Display label
+ * LEVEL MAPPING UTILITIES
+ * Dataset uses N4, N3, N2, N1, N0
+ * UI displays N5, N4, N3, N2, N1 (no N0 shown)
  */
-export function getLevelLabel(level) {
-  if (!level) return 'Unknown';
-  
-  // Map N0 and other non-standard levels to N5 for filtering
-  const standardLevels = ['N5', 'N4', 'N3', 'N2', 'N1'];
-  if (!standardLevels.includes(level.toUpperCase())) {
-    return 'N5'; // Default non-standard levels to N5
-  }
-  
-  return level.toUpperCase();
+
+/**
+ * Map UI level to dataset level for querying
+ * @param {string} uiLevel - Level shown in UI (N5, N4, N3, N2, N1)
+ * @returns {string} Dataset level (N4, N3, N2, N1, N0)
+ */
+export function uiLevelToDatasetLevel(uiLevel) {
+  const mapping = {
+    'N5': 'N4',
+    'N4': 'N3',
+    'N3': 'N2',
+    'N2': 'N1',
+    'N1': 'N0'
+  };
+  const mapped = mapping[uiLevel?.toUpperCase()] || 'N4';
+  console.log('[LevelMap] UI→Dataset:', uiLevel, '→', mapped);
+  return mapped;
+}
+
+/**
+ * Map dataset level to UI level for display
+ * @param {string} datasetLevel - Level from dataset (N4, N3, N2, N1, N0)
+ * @returns {string} UI display level (N5, N4, N3, N2, N1)
+ */
+export function datasetLevelToUiLevel(datasetLevel) {
+  const mapping = {
+    'N4': 'N5',
+    'N3': 'N4',
+    'N2': 'N3',
+    'N1': 'N2',
+    'N0': 'N1'
+  };
+  return mapping[datasetLevel?.toUpperCase()] || 'N5';
+}
+
+/**
+ * Get all UI levels for display in dropdowns
+ * @returns {Array<string>} UI levels [N5, N4, N3, N2, N1]
+ */
+export function getUiLevels() {
+  return ['N5', 'N4', 'N3', 'N2', 'N1'];
 }

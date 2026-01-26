@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
-import { normalizeVocabArray } from "@/components/utils/vocabNormalizer";
+import { normalizeVocabArray, uiLevelToDatasetLevel, datasetLevelToUiLevel } from "@/components/utils/vocabNormalizer";
 
 import FlashCard from "../components/flash/FlashCard";
 import AccuracyMeter from "../components/flash/AccuracyMeter";
@@ -17,8 +17,7 @@ export default function FlashStudy() {
   
   const urlParams = new URLSearchParams(window.location.search);
   const mode = urlParams.get('mode') || 'kanji_to_meaning';
-  const levelParam = urlParams.get('level') || 'N5';
-  const level = levelParam.toUpperCase();
+  const uiLevel = (urlParams.get('level') || 'N5').toUpperCase();
   const sessionSize = parseInt(urlParams.get('size')) || 20;
 
   const [studyQueue, setStudyQueue] = useState([]);
@@ -40,14 +39,15 @@ export default function FlashStudy() {
     queryFn: () => base44.entities.Vocabulary.list(),
   });
 
-  // Normalize and filter vocabulary
+  // Normalize and filter vocabulary (use UI level for filtering after normalization)
   const vocabulary = React.useMemo(() => {
     const normalized = normalizeVocabArray(rawVocabulary);
-    console.log('[FlashStudy] Loaded', rawVocabulary.length, 'raw vocab,', normalized.length, 'normalized, filtering for', level);
-    const filtered = normalized.filter(v => v.level === level);
-    console.log('[FlashStudy] Filtered to', filtered.length, 'cards for level', level);
+    console.log('[FlashStudy] Loaded', rawVocabulary.length, 'raw vocab,', normalized.length, 'normalized');
+    console.log('[FlashStudy] UI level:', uiLevel, 'filtering normalized cards');
+    const filtered = normalized.filter(v => v.level === uiLevel);
+    console.log('[FlashStudy] Filtered to', filtered.length, 'cards for UI level', uiLevel);
     return filtered;
-  }, [rawVocabulary, level]);
+  }, [rawVocabulary, uiLevel]);
 
   const { data: user } = useQuery({
     queryKey: ['user'],
@@ -145,7 +145,7 @@ export default function FlashStudy() {
     
     createSessionMutation.mutate({
       mode,
-      level,
+      level: uiLevel,
       total_cards: correctCount + incorrectCount,
       correct_answers: correctCount,
       accuracy: correctCount + incorrectCount > 0 ? (correctCount / (correctCount + incorrectCount)) * 100 : 0,
@@ -298,7 +298,7 @@ export default function FlashStudy() {
     return (
       <div className="h-screen flex items-center justify-center p-4">
         <div className="text-center space-y-4">
-          <p className="text-xl text-slate-600">No vocabulary found for {level}</p>
+          <p className="text-xl text-slate-600">No vocabulary found for {uiLevel}</p>
           <button
             onClick={() => navigate(createPageUrl('Home'))}
             className="text-teal-600 hover:text-teal-700 font-medium"
