@@ -863,10 +863,9 @@ export default function SpacedRepetition() {
               onAnswer={handleAnswer}
               showExampleSentences={settings?.show_example_sentences !== false}
               hideButtons={true}
-              onRevealChange={(isRevealed) => {
-                // Pass reveal state to parent for grading buttons
+              onRevealChange={React.useCallback((isRevealed) => {
                 setCurrentCard(prev => ({ ...prev, _revealed: isRevealed }));
-              }}
+              }, [])}
             />
             
             {studyMode === 'STUDYING' && (

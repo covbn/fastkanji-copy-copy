@@ -11,7 +11,7 @@ export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSente
     if (onRevealChange) {
       onRevealChange(revealed);
     }
-  }, [revealed, onRevealChange]);
+  }, [revealed]);
 
   // Keyboard shortcuts
   React.useEffect(() => {
