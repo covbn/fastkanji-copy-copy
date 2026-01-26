@@ -24,18 +24,11 @@ export function calculateTodayStats(userProgress) {
   const todayTimestamp = brusselsToday.getTime();
 
   // Count new cards introduced today
-  // A card is "new introduced today" if:
-  // - created_date is today (Brussels timezone)
-  // - AND reps >= 1 (first rating happened)
+  // CRITICAL: Use first_reviewed_day_key as source of truth
+  // This field is set ONLY on first rating and never changes
+  const todayKey = getTodayDateString();
   const newIntroduced = userProgress.filter(p => {
-    if (!p.created_date || !p.reps || p.reps === 0) return false;
-    const createdBrussels = new Date(new Date(p.created_date).toLocaleString('en-US', { timeZone: 'Europe/Brussels' }));
-    createdBrussels.setHours(0, 0, 0, 0);
-    const isToday = createdBrussels.getTime() === todayTimestamp;
-    if (isToday) {
-      console.log('[TodayStats] New card introduced today:', p.vocabulary_id, 'created:', p.created_date, 'reps:', p.reps);
-    }
-    return isToday;
+    return p.first_reviewed_day_key === todayKey;
   }).length;
 
   // Count reviews done today
@@ -52,10 +45,19 @@ export function calculateTodayStats(userProgress) {
     return reviewedBrussels.getTime() === todayTimestamp;
   }).length;
 
+  // Validation: check for migration issues
+  const oldCountMethod = userProgress.filter(p => {
+    if (!p.created_date || !p.reps || p.reps === 0) return false;
+    const createdBrussels = new Date(new Date(p.created_date).toLocaleString('en-US', { timeZone: 'Europe/Brussels' }));
+    createdBrussels.setHours(0, 0, 0, 0);
+    return createdBrussels.getTime() === todayTimestamp;
+  }).length;
+
   console.log('[TodayStats] ========== DAILY STATS ==========');
-  console.log('[TodayStats] Day key:', getTodayDateString());
+  console.log('[TodayStats] Day key:', todayKey);
   console.log('[TodayStats] Total progress records:', userProgress.length);
-  console.log('[TodayStats] New introduced today:', newIntroduced);
+  console.log('[TodayStats] New introduced (first_reviewed_day_key):', newIntroduced);
+  console.log('[TodayStats] Old method (created_date):', oldCountMethod, oldCountMethod !== newIntroduced ? '⚠️ MISMATCH' : '✓');
   console.log('[TodayStats] Reviews done today:', reviewsDone);
   console.log('[TodayStats] ===================================');
 

@@ -275,10 +275,11 @@ function graduateCard(card, intervalDays, startingEase, now) {
  * Convert card state to UserProgress database format
  * @param {CardData} card
  * @param {string} userEmail
+ * @param {string} todayDayKey - Current day key (YYYY-MM-DD)
  * @returns {Object} UserProgress update object
  */
-export function cardToProgress(card, userEmail) {
-  return {
+export function cardToProgress(card, userEmail, todayDayKey) {
+  const progressData = {
     vocabulary_id: card.id,
     user_email: userEmail,
     state: card.state,
@@ -288,8 +289,16 @@ export function cardToProgress(card, userEmail) {
     learning_step: card.stepIndex,
     last_reviewed: new Date(card.lastReviewedAt).toISOString(),
     reps: card.reps,
-    lapses: card.lapses,
-    // Store first review time for newIntroduced counter
-    created_date: card.firstReviewedAt ? new Date(card.firstReviewedAt).toISOString() : undefined
+    lapses: card.lapses
   };
+
+  // CRITICAL: Set first_reviewed_at and first_reviewed_day_key ONLY on first rating
+  // This is the source of truth for "new introduced today" counting
+  if (card.firstReviewedAt && card.reps === 1) {
+    progressData.first_reviewed_at = new Date(card.firstReviewedAt).toISOString();
+    progressData.first_reviewed_day_key = todayDayKey;
+    console.log('[SM2] Setting first review:', card.id, 'at', todayDayKey);
+  }
+
+  return progressData;
 }

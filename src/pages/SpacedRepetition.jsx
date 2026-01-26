@@ -42,7 +42,6 @@ export default function SpacedRepetition() {
   const [newCardsToday, setNewCardsToday] = useState(0);
   const [reviewsToday, setReviewsToday] = useState(0);
   const [recentlyRatedIds, setRecentlyRatedIds] = useState(new Set());
-  const [pendingNewIntroCardIds, setPendingNewIntroCardIds] = useState(new Set());
   const [currentUsage, setCurrentUsage] = useState(0);
   const [showLimitPrompt, setShowLimitPrompt] = useState(false);
   const [limitPromptType, setLimitPromptType] = useState(null); // 'new', 'review', or 'both'
@@ -206,24 +205,19 @@ export default function SpacedRepetition() {
     console.log('[SR] Progress records loaded:', userProgress.length);
     console.log('[SR] Stats from DB:', stats);
     console.log('[SR] Daily new limit:', maxNewCardsPerDay);
-    console.log('[SR] New remaining:', maxNewCardsPerDay - stats.newIntroducedToday);
+    console.log('[SR] New remaining:', Math.max(0, maxNewCardsPerDay - stats.newIntroducedToday));
+    
+    // Validation: newIntroducedToday must never exceed limit
+    if (stats.newIntroducedToday > maxNewCardsPerDay) {
+      console.error('[SR] ⚠️ CRITICAL: newIntroducedToday exceeds limit!', {
+        introduced: stats.newIntroducedToday,
+        limit: maxNewCardsPerDay
+      });
+    }
     console.log('[SR] ========================================');
     
     setNewCardsToday(stats.newIntroducedToday);
     setReviewsToday(stats.reviewsDoneToday);
-    
-    // Clean up pending set - remove cards that are now persisted
-    setPendingNewIntroCardIds(prev => {
-      const newSet = new Set(prev);
-      userProgress.forEach(p => {
-        if (p.created_date && p.reps >= 1 && newSet.has(p.vocabulary_id)) {
-          console.log('[SR] Removing', p.vocabulary_id, 'from pending - now persisted');
-          newSet.delete(p.vocabulary_id);
-        }
-      });
-      console.log('[SR] Pending new cards after cleanup:', newSet.size, Array.from(newSet));
-      return newSet;
-    });
   }, [userProgress, maxNewCardsPerDay]);
 
   const updateProgressMutation = useMutation({
@@ -273,7 +267,8 @@ export default function SpacedRepetition() {
       console.log('[SR] Rating result:', result);
 
       // Convert to database format
-      const progressData = cardToProgress(result.card, user.email);
+      const todayKey = new Date().toISOString().split('T')[0]; // Use simple ISO date
+      const progressData = cardToProgress(result.card, user.email, todayKey);
 
       if (existing.length > 0) {
         return await base44.entities.UserProgress.update(progress.id, progressData);
@@ -346,27 +341,21 @@ export default function SpacedRepetition() {
     const { newCards, learningCards, dueCards } = cardCategories;
     const queue = [];
 
-    // 🎯 EFFECTIVE NEW COUNT: DB count + pending introductions
-    const effectiveNewIntroducedToday = newCardsToday + pendingNewIntroCardIds.size;
-    const remainingNewRaw = maxNewCardsPerDay - effectiveNewIntroducedToday;
-    const remainingNew = Math.max(0, remainingNewRaw);
+    // Compute remaining new cards
+    const remainingNew = Math.max(0, maxNewCardsPerDay - newCardsToday);
 
     console.log('[Queue] ========== BUILD QUEUE ==========');
     console.log('[Queue] Day:', getTodayDateString());
-    console.log('[Queue] Effective limit:', maxNewCardsPerDay, '(base:', baseMaxNewCardsPerDay, '+ delta:', todayNewDelta, ')');
-    console.log('[Queue] New from DB (persisted today):', newCardsToday);
-    console.log('[Queue] Pending in memory (not saved yet):', pendingNewIntroCardIds.size, Array.from(pendingNewIntroCardIds));
-    console.log('[Queue] Effective new introduced:', effectiveNewIntroducedToday, '=', newCardsToday, '+', pendingNewIntroCardIds.size);
-    console.log('[Queue] Remaining new:', remainingNew, '(raw:', remainingNewRaw, ')');
-    console.log('[Queue] Available new cards:', newCards.length);
+    console.log('[Queue] Daily new limit:', maxNewCardsPerDay, '(base:', baseMaxNewCardsPerDay, '+ delta:', todayNewDelta, ')');
+    console.log('[Queue] New introduced today (from DB):', newCardsToday);
+    console.log('[Queue] Remaining new:', remainingNew);
+    console.log('[Queue] Available new cards in pool:', newCards.length);
     
-    if (remainingNewRaw < 0) {
-      console.error('[Queue] ⚠️ ERROR: Negative remaining new!', {
-        effectiveLimit: maxNewCardsPerDay,
-        dbNew: newCardsToday,
-        pendingSize: pendingNewIntroCardIds.size,
-        pendingIds: Array.from(pendingNewIntroCardIds),
-        effectiveIntroduced: effectiveNewIntroducedToday
+    // Validation
+    if (newCardsToday > maxNewCardsPerDay) {
+      console.error('[Queue] ⚠️ CRITICAL: introduced count exceeds limit!', {
+        introduced: newCardsToday,
+        limit: maxNewCardsPerDay
       });
     }
 
@@ -392,7 +381,7 @@ export default function SpacedRepetition() {
     console.log('[Queue] Final queue:', queue.length, 'cards');
     console.log('[Queue] ====================================');
     return queue;
-  }, [cardCategories, maxNewCardsPerDay, maxReviewsPerDay, newCardsToday, reviewsToday, newIgnoresReviewLimit, recentlyRatedIds, pendingNewIntroCardIds, baseMaxNewCardsPerDay, todayNewDelta]);
+  }, [cardCategories, maxNewCardsPerDay, maxReviewsPerDay, newCardsToday, reviewsToday, newIgnoresReviewLimit, recentlyRatedIds, baseMaxNewCardsPerDay, todayNewDelta]);
 
   // 🎯 QUEUE REBUILD EFFECT: Transition between state machine modes
   useEffect(() => {
@@ -454,18 +443,8 @@ export default function SpacedRepetition() {
     const cardId = currentCard.id;
     setRecentlyRatedIds(prev => new Set([...prev, cardId]));
 
-    // 🎯 CHECK IF THIS WAS A NEW CARD (first-time introduction)
-    const existingProgress = userProgress.find(p => p.vocabulary_id === cardId);
-    const isFirstRating = !existingProgress || existingProgress.reps === 0;
-
-    if (isFirstRating) {
-      if (!pendingNewIntroCardIds.has(cardId)) {
-        console.log('[Answer] 🆕 First-time rating of NEW card:', cardId, '- adding to pending');
-        setPendingNewIntroCardIds(prev => new Set([...prev, cardId]));
-      } else {
-        console.log('[Answer] Card', cardId, 'already in pending set');
-      }
-    }
+    // First rating tracking is now handled in cardToProgress with first_reviewed_day_key
+    // No need for pending set - DB is source of truth
 
     // Clear from recently rated after refetch completes
     setTimeout(() => {
@@ -541,8 +520,7 @@ export default function SpacedRepetition() {
   console.log('[Render] Mode:', studyMode, 'Queue:', buildQueue.length, 'Card:', !!currentCard);
   
   if (studyMode === 'DONE' && buildQueue.length === 0 && !showLimitPrompt) {
-    const effectiveNewIntroducedToday = newCardsToday + pendingNewIntroCardIds.size;
-    const remainingNew = maxNewCardsPerDay - effectiveNewIntroducedToday;
+    const remainingNew = maxNewCardsPerDay - newCardsToday;
     const remainingReviews = maxReviewsPerDay - reviewsToday;
     const hasLearningDue = cardCategories.learningCards.length > 0;
     const hasDueDue = cardCategories.dueCards.length > 0;
@@ -605,7 +583,7 @@ export default function SpacedRepetition() {
     
     // Anki behavior: Detect termination reason (only if NO learning exists)
     // Only consider limit "reached" if we've actually hit it, not if we're negative
-    const newLimitReached = effectiveNewIntroducedToday >= maxNewCardsPerDay && hasNewAvailable;
+    const newLimitReached = newCardsToday >= maxNewCardsPerDay && hasNewAvailable;
     const reviewLimitReached = reviewsToday >= maxReviewsPerDay && hasDueDue;
     
     // Check limit-based termination (only if no learning exists)
@@ -727,8 +705,7 @@ export default function SpacedRepetition() {
                     todayNewDelta,
                     baseLimit: baseMaxNewCardsPerDay,
                     currentEffective: maxNewCardsPerDay,
-                    newToday: newCardsToday,
-                    pending: pendingNewIntroCardIds.size
+                    newToday: newCardsToday
                   });
 
                   const newDelta = todayNewDelta + 10;
@@ -890,7 +867,7 @@ export default function SpacedRepetition() {
               <BookOpen className="w-3 h-3 md:w-4 md:h-4 text-cyan-600" />
               <span className={`text-xs md:text-sm ${nightMode ? 'text-slate-300' : 'text-slate-600'}`}>New:</span>
               <span className={`font-semibold text-cyan-700 text-sm md:text-base ${nightMode ? 'text-cyan-400' : ''}`}>
-                {Math.max(0, maxNewCardsPerDay - newCardsToday - pendingNewIntroCardIds.size)}
+                {Math.max(0, maxNewCardsPerDay - newCardsToday)}
               </span>
               <span className={`text-xs opacity-50 ${nightMode ? 'text-slate-500' : 'text-slate-400'}`}>
                 ({cardCategories.totalUnseen || 0} unseen)
