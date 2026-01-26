@@ -48,6 +48,7 @@ export default function SpacedRepetition() {
   const [currentUsage, setCurrentUsage] = useState(0);
   const [showLimitPrompt, setShowLimitPrompt] = useState(false);
   const [limitPromptType, setLimitPromptType] = useState(null); // 'new', 'review', or 'both'
+  const [statsReady, setStatsReady] = useState(false);
   
   const handleRevealChange = useCallback((isRevealed) => {
     setCurrentCard(prev => ({ ...prev, _revealed: isRevealed }));
@@ -203,17 +204,10 @@ export default function SpacedRepetition() {
 
   useEffect(() => {
     const stats = calculateTodayStats(userProgress);
-    
-    if (DEBUG_SCHEDULER && stats.newIntroducedToday > maxNewCardsPerDay) {
-      console.error('[SR] ⚠️ CRITICAL: newIntroducedToday exceeds limit!', {
-        introduced: stats.newIntroducedToday,
-        limit: maxNewCardsPerDay
-      });
-    }
-    
     setNewCardsToday(stats.newIntroducedToday);
     setReviewsToday(stats.reviewsDoneToday);
-  }, [userProgress, maxNewCardsPerDay]);
+    setStatsReady(true);
+  }, [userProgress]);
 
   const updateProgressMutation = useMutation({
     mutationFn: async ({ vocabularyId, rating }) => {
@@ -312,10 +306,7 @@ export default function SpacedRepetition() {
   }, [vocabulary, userProgress, maxNewCardsPerDay, maxReviewsPerDay, learningSteps, relearningSteps, graduatingInterval, easyInterval, newIgnoresReviewLimit, newCardsToday]);
 
   const buildQueue = React.useMemo(() => {
-    // ⏳ Wait for stats to load before building queue
-    if (newCardsToday === undefined || reviewsToday === undefined) {
-      return [];
-    }
+    if (!statsReady) return [];
 
     const { newCards, learningCards, dueCards } = cardCategories;
     const queue = [];
@@ -331,43 +322,76 @@ export default function SpacedRepetition() {
     const reviewLimitReached = remainingReviews <= 0;
     const canIntroduceNew = remainingNew > 0 && (newIgnoresReviewLimit || !reviewLimitReached);
     
-    // ✅ CRITICAL: NO New cards if limit reached
-    const newWordsToAdd = canIntroduceNew ? newCards.filter(w => !recentlyRatedIds.has(w.id)).slice(0, remainingNew) : [];
-    
-    // 🚨 ERROR: Log if New card selected while cap reached
-    if (!canIntroduceNew && newWordsToAdd.length > 0) {
-      console.error('[SR ERROR] New card selected while daily cap reached');
+    if (canIntroduceNew) {
+      const newWordsToAdd = newCards.filter(w => !recentlyRatedIds.has(w.id)).slice(0, remainingNew);
+      queue.push(...newWordsToAdd);
     }
-    
-    queue.push(...newWordsToAdd);
 
     return queue;
-  }, [cardCategories, maxNewCardsPerDay, maxReviewsPerDay, newCardsToday, reviewsToday, newIgnoresReviewLimit, recentlyRatedIds]);
+  }, [cardCategories, maxNewCardsPerDay, maxReviewsPerDay, newCardsToday, reviewsToday, newIgnoresReviewLimit, recentlyRatedIds, statsReady]);
+
+  const autoSkipIfInvalidCurrentCard = useCallback(() => {
+    if (!currentCard || !statsReady) return;
+    
+    const remainingNew = Math.max(0, maxNewCardsPerDay - newCardsToday);
+    const canIntroduceNew = remainingNew > 0;
+    const progress = userProgress.find(p => p.vocabulary_id === currentCard.id);
+    const cardState = progress ? progress.state : 'New';
+    const isNewCard = cardState === 'New';
+    
+    if (isNewCard && !canIntroduceNew) {
+      console.error('[SR ERROR] New card selected while daily cap reached');
+      const nextNonNew = studyQueue.slice(1).find(card => {
+        const prog = userProgress.find(p => p.vocabulary_id === card.id);
+        return prog && prog.state !== 'New';
+      });
+      
+      if (nextNonNew) {
+        setStudyQueue(prev => prev.slice(1));
+        setCurrentCard(nextNonNew);
+        console.log('[PICK] source=auto-skip cardState=', nextNonNew._cardState?.state || 'Unknown', 'canIntroduceNew=', canIntroduceNew);
+      } else {
+        setStudyMode('DONE');
+        setCurrentCard(null);
+      }
+    }
+  }, [currentCard, statsReady, maxNewCardsPerDay, newCardsToday, userProgress, studyQueue]);
 
   useEffect(() => {
+    if (!statsReady) return;
+    
     if (buildQueue.length > 0 && studyQueue.length === 0 && !sessionComplete) {
-      // 🛡️ Never select New card if limit reached
       const remainingNew = Math.max(0, maxNewCardsPerDay - newCardsToday);
       const canIntroduceNew = remainingNew > 0;
       
       let nextCard = buildQueue[0];
+      let source = 'fallback';
       
-      // Skip New cards if limit reached
+      if (nextCard._cardState) {
+        const state = nextCard._cardState.state;
+        if (state === 'Learning' || state === 'Relearning') source = 'learning';
+        else if (state === 'Review') source = 'review';
+        else if (state === 'New') source = 'new';
+      }
+      
       if (!canIntroduceNew) {
         const progress = userProgress.find(p => p.vocabulary_id === nextCard.id);
         const isNewCard = !progress || progress.state === 'New';
         
         if (isNewCard) {
-          console.error('[SR ERROR] New card selected while daily cap reached');
-          // Find first non-New card
           nextCard = buildQueue.find(card => {
             const prog = userProgress.find(p => p.vocabulary_id === card.id);
             return prog && prog.state !== 'New';
           });
+          source = nextCard ? 'auto-skip' : 'none';
         }
       }
       
       if (nextCard) {
+        const progress = userProgress.find(p => p.vocabulary_id === nextCard.id);
+        const cardState = progress ? progress.state : 'New';
+        console.log('[PICK] source=', source, 'cardState=', cardState, 'canIntroduceNew=', canIntroduceNew);
+        
         setStudyQueue(buildQueue);
         setCurrentCard(nextCard);
         setStudyMode('STUDYING');
@@ -379,7 +403,11 @@ export default function SpacedRepetition() {
       setStudyMode('DONE');
       setCurrentCard(null);
     }
-  }, [buildQueue, studyQueue.length, sessionComplete, studyMode, maxNewCardsPerDay, newCardsToday, userProgress]);
+  }, [buildQueue, studyQueue.length, sessionComplete, studyMode, maxNewCardsPerDay, newCardsToday, userProgress, statsReady]);
+  
+  useEffect(() => {
+    autoSkipIfInvalidCurrentCard();
+  }, [autoSkipIfInvalidCurrentCard]);
 
   useEffect(() => {
     const checkRestTime = setInterval(() => {
@@ -407,26 +435,26 @@ export default function SpacedRepetition() {
     const remainingNew = maxNewCardsPerDay - newCardsToday;
     
     if (isNewCard && remainingNew <= 0) {
-      console.log('[GRADE BLOCKED] cardId=', cardId, 'state=New', 'newIntroduced=', newCardsToday, 'limit=', maxNewCardsPerDay, 'remaining=0', 'action=BLOCK');
-      
-      // Don't grade, rebuild queue instead
+      console.log('[GRADE BLOCKED]');
       setRecentlyRatedIds(prev => new Set([...prev, cardId]));
-      const newQueue = studyQueue.slice(1);
       
-      if (newQueue.length === 0) {
-        setStudyQueue([]);
-        setStudyMode('ADVANCING');
-      } else {
-        setStudyQueue(newQueue);
-        setCurrentCard(newQueue[0]);
+      const nextNonNew = studyQueue.slice(1).find(card => {
+        const prog = userProgress.find(p => p.vocabulary_id === card.id);
+        return prog && prog.state !== 'New';
+      });
+      
+      if (nextNonNew) {
+        setStudyQueue(studyQueue.slice(1));
+        setCurrentCard(nextNonNew);
         setStudyMode('STUDYING');
+      } else {
+        setStudyQueue([]);
+        setStudyMode('DONE');
+        setCurrentCard(null);
       }
       
-      refetchProgress();
       return;
     }
-
-    console.log('[GRADE]', 'cardId=', cardId, 'state=', cardState, 'newIntroduced=', newCardsToday, 'limit=', maxNewCardsPerDay, 'remaining=', remainingNew, 'canIntroduceNew=', remainingNew > 0, 'action=APPLY');
 
     setCardsStudied(prev => prev + 1);
 
@@ -484,12 +512,12 @@ export default function SpacedRepetition() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  if (isLoadingAll) {
+  if (isLoadingAll || !statsReady) {
     return (
-      <div className="h-screen flex items-center justify-center">
+      <div className={`h-screen flex items-center justify-center ${nightMode ? 'bg-slate-900' : ''}`}>
         <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
-          <p className="text-slate-600">Loading vocabulary...</p>
+          <p className={nightMode ? 'text-slate-400' : 'text-slate-600'}>Loading vocabulary...</p>
         </div>
       </div>
     );
