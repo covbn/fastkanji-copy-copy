@@ -3,8 +3,8 @@
  * @file components/scheduler/queue.js
  */
 
-import { CARD_STATES } from './types.js';
-import { getCardState } from './sm2Anki.js';
+import { CARD_STATES } from './types';
+import { getCardState } from './sm2Anki';
 
 const MINUTES_TO_MS = 60 * 1000;
 const DAYS_TO_MS = 24 * 60 * 60 * 1000;

@@ -3,7 +3,7 @@
  * @file components/scheduler/sm2Anki.js
  */
 
-import { CARD_STATES, RATINGS, DEFAULT_OPTIONS } from './types.js';
+import { CARD_STATES, RATINGS, DEFAULT_OPTIONS } from './types';
 
 const MINUTES_TO_MS = 60 * 1000;
 const DAYS_TO_MS = 24 * 60 * 60 * 1000;
