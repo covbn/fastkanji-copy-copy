@@ -765,20 +765,12 @@ export default function SpacedRepetition() {
                     return;
                   }
 
-                  // Create settings if they don't exist
+                  // Ensure settings exist
                   let currentSettings = settings;
                   if (!currentSettings) {
-                    console.log('[EXTEND] No settings found - creating default settings');
-                    currentSettings = await base44.entities.UserSettings.create({
-                      user_email: user.email,
-                      max_new_cards_per_day: baseMaxNewCardsPerDay,
-                      max_reviews_per_day: baseMaxReviewsPerDay,
-                      today_new_delta: 0,
-                      today_review_delta: 0,
-                      last_usage_date: today
-                    });
-                    await queryClient.invalidateQueries(['userSettings']);
-                    console.log('[EXTEND] Settings created:', currentSettings.id);
+                    alert('Please visit Settings page first to initialize your preferences.');
+                    navigate(createPageUrl('Settings'));
+                    return;
                   }
 
                   console.log('[EXTEND] Before:', {

@@ -25,18 +25,7 @@ export default function Settings() {
     queryFn: async () => {
       if (!user) return null;
       const existing = await base44.entities.UserSettings.filter({ user_email: user.email });
-      if (existing.length > 0) return existing[0];
-      
-      // Auto-create settings on first access
-      try {
-        const newSettings = await base44.entities.UserSettings.create({
-          user_email: user.email,
-        });
-        return newSettings;
-      } catch (error) {
-        console.error('[Settings] Auto-create failed:', error);
-        return null;
-      }
+      return existing.length > 0 ? existing[0] : null;
     },
     enabled: !!user,
   });
