@@ -96,11 +96,18 @@ export default function SpacedRepetition() {
   const totalUsage = baseUsage + currentUsage;
   const remainingSeconds = Math.max(0, dailyLimit - totalUsage);
   
-  // Today-only extension deltas (persisted in settings)
-  const todayNewDelta = settings?.last_usage_date === today ? (settings?.today_new_delta || 0) : 0;
-  const todayReviewDelta = settings?.last_usage_date === today ? (settings?.today_review_delta || 0) : 0;
+  // Today-only extension deltas (persisted in localStorage)
   const baseMaxNewCardsPerDay = settings?.max_new_cards_per_day || 20;
   const baseMaxReviewsPerDay = settings?.max_reviews_per_day || 200;
+  
+  const getTodayDelta = () => {
+    const storageKey = `sr:newLimitDelta:${uiLevel}:${today}`;
+    const stored = localStorage.getItem(storageKey);
+    return stored ? parseInt(stored, 10) : 0;
+  };
+  
+  const todayNewDelta = getTodayDelta();
+  const todayReviewDelta = 0; // Not implemented yet
   const maxNewCardsPerDay = baseMaxNewCardsPerDay + todayNewDelta;
   const maxReviewsPerDay = baseMaxReviewsPerDay + todayReviewDelta;
   const newIgnoresReviewLimit = settings?.new_ignores_review_limit || false; // Anki default: OFF
@@ -640,27 +647,20 @@ if (doneReason === 'DAILY_LIMIT_REACHED') {
 
             <div className="space-y-2">
               <Button
-                onClick={async () => {
+                onClick={() => {
                   try {
                     const dayKey = new Date().toISOString().split('T')[0];
-                    console.warn('[EXTEND] 1 start', { dayKey, baseLimit: baseMaxNewCardsPerDay, currentDelta: todayNewDelta });
+                    const currentDelta = getTodayDelta();
+                    console.warn('[EXTEND] 1 start', { dayKey, baseLimit: baseMaxNewCardsPerDay, currentDelta });
                     
-                    if (!settings || !user) {
-                      console.error('[EXTEND] ERROR: settings or user not loaded');
-                      return;
-                    }
-                    
-                    const nextDelta = todayNewDelta + 10;
+                    const nextDelta = currentDelta + 10;
                     console.warn('[EXTEND] 2 beforePersist', { nextDelta });
                     
-                    await base44.entities.UserSettings.update(settings.id, {
-                      today_new_delta: nextDelta,
-                      last_usage_date: dayKey
-                    });
+                    const storageKey = `sr:newLimitDelta:${uiLevel}:${dayKey}`;
+                    localStorage.setItem(storageKey, nextDelta.toString());
                     
                     console.warn('[EXTEND] 3 afterPersist', { savedDelta: nextDelta });
                     
-                    await queryClient.invalidateQueries(['userSettings', user.email]);
                     setLimitLogOnce(false);
                     setDoneReason(null);
                     setStudyQueue([]);
