@@ -324,9 +324,16 @@ export default function SpacedRepetition() {
     queue.push(...dueWords);
 
     const reviewLimitReached = remainingReviews <= 0;
-    const canIntroduceNew = (newIgnoresReviewLimit || !reviewLimitReached) && remainingNew > 0;
+    const canIntroduceNew = remainingNew > 0 && (newIgnoresReviewLimit || !reviewLimitReached);
+    
+    // ✅ CRITICAL: NO New cards if limit reached
     const newWordsToAdd = canIntroduceNew ? newCards.filter(w => !recentlyRatedIds.has(w.id)).slice(0, remainingNew) : [];
     queue.push(...newWordsToAdd);
+    
+    // 🔍 Assertion: If canIntroduceNew=false, queue must contain 0 New cards
+    if (!canIntroduceNew && newWordsToAdd.length > 0) {
+      console.error('[QUEUE ERROR] canIntroduceNew=false but added', newWordsToAdd.length, 'New cards!', newWordsToAdd.slice(0, 3).map(w => w.id));
+    }
 
     // Structured debug snapshot (only when queue changes)
     if (DEBUG_SCHEDULER) {
@@ -335,9 +342,11 @@ export default function SpacedRepetition() {
         dailyNewLimit: maxNewCardsPerDay,
         newIntroducedToday: newCardsToday,
         newRemainingToday: remainingNew,
+        canIntroduceNew,
         learningTotal: cardCategories.totalLearning || 0,
         learningDueNow: learningWords.length,
         reviewDueNow: dueWords.length,
+        newInQueue: newWordsToAdd.length,
         queueLength: queue.length
       };
 
@@ -380,13 +389,38 @@ export default function SpacedRepetition() {
   const handleAnswer = (correct, rating = null) => {
     if (!currentCard) return;
 
-    // 🚀 PERFORMANCE: Record tap time
-    const tapTime = performance.now();
+    const cardId = currentCard.id;
+    const finalRating = rating !== null ? rating : (correct ? 3 : 1);
+    
+    // 🛡️ HARD GUARD: Block New card grading if limit reached
+    const progress = userProgress.find(p => p.vocabulary_id === cardId);
+    const cardState = progress ? progress.state : 'New';
+    const isNewCard = !progress || cardState === 'New';
+    const remainingNew = maxNewCardsPerDay - newCardsToday;
+    
+    if (isNewCard && remainingNew <= 0) {
+      console.log('[GRADE BLOCKED] cardId=', cardId, 'state=New', 'newIntroduced=', newCardsToday, 'limit=', maxNewCardsPerDay, 'remaining=0', 'action=BLOCK');
+      
+      // Don't grade, rebuild queue instead
+      setRecentlyRatedIds(prev => new Set([...prev, cardId]));
+      const newQueue = studyQueue.slice(1);
+      
+      if (newQueue.length === 0) {
+        setStudyQueue([]);
+        setStudyMode('ADVANCING');
+      } else {
+        setStudyQueue(newQueue);
+        setCurrentCard(newQueue[0]);
+        setStudyMode('STUDYING');
+      }
+      
+      refetchProgress();
+      return;
+    }
+
+    console.log('[GRADE]', 'cardId=', cardId, 'state=', cardState, 'newIntroduced=', newCardsToday, 'limit=', maxNewCardsPerDay, 'remaining=', remainingNew, 'canIntroduceNew=', remainingNew > 0, 'action=APPLY');
 
     setCardsStudied(prev => prev + 1);
-
-    // Use provided rating, fallback to correct/incorrect conversion
-    const finalRating = rating !== null ? rating : (correct ? 3 : 1);
 
     if (finalRating >= 3) {
       setCorrectCount(prev => prev + 1);
@@ -395,14 +429,8 @@ export default function SpacedRepetition() {
       setReviewAfterRest(prev => [...prev, currentCard]);
     }
 
-    // 🛡️ Prevent this card from appearing again immediately
-    const cardId = currentCard.id;
     setRecentlyRatedIds(prev => new Set([...prev, cardId]));
 
-    // First rating tracking is now handled in cardToProgress with first_reviewed_day_key
-    // No need for pending set - DB is source of truth
-
-    // Clear from recently rated after refetch completes
     setTimeout(() => {
       setRecentlyRatedIds(prev => {
         const newSet = new Set(prev);
@@ -411,7 +439,6 @@ export default function SpacedRepetition() {
       });
     }, 500);
 
-    // 🚀 OPTIMISTIC UI: Compute next card IMMEDIATELY before clearing current
     const newQueue = studyQueue.slice(1);
 
     if (newQueue.length === 0) {
@@ -423,7 +450,6 @@ export default function SpacedRepetition() {
       setStudyMode('STUDYING');
     }
 
-    // 🔄 BACKGROUND: Update progress and refetch IMMEDIATELY (optimized)
     updateProgressMutation.mutate({
       vocabularyId: cardId,
       rating: finalRating
