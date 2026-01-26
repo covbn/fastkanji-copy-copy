@@ -813,15 +813,9 @@ export default function SpacedRepetition() {
 
                   let currentSettings = settings;
                   if (!currentSettings) {
-                    currentSettings = await base44.entities.UserSettings.create({
-                      user_email: user.email,
-                      max_new_cards_per_day: baseMaxNewCardsPerDay,
-                      max_reviews_per_day: baseMaxReviewsPerDay,
-                      today_new_delta: 0,
-                      today_review_delta: 0,
-                      last_usage_date: today
-                    });
-                    await queryClient.invalidateQueries(['userSettings']);
+                    alert('Please visit Settings page first to initialize your preferences.');
+                    navigate(createPageUrl('Settings'));
+                    return;
                   }
 
                   const newDelta = todayReviewDelta + 50;
@@ -850,15 +844,9 @@ export default function SpacedRepetition() {
 
                   let currentSettings = settings;
                   if (!currentSettings) {
-                    currentSettings = await base44.entities.UserSettings.create({
-                      user_email: user.email,
-                      max_new_cards_per_day: baseMaxNewCardsPerDay,
-                      max_reviews_per_day: baseMaxReviewsPerDay,
-                      today_new_delta: 0,
-                      today_review_delta: 0,
-                      last_usage_date: today
-                    });
-                    await queryClient.invalidateQueries(['userSettings']);
+                    alert('Please visit Settings page first to initialize your preferences.');
+                    navigate(createPageUrl('Settings'));
+                    return;
                   }
 
                   const newNewDelta = todayNewDelta + 10;
