@@ -507,7 +507,7 @@ export default function SpacedRepetition() {
     // 🎯 CHECK IF THIS WAS A NEW CARD (first-time introduction)
     const existingProgress = userProgress.find(p => p.vocabulary_id === cardId);
     const isFirstRating = !existingProgress || existingProgress.reps === 0;
-    
+
     if (isFirstRating) {
       if (!pendingNewIntroCardIds.has(cardId)) {
         console.log('[Answer] 🆕 First-time rating of NEW card:', cardId, '- adding to pending');
@@ -526,37 +526,35 @@ export default function SpacedRepetition() {
       });
     }, 500);
 
-    // 🚀 OPTIMISTIC UI: Move to next card IMMEDIATELY (non-blocking)
+    // 🚀 OPTIMISTIC UI: Compute next card IMMEDIATELY before clearing current
     const newQueue = studyQueue.slice(1);
 
     if (newQueue.length === 0) {
       console.log('[SpacedRepetition] ⏳ Queue empty - mode → ADVANCING (keeping current card visible)');
       setStudyQueue([]);
-      setStudyMode('ADVANCING'); // Keep card visible, show we're computing next
+      setStudyMode('ADVANCING'); // Keep card visible while computing next
+      // DON'T clear currentCard - let useEffect handle transition to DONE
     } else {
       console.log('[SpacedRepetition] Moving to next card,', newQueue.length, 'cards remaining');
       setStudyQueue(newQueue);
       setCurrentCard(newQueue[0]);
       setStudyMode('STUDYING');
+
+      // 🚀 PERFORMANCE: Log card transition time
+      requestAnimationFrame(() => {
+        const nextCardRenderedTime = performance.now();
+        const deltaMs = nextCardRenderedTime - tapTime;
+        console.log(`[PERF] Card transition: ${deltaMs.toFixed(2)}ms`);
+      });
     }
 
-    // 🚀 PERFORMANCE: Log card transition time
-    requestAnimationFrame(() => {
-      const nextCardRenderedTime = performance.now();
-      const deltaMs = nextCardRenderedTime - tapTime;
-      console.log(`[PERF] Card transition: ${deltaMs.toFixed(2)}ms`);
-    });
-
-    // 🔄 BACKGROUND: Update progress in the background (non-blocking)
+    // 🔄 BACKGROUND: Update progress and refetch IMMEDIATELY (optimized)
     updateProgressMutation.mutate({
       vocabularyId: cardId,
       rating: finalRating
     });
 
-    // 🔄 BACKGROUND: Refetch progress to rebuild queue (non-blocking)
-    setTimeout(() => {
-      refetchProgress();
-    }, 100);
+    refetchProgress();
   };
 
   const continueAfterRest = () => {
@@ -616,7 +614,7 @@ export default function SpacedRepetition() {
     // Learning cards are ongoing reviews that must be completed regardless of daily limits
     if (totalLearningCount > 0) {
       return (
-        <div className={`h-screen flex items-center justify-center p-4 ${nightMode ? 'bg-slate-900' : 'bg-stone-50'}`}>
+        <div className={`min-h-screen flex items-center justify-center p-4 ${nightMode ? 'bg-slate-900' : 'bg-stone-50'}`}>
           <div className="text-center space-y-6 max-w-md">
             <div className="text-6xl">⏰</div>
             <h2 className={`text-2xl font-semibold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`} style={{fontFamily: "'Crimson Pro', serif"}}>
@@ -677,7 +675,7 @@ export default function SpacedRepetition() {
     
     // Truly done - nothing available
     return (
-      <div className={`h-screen flex items-center justify-center p-4 ${nightMode ? 'bg-slate-900' : 'bg-stone-50'}`}>
+      <div className={`min-h-screen flex items-center justify-center p-4 ${nightMode ? 'bg-slate-900' : 'bg-stone-50'}`}>
         <div className="text-center space-y-6 max-w-md">
           <div className="text-6xl">🎉</div>
           <h2 className={`text-2xl font-semibold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`} style={{fontFamily: "'Crimson Pro', serif"}}>
@@ -708,10 +706,10 @@ export default function SpacedRepetition() {
     const remainingReviews = maxReviewsPerDay - reviewsToday;
     const hasNew = cardCategories.newCards.length > 0;
     const hasDue = cardCategories.dueCards.length > 0;
-    
+
     // 🎉 ANKI-LIKE CONGRATS SCREEN
     return (
-      <div className={`h-screen flex items-center justify-center p-4 ${nightMode ? 'bg-slate-900' : 'bg-stone-50'}`}>
+      <div className={`min-h-screen flex items-center justify-center p-4 ${nightMode ? 'bg-slate-900' : 'bg-stone-50'}`}>
         <div className="text-center space-y-6 max-w-lg">
           <div className="text-6xl">🎉</div>
           <h2 className={`text-2xl font-semibold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`} style={{fontFamily: "'Crimson Pro', serif"}}>
@@ -761,15 +759,28 @@ export default function SpacedRepetition() {
               <Button
                 onClick={async () => {
                   console.log('[EXTEND] ===== +10 New Cards CLICKED =====');
-                  
-                  if (!settings) {
-                    console.error('[EXTEND] No settings found - redirecting to Settings page');
-                    if (confirm('Settings not configured yet. Go to Settings page to set them up?')) {
-                      navigate(createPageUrl('Settings'));
-                    }
+
+                  if (!user?.email) {
+                    alert('You must be logged in to extend limits.');
                     return;
                   }
-                  
+
+                  // Create settings if they don't exist
+                  let currentSettings = settings;
+                  if (!currentSettings) {
+                    console.log('[EXTEND] No settings found - creating default settings');
+                    currentSettings = await base44.entities.UserSettings.create({
+                      user_email: user.email,
+                      max_new_cards_per_day: baseMaxNewCardsPerDay,
+                      max_reviews_per_day: baseMaxReviewsPerDay,
+                      today_new_delta: 0,
+                      today_review_delta: 0,
+                      last_usage_date: today
+                    });
+                    await queryClient.invalidateQueries(['userSettings']);
+                    console.log('[EXTEND] Settings created:', currentSettings.id);
+                  }
+
                   console.log('[EXTEND] Before:', {
                     todayNewDelta,
                     baseLimit: baseMaxNewCardsPerDay,
@@ -777,22 +788,22 @@ export default function SpacedRepetition() {
                     newToday: newCardsToday,
                     pending: pendingNewIntroCardIds.size
                   });
-                  
+
                   const newDelta = todayNewDelta + 10;
                   console.log('[EXTEND] Updating delta:', todayNewDelta, '→', newDelta);
-                  
-                  await base44.entities.UserSettings.update(settings.id, {
+
+                  await base44.entities.UserSettings.update(currentSettings.id, {
                     today_new_delta: newDelta,
                     last_usage_date: today
                   });
-                  
+
                   await queryClient.invalidateQueries(['userSettings']);
                   await queryClient.invalidateQueries(['userProgress']);
-                  
+
                   setShowLimitPrompt(false);
                   setLimitPromptType(null);
                   setStudyMode('STUDYING');
-                  
+
                   console.log('[EXTEND] ===== EXTENSION COMPLETE =====');
                 }}
                 className="w-full bg-amber-600 hover:bg-amber-700 text-white"
@@ -803,14 +814,26 @@ export default function SpacedRepetition() {
             {hasDue && (limitPromptType === 'review' || limitPromptType === 'both') && (
               <Button
                 onClick={async () => {
-                  if (!settings) {
-                    if (confirm('Settings not configured yet. Go to Settings page to set them up?')) {
-                      navigate(createPageUrl('Settings'));
-                    }
+                  if (!user?.email) {
+                    alert('You must be logged in to extend limits.');
                     return;
                   }
+
+                  let currentSettings = settings;
+                  if (!currentSettings) {
+                    currentSettings = await base44.entities.UserSettings.create({
+                      user_email: user.email,
+                      max_new_cards_per_day: baseMaxNewCardsPerDay,
+                      max_reviews_per_day: baseMaxReviewsPerDay,
+                      today_new_delta: 0,
+                      today_review_delta: 0,
+                      last_usage_date: today
+                    });
+                    await queryClient.invalidateQueries(['userSettings']);
+                  }
+
                   const newDelta = todayReviewDelta + 50;
-                  await base44.entities.UserSettings.update(settings.id, {
+                  await base44.entities.UserSettings.update(currentSettings.id, {
                     today_review_delta: newDelta,
                     last_usage_date: today
                   });
@@ -828,15 +851,27 @@ export default function SpacedRepetition() {
             {hasNew && hasDue && limitPromptType === 'both' && (
               <Button
                 onClick={async () => {
-                  if (!settings) {
-                    if (confirm('Settings not configured yet. Go to Settings page to set them up?')) {
-                      navigate(createPageUrl('Settings'));
-                    }
+                  if (!user?.email) {
+                    alert('You must be logged in to extend limits.');
                     return;
                   }
+
+                  let currentSettings = settings;
+                  if (!currentSettings) {
+                    currentSettings = await base44.entities.UserSettings.create({
+                      user_email: user.email,
+                      max_new_cards_per_day: baseMaxNewCardsPerDay,
+                      max_reviews_per_day: baseMaxReviewsPerDay,
+                      today_new_delta: 0,
+                      today_review_delta: 0,
+                      last_usage_date: today
+                    });
+                    await queryClient.invalidateQueries(['userSettings']);
+                  }
+
                   const newNewDelta = todayNewDelta + 10;
                   const newReviewDelta = todayReviewDelta + 50;
-                  await base44.entities.UserSettings.update(settings.id, {
+                  await base44.entities.UserSettings.update(currentSettings.id, {
                     today_new_delta: newNewDelta,
                     today_review_delta: newReviewDelta,
                     last_usage_date: today
@@ -893,7 +928,7 @@ export default function SpacedRepetition() {
   if (!currentCard && studyMode !== 'ADVANCING' && studyMode !== 'STUDYING') {
     console.log('[Render] Showing loading screen - no card, mode:', studyMode);
     return (
-      <div className={`h-screen flex items-center justify-center ${nightMode ? 'bg-slate-900' : ''}`}>
+      <div className={`min-h-screen flex items-center justify-center ${nightMode ? 'bg-slate-900' : ''}`}>
         <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
           <p className={nightMode ? 'text-slate-400' : 'text-slate-600'}>Preparing cards...</p>
@@ -907,7 +942,7 @@ export default function SpacedRepetition() {
   if (!currentCard && (studyMode === 'ADVANCING' || studyMode === 'STUDYING')) {
     console.log('[Render] WARNING: No card in ADVANCING/STUDYING mode, waiting for queue...');
     return (
-      <div className={`h-screen flex items-center justify-center ${nightMode ? 'bg-slate-900' : ''}`}>
+      <div className={`min-h-screen flex items-center justify-center ${nightMode ? 'bg-slate-900' : ''}`}>
         <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
           <p className={nightMode ? 'text-slate-400' : 'text-slate-600'}>Loading next card...</p>
@@ -917,7 +952,7 @@ export default function SpacedRepetition() {
   }
 
   return (
-    <div className={`h-screen flex flex-col ${nightMode ? 'bg-slate-900' : 'bg-gradient-to-br from-stone-100 via-teal-50 to-cyan-50'}`}>
+    <div className={`min-h-screen flex flex-col ${nightMode ? 'bg-slate-900' : 'bg-gradient-to-br from-stone-100 via-teal-50 to-cyan-50'}`}>
       <div className={`border-b px-3 md:px-6 py-2 md:py-3 ${nightMode ? 'bg-slate-800/80 backdrop-blur-sm border-slate-700' : 'bg-white/80 backdrop-blur-sm border-stone-200'}`}>
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3 md:gap-6">
