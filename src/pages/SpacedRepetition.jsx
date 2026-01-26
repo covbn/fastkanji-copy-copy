@@ -170,7 +170,7 @@ export default function SpacedRepetition() {
     });
 
     setSessionComplete(true);
-  }, [sessionStartTime, createSessionMutation, mode, level, correctCount, incorrectCount]);
+  }, [sessionStartTime, createSessionMutation, mode, uiLevel, correctCount, incorrectCount]);
 
   // Track usage time in real-time
   useEffect(() => {
@@ -574,7 +574,7 @@ export default function SpacedRepetition() {
             </div>
             <div className="space-y-2">
               <Button
-                onClick={() => navigate(createPageUrl('FlashStudy?mode=' + mode + '&level=' + level))}
+                onClick={() => navigate(createPageUrl('FlashStudy?mode=' + mode + '&level=' + uiLevel))}
                 className="w-full bg-teal-600 hover:bg-teal-700 text-white"
               >
                 Continue with Flash Study (No Limits)
@@ -628,7 +628,7 @@ export default function SpacedRepetition() {
             </div>
           </div>
           <div className="space-y-2">
-            <Button onClick={() => navigate(createPageUrl('FlashStudy?mode=' + mode + '&level=' + level))} className="w-full bg-teal-600 hover:bg-teal-700 text-white">
+            <Button onClick={() => navigate(createPageUrl('FlashStudy?mode=' + mode + '&level=' + uiLevel))} className="w-full bg-teal-600 hover:bg-teal-700 text-white">
               Continue with Flash Study
             </Button>
             <Button onClick={() => navigate(createPageUrl('Home'))} variant="outline" className={`w-full ${nightMode ? 'border-slate-600 text-slate-300 hover:bg-slate-700' : ''}`}>
