@@ -534,7 +534,7 @@ export default function SpacedRepetition() {
       dueDue: hasDueDue,
       newAvailable: hasNewAvailable,
       remainingNew,
-      effectiveNewIntroduced: effectiveNewIntroducedToday,
+      newToday: newCardsToday,
       nextLearningIn: nextLearning?.minutesUntilDue || 'N/A'
     });
     
@@ -796,7 +796,7 @@ export default function SpacedRepetition() {
               </Button>
             )}
             <Button
-              onClick={() => navigate(createPageUrl('FlashStudy?mode=' + mode + '&level=' + level))}
+              onClick={() => navigate(createPageUrl('FlashStudy?mode=' + mode + '&level=' + uiLevel))}
               className="w-full bg-teal-600 hover:bg-teal-700 text-white"
             >
               Switch to Flash Study (No Limits)
