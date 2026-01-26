@@ -641,25 +641,31 @@ if (doneReason === 'DAILY_LIMIT_REACHED') {
             <div className="space-y-2">
               <Button
                 onClick={async () => {
-                  console.warn('[EXTEND] clicked');
-                  if (!settings) return;
-                  const currentDayKey = new Date().toISOString().split('T')[0];
-                  
-                  const newDelta = todayNewDelta + 10;
-                  await base44.entities.UserSettings.update(settings.id, {
-                    today_new_delta: newDelta,
-                    last_usage_date: currentDayKey
-                  });
-                  
-                  await queryClient.invalidateQueries(['userSettings']);
-                  await queryClient.invalidateQueries(['userProgress']);
-                  setLimitLogOnce(false);
-                  setDoneReason(null);
-                  setStudyMode('STUDYING');
-                  
-                  const newEffectiveLimit = baseMaxNewCardsPerDay + newDelta;
-                  const newRemainingToday = newEffectiveLimit - newCardsToday;
-                  console.warn('[EXTEND] done', { newEffectiveLimit, newRemainingToday });
+                  try {
+                    const dayKey = new Date().toISOString().split('T')[0];
+                    console.warn('[EXTEND] 1 start', { dayKey, baseLimit: baseMaxNewCardsPerDay, currentDelta: todayNewDelta });
+                    
+                    if (!settings) return;
+                    
+                    const nextDelta = todayNewDelta + 10;
+                    console.warn('[EXTEND] 2 beforePersist', { nextDelta });
+                    
+                    await base44.entities.UserSettings.update(settings.id, {
+                      today_new_delta: nextDelta,
+                      last_usage_date: dayKey
+                    });
+                    
+                    const savedDelta = nextDelta;
+                    console.warn('[EXTEND] 3 afterPersist', { savedDelta });
+                    
+                    await queryClient.invalidateQueries(['userSettings']);
+                    await queryClient.invalidateQueries(['userProgress']);
+                    setLimitLogOnce(false);
+                    setDoneReason(null);
+                    setStudyMode('STUDYING');
+                  } catch (e) {
+                    console.error('[EXTEND] ERROR', e);
+                  }
                 }}
                 className="w-full bg-amber-600 hover:bg-amber-700 text-white"
               >
