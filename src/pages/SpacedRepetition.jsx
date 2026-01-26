@@ -49,6 +49,7 @@ export default function SpacedRepetition() {
   const [showLimitPrompt, setShowLimitPrompt] = useState(false);
   const [limitPromptType, setLimitPromptType] = useState(null); // 'new', 'review', or 'both'
   const [statsReady, setStatsReady] = useState(false);
+  const [doneReason, setDoneReason] = useState(null);
   
   const handleRevealChange = useCallback((isRevealed) => {
     setCurrentCard(prev => ({ ...prev, _revealed: isRevealed }));
@@ -330,6 +331,33 @@ export default function SpacedRepetition() {
     return queue;
   }, [cardCategories, maxNewCardsPerDay, maxReviewsPerDay, newCardsToday, reviewsToday, newIgnoresReviewLimit, recentlyRatedIds, statsReady]);
 
+  const getNoCardsReason = useCallback(() => {
+    const remainingNew = Math.max(0, maxNewCardsPerDay - newCardsToday);
+    const canIntroduceNew = remainingNew > 0;
+    const learningDueNow = cardCategories.learningCards.length;
+    const reviewDue = cardCategories.dueCards.length;
+    const availableNew = cardCategories.newCards.length;
+    const totalLearning = cardCategories.totalLearning || 0;
+    
+    if (learningDueNow > 0 || reviewDue > 0) {
+      return null; // Should have cards
+    }
+    
+    if (totalLearning > 0) {
+      return 'LEARNING_PENDING';
+    }
+    
+    if (!canIntroduceNew && availableNew > 0) {
+      return 'DAILY_LIMIT_REACHED';
+    }
+    
+    if (availableNew === 0) {
+      return 'NO_MORE_CARDS';
+    }
+    
+    return 'ALL_CAUGHT_UP';
+  }, [maxNewCardsPerDay, newCardsToday, cardCategories]);
+
   const autoSkipIfInvalidCurrentCard = useCallback(() => {
     if (!currentCard || !statsReady) return;
     
@@ -351,11 +379,14 @@ export default function SpacedRepetition() {
         setCurrentCard(nextNonNew);
         console.log('[PICK] source=auto-skip cardState=', nextNonNew._cardState?.state || 'Unknown', 'canIntroduceNew=', canIntroduceNew);
       } else {
+        const reason = getNoCardsReason();
+        console.log('[DONE] reason=', reason, 'canIntroduceNew=', canIntroduceNew, 'availableNew=', cardCategories.newCards.length, 'learningNow=', cardCategories.learningCards.length, 'reviewDue=', cardCategories.dueCards.length);
+        setDoneReason(reason);
         setStudyMode('DONE');
         setCurrentCard(null);
       }
     }
-  }, [currentCard, statsReady, maxNewCardsPerDay, newCardsToday, userProgress, studyQueue]);
+  }, [currentCard, statsReady, maxNewCardsPerDay, newCardsToday, userProgress, studyQueue, getNoCardsReason, cardCategories]);
 
   useEffect(() => {
     if (!statsReady) return;
@@ -396,14 +427,20 @@ export default function SpacedRepetition() {
         setCurrentCard(nextCard);
         setStudyMode('STUDYING');
       } else {
+        const reason = getNoCardsReason();
+        console.log('[DONE] reason=', reason, 'canIntroduceNew=', canIntroduceNew, 'availableNew=', cardCategories.newCards.length, 'learningNow=', cardCategories.learningCards.length, 'reviewDue=', cardCategories.dueCards.length);
+        setDoneReason(reason);
         setStudyMode('DONE');
         setCurrentCard(null);
       }
-    } else if (buildQueue.length === 0 && studyQueue.length === 0 && studyMode === 'ADVANCING') {
+    } else if (buildQueue.length === 0 && studyQueue.length === 0 && (studyMode === 'ADVANCING' || studyMode === 'STUDYING')) {
+      const reason = getNoCardsReason();
+      console.log('[DONE] reason=', reason, 'canIntroduceNew=', maxNewCardsPerDay - newCardsToday > 0, 'availableNew=', cardCategories.newCards.length);
+      setDoneReason(reason);
       setStudyMode('DONE');
       setCurrentCard(null);
     }
-  }, [buildQueue, studyQueue.length, sessionComplete, studyMode, maxNewCardsPerDay, newCardsToday, userProgress, statsReady]);
+  }, [buildQueue, studyQueue.length, sessionComplete, studyMode, maxNewCardsPerDay, newCardsToday, userProgress, statsReady, getNoCardsReason, cardCategories]);
   
   useEffect(() => {
     autoSkipIfInvalidCurrentCard();
@@ -448,6 +485,9 @@ export default function SpacedRepetition() {
         setCurrentCard(nextNonNew);
         setStudyMode('STUDYING');
       } else {
+        const reason = getNoCardsReason();
+        console.log('[DONE] reason=', reason, 'canIntroduceNew=false');
+        setDoneReason(reason);
         setStudyQueue([]);
         setStudyMode('DONE');
         setCurrentCard(null);
@@ -523,17 +563,15 @@ export default function SpacedRepetition() {
     );
   }
 
-  if (studyMode === 'DONE' && buildQueue.length === 0) {
+  if (studyMode === 'DONE') {
     const remainingNew = maxNewCardsPerDay - newCardsToday;
     const remainingReviews = maxReviewsPerDay - reviewsToday;
-    const hasLearningDue = cardCategories.learningCards.length > 0;
-    const hasDueDue = cardCategories.dueCards.length > 0;
     const hasNewAvailable = cardCategories.newCards.length > 0;
     const totalLearningCount = cardCategories.totalLearning || 0;
     const nextLearning = cardCategories.nextLearningCard;
 
     // Learning cards are ongoing reviews that must be completed regardless of daily limits
-    if (totalLearningCount > 0) {
+    if (doneReason === 'LEARNING_PENDING' || totalLearningCount > 0) {
       return (
         <div className={`min-h-screen flex items-center justify-center p-4 ${nightMode ? 'bg-slate-900' : 'bg-stone-50'}`}>
           <div className="text-center space-y-6 max-w-md">
@@ -574,11 +612,8 @@ export default function SpacedRepetition() {
       );
     }
 
-    // Check limit-based termination (only if no learning exists)
-    const newLimitReached = remainingNew <= 0 && hasNewAvailable;
-    const reviewLimitReached = remainingReviews <= 0 && hasDueDue;
-
-    if (newLimitReached || reviewLimitReached) {
+// Check limit-based termination (only if no learning exists)
+if (doneReason === 'DAILY_LIMIT_REACHED') {
       return (
         <div className={`min-h-screen flex items-center justify-center p-4 ${nightMode ? 'bg-slate-900' : 'bg-stone-50'}`}>
           <div className="text-center space-y-6 max-w-lg">
@@ -604,42 +639,23 @@ export default function SpacedRepetition() {
             </div>
 
             <div className="space-y-2">
-              {newLimitReached && (
-                <Button
-                  onClick={async () => {
-                    if (!settings) return;
-                    const newDelta = todayNewDelta + 10;
-                    await base44.entities.UserSettings.update(settings.id, {
-                      today_new_delta: newDelta,
-                      last_usage_date: today
-                    });
-                    await queryClient.invalidateQueries(['userSettings']);
-                    await queryClient.invalidateQueries(['userProgress']);
-                    setStudyMode('STUDYING');
-                  }}
-                  className="w-full bg-amber-600 hover:bg-amber-700 text-white"
-                >
-                  Study more new cards today (+10)
-                </Button>
-              )}
-              {reviewLimitReached && (
-                <Button
-                  onClick={async () => {
-                    if (!settings) return;
-                    const newDelta = todayReviewDelta + 50;
-                    await base44.entities.UserSettings.update(settings.id, {
-                      today_review_delta: newDelta,
-                      last_usage_date: today
-                    });
-                    await queryClient.invalidateQueries(['userSettings']);
-                    await queryClient.invalidateQueries(['userProgress']);
-                    setStudyMode('STUDYING');
-                  }}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
-                >
-                  Study more reviews today (+50)
-                </Button>
-              )}
+              <Button
+                onClick={async () => {
+                  if (!settings) return;
+                  const newDelta = todayNewDelta + 10;
+                  await base44.entities.UserSettings.update(settings.id, {
+                    today_new_delta: newDelta,
+                    last_usage_date: today
+                  });
+                  await queryClient.invalidateQueries(['userSettings']);
+                  await queryClient.invalidateQueries(['userProgress']);
+                  setDoneReason(null);
+                  setStudyMode('STUDYING');
+                }}
+                className="w-full bg-amber-600 hover:bg-amber-700 text-white"
+              >
+                Study more new cards today (+10)
+              </Button>
               <Button
                 onClick={() => navigate(createPageUrl('FlashStudy?mode=' + mode + '&level=' + uiLevel))}
                 className="w-full bg-teal-600 hover:bg-teal-700 text-white"
@@ -692,20 +708,7 @@ export default function SpacedRepetition() {
     return <RestInterval onContinue={continueAfterRest} duration={restDurationSeconds} />;
   }
 
-  // 🎯 CRITICAL: Never show loading/empty if we have a card OR if we're in ADVANCING
-  // This prevents the menu flash bug
-  if (!currentCard && studyMode !== 'ADVANCING' && studyMode !== 'STUDYING') {
-    return (
-      <div className={`min-h-screen flex items-center justify-center ${nightMode ? 'bg-slate-900' : ''}`}>
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
-          <p className={nightMode ? 'text-slate-400' : 'text-slate-600'}>Preparing cards...</p>
-        </div>
-      </div>
-    );
-  }
-  
-  if (!currentCard && (studyMode === 'ADVANCING' || studyMode === 'STUDYING')) {
+  if (!currentCard && studyMode === 'ADVANCING') {
     return (
       <div className={`min-h-screen flex items-center justify-center ${nightMode ? 'bg-slate-900' : ''}`}>
         <div className="text-center space-y-4">
