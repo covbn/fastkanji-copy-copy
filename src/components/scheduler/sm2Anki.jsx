@@ -293,11 +293,9 @@ export function cardToProgress(card, userEmail, todayDayKey) {
   };
 
   // CRITICAL: Set first_reviewed_at and first_reviewed_day_key ONLY on first rating
-  // This is the source of truth for "new introduced today" counting
   if (card.firstReviewedAt && card.reps === 1) {
     progressData.first_reviewed_at = new Date(card.firstReviewedAt).toISOString();
     progressData.first_reviewed_day_key = todayDayKey;
-    console.log('[SM2] Setting first review:', card.id, 'at', todayDayKey);
   }
 
   return progressData;

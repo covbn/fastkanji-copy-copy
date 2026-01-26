@@ -3,6 +3,9 @@
  * @file components/scheduler/todayStats.js
  */
 
+const DEBUG_SCHEDULER = true; // Set to false to disable verbose logging
+let lastLoggedStats = null;
+
 /**
  * Calculate today's statistics from UserProgress records
  * Uses Brussels timezone (Europe/Brussels = UTC+1/+2) for day boundary
@@ -45,21 +48,26 @@ export function calculateTodayStats(userProgress) {
     return reviewedBrussels.getTime() === todayTimestamp;
   }).length;
 
-  // Validation: check for migration issues
-  const oldCountMethod = userProgress.filter(p => {
-    if (!p.created_date || !p.reps || p.reps === 0) return false;
-    const createdBrussels = new Date(new Date(p.created_date).toLocaleString('en-US', { timeZone: 'Europe/Brussels' }));
-    createdBrussels.setHours(0, 0, 0, 0);
-    return createdBrussels.getTime() === todayTimestamp;
-  }).length;
+  // Only log when values actually change
+  if (DEBUG_SCHEDULER) {
+    const currentStats = {
+      dayKey: todayKey,
+      progressCount: userProgress.length,
+      newIntroduced,
+      reviewsDone
+    };
 
-  console.log('[TodayStats] ========== DAILY STATS ==========');
-  console.log('[TodayStats] Day key:', todayKey);
-  console.log('[TodayStats] Total progress records:', userProgress.length);
-  console.log('[TodayStats] New introduced (first_reviewed_day_key):', newIntroduced);
-  console.log('[TodayStats] Old method (created_date):', oldCountMethod, oldCountMethod !== newIntroduced ? '⚠️ MISMATCH' : '✓');
-  console.log('[TodayStats] Reviews done today:', reviewsDone);
-  console.log('[TodayStats] ===================================');
+    const hasChanged = !lastLoggedStats || 
+      lastLoggedStats.dayKey !== currentStats.dayKey ||
+      lastLoggedStats.progressCount !== currentStats.progressCount ||
+      lastLoggedStats.newIntroduced !== currentStats.newIntroduced ||
+      lastLoggedStats.reviewsDone !== currentStats.reviewsDone;
+
+    if (hasChanged) {
+      console.log('[TodayStats] Day:', todayKey, '| New:', newIntroduced, '| Reviews:', reviewsDone, '| Progress records:', userProgress.length);
+      lastLoggedStats = currentStats;
+    }
+  }
 
   return {
     date: getTodayDateString(),

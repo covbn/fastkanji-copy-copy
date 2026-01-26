@@ -9,6 +9,8 @@ import { getCardState } from './sm2Anki';
 const MINUTES_TO_MS = 60 * 1000;
 const DAYS_TO_MS = 24 * 60 * 60 * 1000;
 const LEARNING_LOOKAHEAD_MINUTES = 20; // Anki default: show learning cards up to 20 min early
+const DEBUG_SCHEDULER = true;
+let lastQueueSnapshot = null;
 
 /**
  * Build study queues with Anki-like priority
@@ -86,15 +88,27 @@ export function buildQueues(vocabulary, userProgress, now, options) {
 
   queues.nextLearningCard = earliestLearningDue;
 
-  console.log('[Queue] Built queues:', {
-    intradayLearning: queues.intradayLearning.length,
-    interdayLearning: queues.interdayLearning.length,
-    reviewDue: queues.reviewDue.length,
-    newCards: queues.newCards.length,
-    totalLearning: queues.totalLearning,
-    totalUnseen: queues.totalUnseen,
-    nextLearningIn: earliestLearningDue?.minutesUntilDue || 'N/A'
-  });
+  // Throttled logging: only log when queue composition changes
+  if (DEBUG_SCHEDULER) {
+    const snapshot = {
+      intradayLearning: queues.intradayLearning.length,
+      interdayLearning: queues.interdayLearning.length,
+      reviewDue: queues.reviewDue.length,
+      newCards: queues.newCards.length,
+      totalLearning: queues.totalLearning,
+      totalUnseen: queues.totalUnseen
+    };
+
+    const hasChanged = !lastQueueSnapshot ||
+      JSON.stringify(lastQueueSnapshot) !== JSON.stringify(snapshot);
+
+    if (hasChanged) {
+      console.log('[Queue] Intraday:', snapshot.intradayLearning, '| Interday:', snapshot.interdayLearning, 
+                  '| Review:', snapshot.reviewDue, '| New:', snapshot.newCards, 
+                  '| Learning total:', snapshot.totalLearning);
+      lastQueueSnapshot = snapshot;
+    }
+  }
 
   return queues;
 }
@@ -110,42 +124,26 @@ export function buildQueues(vocabulary, userProgress, now, options) {
 export function getNextCard(queues, todayStats, options, recentlyRatedIds = new Set()) {
   // Priority 1: Intraday learning (includes lookahead cards)
   const nextIntraday = queues.intradayLearning.find(v => !recentlyRatedIds.has(v.id));
-  if (nextIntraday) {
-    console.log('[Queue] Selected: intraday learning (with lookahead)');
-    return nextIntraday;
-  }
+  if (nextIntraday) return nextIntraday;
 
-  // Priority 2: Interday learning due
   const nextInterday = queues.interdayLearning.find(v => !recentlyRatedIds.has(v.id));
-  if (nextInterday) {
-    console.log('[Queue] Selected: interday learning');
-    return nextInterday;
-  }
+  if (nextInterday) return nextInterday;
 
-  // Priority 3: Review due (check limit)
   const remainingReviews = options.maxReviewsPerDay - todayStats.reviewsDoneToday;
   if (remainingReviews > 0) {
     const nextReview = queues.reviewDue.find(v => !recentlyRatedIds.has(v.id));
-    if (nextReview) {
-      console.log('[Queue] Selected: review (', remainingReviews, 'remaining )');
-      return nextReview;
-    }
+    if (nextReview) return nextReview;
   }
 
-  // Priority 4: New cards (check limits)
   const remainingNew = options.maxNewCardsPerDay - todayStats.newIntroducedToday;
   const reviewLimitReached = todayStats.reviewsDoneToday >= options.maxReviewsPerDay;
   const canIntroduceNew = remainingNew > 0 && (options.newIgnoresReviewLimit || !reviewLimitReached);
 
   if (canIntroduceNew) {
     const nextNew = queues.newCards.find(v => !recentlyRatedIds.has(v.id));
-    if (nextNew) {
-      console.log('[Queue] Selected: new card (', remainingNew, 'remaining )');
-      return nextNew;
-    }
+    if (nextNew) return nextNew;
   }
 
-  console.log('[Queue] No cards available (all beyond lookahead or limits reached)');
   return null;
 }
 

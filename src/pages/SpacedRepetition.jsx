@@ -19,6 +19,9 @@ import { getCardState, applyRating, cardToProgress } from "../components/schedul
 import { buildQueues, getNextCard as getNextCardFromQueue, getSessionEndState } from "../components/scheduler/queue";
 import { calculateTodayStats, getTodayDateString } from "../components/scheduler/todayStats";
 
+const DEBUG_SCHEDULER = true;
+let lastDebugSnapshot = null;
+
 export default function SpacedRepetition() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -54,10 +57,7 @@ export default function SpacedRepetition() {
   // Normalize and filter vocabulary (use UI level for filtering after normalization)
   const vocabulary = React.useMemo(() => {
     const normalized = normalizeVocabArray(rawVocabulary);
-    console.log('[SR] Loaded', rawVocabulary.length, 'raw vocab,', normalized.length, 'normalized');
-    console.log('[SR] UI level:', uiLevel, 'filtering normalized cards');
     const filtered = normalized.filter(v => v.level === uiLevel);
-    console.log('[SR] Filtered to', filtered.length, 'cards for UI level', uiLevel);
     return filtered;
   }, [rawVocabulary, uiLevel]);
 
@@ -198,23 +198,14 @@ export default function SpacedRepetition() {
   }, [isPremium, sessionComplete, baseUsage, dailyLimit, sessionStartTime, today, navigate, settings]);
 
   useEffect(() => {
-    // Use new calculateTodayStats from scheduler
     const stats = calculateTodayStats(userProgress);
     
-    console.log('[SR] ========== MOUNT/RELOAD STATS ==========');
-    console.log('[SR] Progress records loaded:', userProgress.length);
-    console.log('[SR] Stats from DB:', stats);
-    console.log('[SR] Daily new limit:', maxNewCardsPerDay);
-    console.log('[SR] New remaining:', Math.max(0, maxNewCardsPerDay - stats.newIntroducedToday));
-    
-    // Validation: newIntroducedToday must never exceed limit
-    if (stats.newIntroducedToday > maxNewCardsPerDay) {
+    if (DEBUG_SCHEDULER && stats.newIntroducedToday > maxNewCardsPerDay) {
       console.error('[SR] ⚠️ CRITICAL: newIntroducedToday exceeds limit!', {
         introduced: stats.newIntroducedToday,
         limit: maxNewCardsPerDay
       });
     }
-    console.log('[SR] ========================================');
     
     setNewCardsToday(stats.newIntroducedToday);
     setReviewsToday(stats.reviewsDoneToday);
@@ -223,8 +214,6 @@ export default function SpacedRepetition() {
   const updateProgressMutation = useMutation({
     mutationFn: async ({ vocabularyId, rating }) => {
       if (!user) return null;
-      
-      console.log(`[SR] Updating progress for ${vocabularyId} with rating ${rating}`);
       
       const existing = await base44.entities.UserProgress.filter({
         vocabulary_id: vocabularyId,
@@ -251,20 +240,14 @@ export default function SpacedRepetition() {
 
       // Find the vocabulary item
       const vocab = vocabulary.find(v => v.id === vocabularyId);
-      if (!vocab) {
-        console.error('[SR] Vocabulary not found:', vocabularyId);
-        return null;
-      }
+      if (!vocab) return null;
 
       const progress = existing.length > 0 ? existing[0] : null;
 
       // Get current card state
       const card = getCardState(progress, vocab);
 
-      // Apply rating using new SM-2 scheduler
       const result = applyRating(card, rating, now, options);
-      
-      console.log('[SR] Rating result:', result);
 
       // Convert to database format
       const todayKey = new Date().toISOString().split('T')[0]; // Use simple ISO date
@@ -284,7 +267,6 @@ export default function SpacedRepetition() {
 
   const cardCategories = React.useMemo(() => {
     if (!vocabulary.length) {
-      console.log('[SR] No vocabulary loaded');
       return { 
         newCards: [], 
         learningCards: [], 
@@ -294,8 +276,6 @@ export default function SpacedRepetition() {
         nextLearningCard: null
       };
     }
-    
-    console.log('[SR] Building queues from', vocabulary.length, 'vocabulary and', userProgress.length, 'progress records');
     
     const now = Date.now();
     const options = {
@@ -315,17 +295,7 @@ export default function SpacedRepetition() {
       newIgnoresReviewLimit
     };
 
-    // Build queues using new scheduler
     const queues = buildQueues(vocabulary, userProgress, now, options);
-
-    console.log('[SR] Queues built:', {
-      intradayLearning: queues.intradayLearning.length,
-      interdayLearning: queues.interdayLearning.length,
-      reviewDue: queues.reviewDue.length,
-      newCards: queues.newCards.length,
-      totalLearning: queues.totalLearning,
-      totalUnseen: queues.totalUnseen
-    });
 
     return {
       newCards: queues.newCards,
@@ -341,66 +311,50 @@ export default function SpacedRepetition() {
     const { newCards, learningCards, dueCards } = cardCategories;
     const queue = [];
 
-    // Compute remaining new cards
     const remainingNew = Math.max(0, maxNewCardsPerDay - newCardsToday);
-
-    console.log('[Queue] ========== BUILD QUEUE ==========');
-    console.log('[Queue] Day:', getTodayDateString());
-    console.log('[Queue] Daily new limit:', maxNewCardsPerDay, '(base:', baseMaxNewCardsPerDay, '+ delta:', todayNewDelta, ')');
-    console.log('[Queue] New introduced today (from DB):', newCardsToday);
-    console.log('[Queue] Remaining new:', remainingNew);
-    console.log('[Queue] Available new cards in pool:', newCards.length);
-    
-    // Validation
-    if (newCardsToday > maxNewCardsPerDay) {
-      console.error('[Queue] ⚠️ CRITICAL: introduced count exceeds limit!', {
-        introduced: newCardsToday,
-        limit: maxNewCardsPerDay
-      });
-    }
-
-    // Priority 1: Learning cards (already filtered to be due now or within lookahead)
     const learningWords = learningCards.map(l => l.word).filter(w => !recentlyRatedIds.has(w.id));
     queue.push(...learningWords);
-    console.log('[Queue] ✓ Learning:', learningWords.length);
 
-    // Priority 2: Due review cards (within daily limit)
     const remainingReviews = Math.max(0, maxReviewsPerDay - reviewsToday);
     const dueWords = dueCards.map(d => d.word).filter(w => !recentlyRatedIds.has(w.id)).slice(0, remainingReviews);
     queue.push(...dueWords);
-    console.log('[Queue] ✓ Due:', dueWords.length, '(remaining reviews:', remainingReviews, ')');
 
-    // Priority 3: New cards (STRICT GATING with effective count)
     const reviewLimitReached = remainingReviews <= 0;
     const canIntroduceNew = (newIgnoresReviewLimit || !reviewLimitReached) && remainingNew > 0;
-
     const newWordsToAdd = canIntroduceNew ? newCards.filter(w => !recentlyRatedIds.has(w.id)).slice(0, remainingNew) : [];
     queue.push(...newWordsToAdd);
-    console.log('[Queue] ✓ New:', newWordsToAdd.length, '(canIntroduce:', canIntroduceNew, ', available:', newCards.length, ')');
 
-    console.log('[Queue] Final queue:', queue.length, 'cards');
-    console.log('[Queue] ====================================');
+    // Structured debug snapshot (only when queue changes)
+    if (DEBUG_SCHEDULER) {
+      const snapshot = {
+        dayKey: getTodayDateString(),
+        dailyNewLimit: maxNewCardsPerDay,
+        newIntroducedToday: newCardsToday,
+        newRemainingToday: remainingNew,
+        learningTotal: cardCategories.totalLearning || 0,
+        learningDueNow: learningWords.length,
+        reviewDueNow: dueWords.length,
+        queueLength: queue.length
+      };
+
+      const hasChanged = !lastDebugSnapshot ||
+        JSON.stringify(lastDebugSnapshot) !== JSON.stringify(snapshot);
+
+      if (hasChanged) {
+        console.log('[SR DEBUG SNAPSHOT]', snapshot);
+        lastDebugSnapshot = snapshot;
+      }
+    }
+
     return queue;
   }, [cardCategories, maxNewCardsPerDay, maxReviewsPerDay, newCardsToday, reviewsToday, newIgnoresReviewLimit, recentlyRatedIds, baseMaxNewCardsPerDay, todayNewDelta]);
 
-  // 🎯 QUEUE REBUILD EFFECT: Transition between state machine modes
   useEffect(() => {
-    console.log('[Effect] Queue rebuild effect:', {
-      buildQueue: buildQueue.length,
-      studyQueue: studyQueue.length,
-      mode: studyMode,
-      hasCard: !!currentCard,
-      sessionComplete
-    });
-    
     if (buildQueue.length > 0 && studyQueue.length === 0 && !sessionComplete) {
-      console.log('[Effect] 🔄 Rebuilding queue with', buildQueue.length, 'cards - mode → STUDYING');
       setStudyQueue(buildQueue);
       setCurrentCard(buildQueue[0]);
       setStudyMode('STUDYING');
     } else if (buildQueue.length === 0 && studyQueue.length === 0 && studyMode === 'ADVANCING') {
-      // Queue rebuild complete and still empty - transition to DONE
-      console.log('[Effect] Queue rebuild complete, no cards available - mode → DONE');
       setStudyMode('DONE');
       setCurrentCard(null);
     }
@@ -437,8 +391,6 @@ export default function SpacedRepetition() {
       setReviewAfterRest(prev => [...prev, currentCard]);
     }
 
-    console.log('[SpacedRepetition] User answered with rating:', finalRating);
-
     // 🛡️ Prevent this card from appearing again immediately
     const cardId = currentCard.id;
     setRecentlyRatedIds(prev => new Set([...prev, cardId]));
@@ -459,22 +411,12 @@ export default function SpacedRepetition() {
     const newQueue = studyQueue.slice(1);
 
     if (newQueue.length === 0) {
-      console.log('[SpacedRepetition] ⏳ Queue empty - mode → ADVANCING (keeping current card visible)');
       setStudyQueue([]);
-      setStudyMode('ADVANCING'); // Keep card visible while computing next
-      // DON'T clear currentCard - let useEffect handle transition to DONE
+      setStudyMode('ADVANCING');
     } else {
-      console.log('[SpacedRepetition] Moving to next card,', newQueue.length, 'cards remaining');
       setStudyQueue(newQueue);
       setCurrentCard(newQueue[0]);
       setStudyMode('STUDYING');
-
-      // 🚀 PERFORMANCE: Log card transition time
-      requestAnimationFrame(() => {
-        const nextCardRenderedTime = performance.now();
-        const deltaMs = nextCardRenderedTime - tapTime;
-        console.log(`[PERF] Card transition: ${deltaMs.toFixed(2)}ms`);
-      });
     }
 
     // 🔄 BACKGROUND: Update progress and refetch IMMEDIATELY (optimized)
@@ -515,10 +457,6 @@ export default function SpacedRepetition() {
     );
   }
 
-  // 🚫 CRITICAL GUARD: NEVER show end screen unless mode is DONE
-  // This prevents menu flash during ADVANCING
-  console.log('[Render] Mode:', studyMode, 'Queue:', buildQueue.length, 'Card:', !!currentCard);
-  
   if (studyMode === 'DONE' && buildQueue.length === 0 && !showLimitPrompt) {
     const remainingNew = maxNewCardsPerDay - newCardsToday;
     const remainingReviews = maxReviewsPerDay - reviewsToday;
@@ -528,17 +466,9 @@ export default function SpacedRepetition() {
     const totalLearningCount = cardCategories.totalLearning || 0;
     const nextLearning = cardCategories.nextLearningCard;
     
-    console.log('[SpacedRepetition] Session end check:', {
-      learningDue: hasLearningDue,
-      learningTotal: totalLearningCount,
-      dueDue: hasDueDue,
-      newAvailable: hasNewAvailable,
-      remainingNew,
-      newToday: newCardsToday,
-      nextLearningIn: nextLearning?.minutesUntilDue || 'N/A'
-    });
-    
-    // 🎯 CRITICAL: If ANY learning cards exist (even if not due now), prioritize that over limit screens
+    if (DEBUG_SCHEDULER) {
+      console.log('[SR] Session end - Learning:', totalLearningCount, '| Due:', hasDueDue, '| New available:', hasNewAvailable, '| Remaining new:', remainingNew);
+    }
     // Learning cards are ongoing reviews that must be completed regardless of daily limits
     if (totalLearningCount > 0) {
       return (
@@ -701,15 +631,7 @@ export default function SpacedRepetition() {
                     return;
                   }
 
-                  console.log('[EXTEND] Before:', {
-                    todayNewDelta,
-                    baseLimit: baseMaxNewCardsPerDay,
-                    currentEffective: maxNewCardsPerDay,
-                    newToday: newCardsToday
-                  });
-
                   const newDelta = todayNewDelta + 10;
-                  console.log('[EXTEND] Updating delta:', todayNewDelta, '→', newDelta);
 
                   await base44.entities.UserSettings.update(currentSettings.id, {
                     today_new_delta: newDelta,
@@ -722,8 +644,6 @@ export default function SpacedRepetition() {
                   setShowLimitPrompt(false);
                   setLimitPromptType(null);
                   setStudyMode('STUDYING');
-
-                  console.log('[EXTEND] ===== EXTENSION COMPLETE =====');
                 }}
                 className="w-full bg-amber-600 hover:bg-amber-700 text-white"
               >
@@ -833,7 +753,6 @@ export default function SpacedRepetition() {
   // 🎯 CRITICAL: Never show loading/empty if we have a card OR if we're in ADVANCING
   // This prevents the menu flash bug
   if (!currentCard && studyMode !== 'ADVANCING' && studyMode !== 'STUDYING') {
-    console.log('[Render] Showing loading screen - no card, mode:', studyMode);
     return (
       <div className={`min-h-screen flex items-center justify-center ${nightMode ? 'bg-slate-900' : ''}`}>
         <div className="text-center space-y-4">
@@ -844,10 +763,7 @@ export default function SpacedRepetition() {
     );
   }
   
-  // 🎯 If we're ADVANCING or STUDYING, we MUST have a card to show
-  // If not, force back to STUDYING and wait for queue rebuild
   if (!currentCard && (studyMode === 'ADVANCING' || studyMode === 'STUDYING')) {
-    console.log('[Render] WARNING: No card in ADVANCING/STUDYING mode, waiting for queue...');
     return (
       <div className={`min-h-screen flex items-center justify-center ${nightMode ? 'bg-slate-900' : ''}`}>
         <div className="text-center space-y-4">
