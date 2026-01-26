@@ -312,6 +312,11 @@ export default function SpacedRepetition() {
   }, [vocabulary, userProgress, maxNewCardsPerDay, maxReviewsPerDay, learningSteps, relearningSteps, graduatingInterval, easyInterval, newIgnoresReviewLimit, newCardsToday]);
 
   const buildQueue = React.useMemo(() => {
+    // ⏳ Wait for stats to load before building queue
+    if (newCardsToday === undefined || reviewsToday === undefined) {
+      return [];
+    }
+
     const { newCards, learningCards, dueCards } = cardCategories;
     const queue = [];
 
@@ -328,50 +333,53 @@ export default function SpacedRepetition() {
     
     // ✅ CRITICAL: NO New cards if limit reached
     const newWordsToAdd = canIntroduceNew ? newCards.filter(w => !recentlyRatedIds.has(w.id)).slice(0, remainingNew) : [];
-    queue.push(...newWordsToAdd);
     
-    // 🔍 Assertion: If canIntroduceNew=false, queue must contain 0 New cards
+    // 🚨 ERROR: Log if New card selected while cap reached
     if (!canIntroduceNew && newWordsToAdd.length > 0) {
-      console.error('[QUEUE ERROR] canIntroduceNew=false but added', newWordsToAdd.length, 'New cards!', newWordsToAdd.slice(0, 3).map(w => w.id));
+      console.error('[SR ERROR] New card selected while daily cap reached');
     }
-
-    // Structured debug snapshot (only when queue changes)
-    if (DEBUG_SCHEDULER) {
-      const snapshot = {
-        dayKey: getTodayDateString(),
-        dailyNewLimit: maxNewCardsPerDay,
-        newIntroducedToday: newCardsToday,
-        newRemainingToday: remainingNew,
-        canIntroduceNew,
-        learningTotal: cardCategories.totalLearning || 0,
-        learningDueNow: learningWords.length,
-        reviewDueNow: dueWords.length,
-        newInQueue: newWordsToAdd.length,
-        queueLength: queue.length
-      };
-
-      const hasChanged = !lastDebugSnapshot ||
-        JSON.stringify(lastDebugSnapshot) !== JSON.stringify(snapshot);
-
-      if (hasChanged) {
-        console.log('[SR DEBUG SNAPSHOT]', snapshot);
-        lastDebugSnapshot = snapshot;
-      }
-    }
+    
+    queue.push(...newWordsToAdd);
 
     return queue;
-  }, [cardCategories, maxNewCardsPerDay, maxReviewsPerDay, newCardsToday, reviewsToday, newIgnoresReviewLimit, recentlyRatedIds, baseMaxNewCardsPerDay, todayNewDelta]);
+  }, [cardCategories, maxNewCardsPerDay, maxReviewsPerDay, newCardsToday, reviewsToday, newIgnoresReviewLimit, recentlyRatedIds]);
 
   useEffect(() => {
     if (buildQueue.length > 0 && studyQueue.length === 0 && !sessionComplete) {
-      setStudyQueue(buildQueue);
-      setCurrentCard(buildQueue[0]);
-      setStudyMode('STUDYING');
+      // 🛡️ Never select New card if limit reached
+      const remainingNew = Math.max(0, maxNewCardsPerDay - newCardsToday);
+      const canIntroduceNew = remainingNew > 0;
+      
+      let nextCard = buildQueue[0];
+      
+      // Skip New cards if limit reached
+      if (!canIntroduceNew) {
+        const progress = userProgress.find(p => p.vocabulary_id === nextCard.id);
+        const isNewCard = !progress || progress.state === 'New';
+        
+        if (isNewCard) {
+          console.error('[SR ERROR] New card selected while daily cap reached');
+          // Find first non-New card
+          nextCard = buildQueue.find(card => {
+            const prog = userProgress.find(p => p.vocabulary_id === card.id);
+            return prog && prog.state !== 'New';
+          });
+        }
+      }
+      
+      if (nextCard) {
+        setStudyQueue(buildQueue);
+        setCurrentCard(nextCard);
+        setStudyMode('STUDYING');
+      } else {
+        setStudyMode('DONE');
+        setCurrentCard(null);
+      }
     } else if (buildQueue.length === 0 && studyQueue.length === 0 && studyMode === 'ADVANCING') {
       setStudyMode('DONE');
       setCurrentCard(null);
     }
-  }, [buildQueue, studyQueue.length, sessionComplete, studyMode, currentCard]);
+  }, [buildQueue, studyQueue.length, sessionComplete, studyMode, maxNewCardsPerDay, newCardsToday, userProgress]);
 
   useEffect(() => {
     const checkRestTime = setInterval(() => {
@@ -487,7 +495,7 @@ export default function SpacedRepetition() {
     );
   }
 
-  if (studyMode === 'DONE' && buildQueue.length === 0 && !showLimitPrompt) {
+  if (studyMode === 'DONE' && buildQueue.length === 0) {
     const remainingNew = maxNewCardsPerDay - newCardsToday;
     const remainingReviews = maxReviewsPerDay - reviewsToday;
     const hasLearningDue = cardCategories.learningCards.length > 0;
@@ -495,10 +503,7 @@ export default function SpacedRepetition() {
     const hasNewAvailable = cardCategories.newCards.length > 0;
     const totalLearningCount = cardCategories.totalLearning || 0;
     const nextLearning = cardCategories.nextLearningCard;
-    
-    if (DEBUG_SCHEDULER) {
-      console.log('[SR] Session end - Learning:', totalLearningCount, '| Due:', hasDueDue, '| New available:', hasNewAvailable, '| Remaining new:', remainingNew);
-    }
+
     // Learning cards are ongoing reviews that must be completed regardless of daily limits
     if (totalLearningCount > 0) {
       return (
@@ -526,7 +531,7 @@ export default function SpacedRepetition() {
                 onClick={() => navigate(createPageUrl('FlashStudy?mode=' + mode + '&level=' + uiLevel))}
                 className="w-full bg-teal-600 hover:bg-teal-700 text-white"
               >
-                Continue with Flash Study (No Limits)
+                Switch to Flash Study
               </Button>
               <Button
                 onClick={() => navigate(createPageUrl('Home'))}
@@ -540,27 +545,85 @@ export default function SpacedRepetition() {
         </div>
       );
     }
-    
-    // Anki behavior: Detect termination reason (only if NO learning exists)
-    // Only consider limit "reached" if we've actually hit it, not if we're negative
-    const newLimitReached = newCardsToday >= maxNewCardsPerDay && hasNewAvailable;
-    const reviewLimitReached = reviewsToday >= maxReviewsPerDay && hasDueDue;
-    
+
     // Check limit-based termination (only if no learning exists)
-    if (newLimitReached && !hasDueDue) {
-      setLimitPromptType('new');
-      setShowLimitPrompt(true);
-      return null;
-    } else if (reviewLimitReached && hasDueDue && !hasNewAvailable) {
-      setLimitPromptType('review');
-      setShowLimitPrompt(true);
-      return null;
-    } else if (newLimitReached && reviewLimitReached) {
-      setLimitPromptType('both');
-      setShowLimitPrompt(true);
-      return null;
+    const newLimitReached = remainingNew <= 0 && hasNewAvailable;
+    const reviewLimitReached = remainingReviews <= 0 && hasDueDue;
+
+    if (newLimitReached || reviewLimitReached) {
+      return (
+        <div className={`min-h-screen flex items-center justify-center p-4 ${nightMode ? 'bg-slate-900' : 'bg-stone-50'}`}>
+          <div className="text-center space-y-6 max-w-lg">
+            <div className="text-6xl">🎯</div>
+            <h2 className={`text-2xl font-semibold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`} style={{fontFamily: "'Crimson Pro', serif"}}>
+              Daily Limit Reached
+            </h2>
+
+            <div className={`p-5 rounded-lg ${nightMode ? 'bg-slate-800 border border-slate-700' : 'bg-white border border-stone-200'}`}>
+              <p className={`font-medium mb-3 ${nightMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                📊 Today's Progress
+              </p>
+              <div className={`space-y-2 text-sm ${nightMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                <div className="flex justify-between items-center">
+                  <span>New cards:</span>
+                  <span className="font-semibold text-cyan-600">{newCardsToday} / {maxNewCardsPerDay}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span>Reviews:</span>
+                  <span className="font-semibold text-emerald-600">{reviewsToday} / {maxReviewsPerDay}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              {newLimitReached && (
+                <Button
+                  onClick={async () => {
+                    if (!settings) return;
+                    const newDelta = todayNewDelta + 10;
+                    await base44.entities.UserSettings.update(settings.id, {
+                      today_new_delta: newDelta,
+                      last_usage_date: today
+                    });
+                    await queryClient.invalidateQueries(['userSettings']);
+                    await queryClient.invalidateQueries(['userProgress']);
+                    setStudyMode('STUDYING');
+                  }}
+                  className="w-full bg-amber-600 hover:bg-amber-700 text-white"
+                >
+                  Study more new cards today (+10)
+                </Button>
+              )}
+              {reviewLimitReached && (
+                <Button
+                  onClick={async () => {
+                    if (!settings) return;
+                    const newDelta = todayReviewDelta + 50;
+                    await base44.entities.UserSettings.update(settings.id, {
+                      today_review_delta: newDelta,
+                      last_usage_date: today
+                    });
+                    await queryClient.invalidateQueries(['userSettings']);
+                    await queryClient.invalidateQueries(['userProgress']);
+                    setStudyMode('STUDYING');
+                  }}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                >
+                  Study more reviews today (+50)
+                </Button>
+              )}
+              <Button
+                onClick={() => navigate(createPageUrl('FlashStudy?mode=' + mode + '&level=' + uiLevel))}
+                className="w-full bg-teal-600 hover:bg-teal-700 text-white"
+              >
+                Switch to Flash Study
+              </Button>
+            </div>
+          </div>
+        </div>
+      );
     }
-    
+
     // Truly done - nothing available
     return (
       <div className={`min-h-screen flex items-center justify-center p-4 ${nightMode ? 'bg-slate-900' : 'bg-stone-50'}`}>
@@ -576,193 +639,14 @@ export default function SpacedRepetition() {
               <p>Reviews completed: {reviewsToday} / {maxReviewsPerDay}</p>
             </div>
           </div>
-          <div className="space-y-2">
-            <Button onClick={() => navigate(createPageUrl('FlashStudy?mode=' + mode + '&level=' + uiLevel))} className="w-full bg-teal-600 hover:bg-teal-700 text-white">
-              Continue with Flash Study
-            </Button>
-            <Button onClick={() => navigate(createPageUrl('Home'))} variant="outline" className={`w-full ${nightMode ? 'border-slate-600 text-slate-300 hover:bg-slate-700' : ''}`}>
-              Back to Home
-            </Button>
-          </div>
+          <Button onClick={() => navigate(createPageUrl('Home'))} className="w-full bg-teal-600 hover:bg-teal-700 text-white">
+            Back to Home
+          </Button>
         </div>
       </div>
     );
-  }
+    }
 
-  if (showLimitPrompt) {
-    const remainingNew = maxNewCardsPerDay - newCardsToday;
-    const remainingReviews = maxReviewsPerDay - reviewsToday;
-    const hasNew = cardCategories.newCards.length > 0;
-    const hasDue = cardCategories.dueCards.length > 0;
-
-    // 🎉 ANKI-LIKE CONGRATS SCREEN
-    return (
-      <div className={`min-h-screen flex items-center justify-center p-4 ${nightMode ? 'bg-slate-900' : 'bg-stone-50'}`}>
-        <div className="text-center space-y-6 max-w-lg">
-          <div className="text-6xl">🎉</div>
-          <h2 className={`text-2xl font-semibold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`} style={{fontFamily: "'Crimson Pro', serif"}}>
-            {limitPromptType === 'both' ? 'Daily Limits Reached!' : 
-             limitPromptType === 'review' ? 'Daily Review Limit Reached!' :
-             'Daily New Card Limit Reached!'}
-          </h2>
-          
-          <div className={`p-5 rounded-lg ${nightMode ? 'bg-slate-800 border border-slate-700' : 'bg-white border border-stone-200'}`}>
-            <p className={`font-medium mb-3 ${nightMode ? 'text-slate-200' : 'text-slate-700'}`}>
-              📊 Today's Progress:
-            </p>
-            <div className={`space-y-2 text-sm ${nightMode ? 'text-slate-400' : 'text-slate-600'}`}>
-              <div className="flex justify-between items-center">
-                <span>New cards introduced:</span>
-                <span className="font-semibold text-cyan-600">{newCardsToday} / {maxNewCardsPerDay}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span>Reviews completed:</span>
-                <span className="font-semibold text-emerald-600">{reviewsToday} / {maxReviewsPerDay}</span>
-              </div>
-            </div>
-            
-            {(hasDue || hasNew) && (
-              <div className={`mt-4 pt-4 border-t ${nightMode ? 'border-slate-700' : 'border-stone-200'}`}>
-                <p className={`text-sm font-medium mb-2 ${nightMode ? 'text-slate-300' : 'text-slate-700'}`}>
-                  Cards Hidden by Limits:
-                </p>
-                <div className={`space-y-1 text-sm ${nightMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                  {hasDue && limitPromptType !== 'new' && (
-                    <p>• {cardCategories.dueCards.length} review cards blocked</p>
-                  )}
-                  {hasNew && (
-                    <p>• {cardCategories.newCards.length} new cards available</p>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-          
-          <p className={`text-sm ${nightMode ? 'text-slate-400' : 'text-slate-600'}`}>
-            You can extend today's limits (won't affect future days)
-          </p>
-          
-          <div className="space-y-2">
-            {hasNew && limitPromptType !== 'review' && (
-              <Button
-                onClick={async () => {
-                  console.log('[EXTEND] ===== +10 New Cards CLICKED =====');
-
-                  if (!user?.email) {
-                    alert('You must be logged in to extend limits.');
-                    return;
-                  }
-
-                  // Ensure settings exist
-                  let currentSettings = settings;
-                  if (!currentSettings) {
-                    alert('Please visit Settings page first to initialize your preferences.');
-                    navigate(createPageUrl('Settings'));
-                    return;
-                  }
-
-                  const newDelta = todayNewDelta + 10;
-
-                  await base44.entities.UserSettings.update(currentSettings.id, {
-                    today_new_delta: newDelta,
-                    last_usage_date: today
-                  });
-
-                  await queryClient.invalidateQueries(['userSettings']);
-                  await queryClient.invalidateQueries(['userProgress']);
-
-                  setShowLimitPrompt(false);
-                  setLimitPromptType(null);
-                  setStudyMode('STUDYING');
-                }}
-                className="w-full bg-amber-600 hover:bg-amber-700 text-white"
-              >
-                + 10 New Cards (Today Only)
-              </Button>
-            )}
-            {hasDue && (limitPromptType === 'review' || limitPromptType === 'both') && (
-              <Button
-                onClick={async () => {
-                  if (!user?.email) {
-                    alert('You must be logged in to extend limits.');
-                    return;
-                  }
-
-                  let currentSettings = settings;
-                  if (!currentSettings) {
-                    alert('Please visit Settings page first to initialize your preferences.');
-                    navigate(createPageUrl('Settings'));
-                    return;
-                  }
-
-                  const newDelta = todayReviewDelta + 50;
-                  await base44.entities.UserSettings.update(currentSettings.id, {
-                    today_review_delta: newDelta,
-                    last_usage_date: today
-                  });
-                  await queryClient.invalidateQueries(['userSettings']);
-                  await queryClient.invalidateQueries(['userProgress']);
-                  setShowLimitPrompt(false);
-                  setLimitPromptType(null);
-                  setStudyMode('STUDYING');
-                }}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
-              >
-                + 50 Reviews (Today Only)
-              </Button>
-            )}
-            {hasNew && hasDue && limitPromptType === 'both' && (
-              <Button
-                onClick={async () => {
-                  if (!user?.email) {
-                    alert('You must be logged in to extend limits.');
-                    return;
-                  }
-
-                  let currentSettings = settings;
-                  if (!currentSettings) {
-                    alert('Please visit Settings page first to initialize your preferences.');
-                    navigate(createPageUrl('Settings'));
-                    return;
-                  }
-
-                  const newNewDelta = todayNewDelta + 10;
-                  const newReviewDelta = todayReviewDelta + 50;
-                  await base44.entities.UserSettings.update(currentSettings.id, {
-                    today_new_delta: newNewDelta,
-                    today_review_delta: newReviewDelta,
-                    last_usage_date: today
-                  });
-                  await queryClient.invalidateQueries(['userSettings']);
-                  await queryClient.invalidateQueries(['userProgress']);
-                  setShowLimitPrompt(false);
-                  setLimitPromptType(null);
-                  setStudyMode('STUDYING');
-                }}
-                variant="outline"
-                className={`w-full ${nightMode ? 'border-amber-500 text-amber-400 hover:bg-amber-900/20' : 'border-amber-500 text-amber-700 hover:bg-amber-50'}`}
-              >
-                Extend Both Limits
-              </Button>
-            )}
-            <Button
-              onClick={() => navigate(createPageUrl('FlashStudy?mode=' + mode + '&level=' + uiLevel))}
-              className="w-full bg-teal-600 hover:bg-teal-700 text-white"
-            >
-              Switch to Flash Study (No Limits)
-            </Button>
-            <Button
-              onClick={() => navigate(createPageUrl('Home'))}
-              variant="outline"
-              className={`w-full ${nightMode ? 'border-slate-600 text-slate-300 hover:bg-slate-700' : ''}`}
-            >
-              Done for Today
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   if (sessionComplete) {
     return (
