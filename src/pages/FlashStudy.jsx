@@ -4,10 +4,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
-import { normalizeVocabArray, uiLevelToDatasetLevel, datasetLevelToUiLevel } from "@/components/utils/vocabNormalizer";
+import { normalizeVocabArray } from "@/components/utils/vocabNormalizer";
 
 import FlashCard from "../components/flash/FlashCard";
-import AccuracyMeter from "../components/flash/AccuracyMeter";
+import GradingButtons from "../components/srs/GradingButtons";
 import RestInterval from "../components/flash/RestInterval";
 import SessionComplete from "../components/flash/SessionComplete";
 
@@ -20,18 +20,17 @@ export default function FlashStudy() {
   const uiLevel = (urlParams.get('level') || 'N5').toUpperCase();
   const sessionSize = parseInt(urlParams.get('size')) || 20;
 
+  // Session-only state (no UserProgress writes)
   const [studyQueue, setStudyQueue] = useState([]);
   const [currentCard, setCurrentCard] = useState(null);
-  const [cardsStudied, setCardsStudied] = useState(0);
-  const [wordsLearned, setWordsLearned] = useState(0);
+  const [sessionCards, setSessionCards] = useState(new Map()); // cardId -> {state: 'unseen'|'learning', goodStreak: number}
+  const [graduated, setGraduated] = useState(new Set());
   const [correctCount, setCorrectCount] = useState(0);
   const [incorrectCount, setIncorrectCount] = useState(0);
   const [showRest, setShowRest] = useState(false);
   const [sessionComplete, setSessionComplete] = useState(false);
   const [sessionStartTime] = useState(Date.now());
-  const [reviewAfterRest, setReviewAfterRest] = useState([]);
   const [lastRestTime, setLastRestTime] = useState(Date.now());
-  const [cardStreaks, setCardStreaks] = useState(new Map());
   const [currentUsage, setCurrentUsage] = useState(0);
   
   const { data: rawVocabulary = [], isLoading: isLoadingAll } = useQuery({
@@ -90,52 +89,6 @@ export default function FlashStudy() {
     },
   });
 
-  const updateProgressMutation = useMutation({
-    mutationFn: async ({ vocabularyId, correct }) => {
-      if (!user) return null;
-      
-      const existing = await base44.entities.UserProgress.filter({
-        vocabulary_id: vocabularyId,
-        user_email: user.email
-      });
-
-      if (existing.length > 0) {
-        const progress = existing[0];
-        return base44.entities.UserProgress.update(progress.id, {
-          correct_count: progress.correct_count + (correct ? 1 : 0),
-          incorrect_count: progress.incorrect_count + (correct ? 0 : 1),
-          last_reviewed: new Date().toISOString(),
-        });
-      } else {
-        return base44.entities.UserProgress.create({
-          vocabulary_id: vocabularyId,
-          user_email: user.email,
-          correct_count: correct ? 1 : 0,
-          incorrect_count: correct ? 0 : 1,
-          last_reviewed: new Date().toISOString(),
-          next_review: new Date(Date.now() + 86400000).toISOString(),
-        });
-      }
-    },
-  });
-
-  const updateUsageMutation = useMutation({
-    mutationFn: async (elapsedSeconds) => {
-      if (!settings || !user) return;
-      
-      const today = new Date().toISOString().split('T')[0];
-      const currentUsage = settings.daily_usage_seconds || 0;
-      
-      return base44.entities.UserSettings.update(settings.id, {
-        daily_usage_seconds: currentUsage + elapsedSeconds,
-        last_usage_date: today
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userSettings'] });
-    },
-  });
-
   const totalAnswered = correctCount + incorrectCount;
   const accuracy = totalAnswered > 0 ? (correctCount / totalAnswered) * 100 : 0;
 
@@ -154,7 +107,7 @@ export default function FlashStudy() {
     });
 
     setSessionComplete(true);
-  }, [sessionStartTime, createSessionMutation, mode, level, correctCount, incorrectCount]);
+  }, [sessionStartTime, createSessionMutation, mode, uiLevel, correctCount, incorrectCount]);
 
   // Track usage time in real-time
   useEffect(() => {
@@ -182,6 +135,7 @@ export default function FlashStudy() {
     return () => clearInterval(interval);
   }, [isPremium, sessionComplete, baseUsage, dailyLimit, sessionStartTime, today, navigate, settings]);
 
+  // Initialize session with random cards
   useEffect(() => {
     if (vocabulary.length > 0 && studyQueue.length === 0) {
       const shuffled = [...vocabulary].sort(() => Math.random() - 0.5);
@@ -189,9 +143,9 @@ export default function FlashStudy() {
       setStudyQueue(initial);
       setCurrentCard(initial[0]);
       
-      const streaks = new Map();
-      initial.forEach(card => streaks.set(card.id, 0));
-      setCardStreaks(streaks);
+      const cards = new Map();
+      initial.forEach(card => cards.set(card.id, { state: 'unseen', goodStreak: 0 }));
+      setSessionCards(cards);
     }
   }, [vocabulary, sessionSize, studyQueue.length]);
 
@@ -206,63 +160,60 @@ export default function FlashStudy() {
     return () => clearInterval(checkRestTime);
   }, [lastRestTime, nextRestDuration, showRest, sessionComplete, cardsStudied]);
 
-  const handleAnswer = (correct) => {
+  const handleRevealChange = useCallback((isRevealed) => {
+    setCurrentCard(prev => prev ? { ...prev, _revealed: isRevealed } : null);
+  }, []);
+
+  const handleGrade = (rating) => {
     if (!currentCard) return;
-    
-    // 🚀 PERFORMANCE: Record tap time
-    const tapTime = performance.now();
-    
-    setCardsStudied(prev => prev + 1);
-    
-    if (correct) {
-      setCorrectCount(prev => prev + 1);
-    } else {
-      setIncorrectCount(prev => prev + 1);
-      setReviewAfterRest(prev => [...prev, currentCard]);
-    }
 
-    // 🔄 BACKGROUND: Update progress in the background (non-blocking)
-    updateProgressMutation.mutate({
-      vocabularyId: currentCard.id,
-      correct
-    });
-
-    const currentStreak = cardStreaks.get(currentCard.id) || 0;
-    const newStreak = correct ? currentStreak + 1 : 0;
-    const newStreaks = new Map(cardStreaks);
-    newStreaks.set(currentCard.id, newStreak);
-    setCardStreaks(newStreaks);
-
-    const wasLearned = newStreak >= 2 && currentStreak < 2;
-    if (wasLearned) {
-      setWordsLearned(prev => prev + 1);
-    }
-
+    const cardState = sessionCards.get(currentCard.id) || { state: 'unseen', goodStreak: 0 };
     let newQueue = studyQueue.slice(1);
-    
-    if (!correct || newStreak < 2) {
-      const insertPosition = Math.min(
-        Math.floor(Math.random() * 4) + 2,
-        newQueue.length
-      );
-      newQueue.splice(insertPosition, 0, currentCard);
+    let shouldGraduate = false;
+
+    // Rating: 1=Again, 2=Hard, 3=Good, 4=Easy
+    if (rating === 4) {
+      // Easy: immediate graduation
+      shouldGraduate = true;
+      setCorrectCount(prev => prev + 1);
+    } else if (rating === 3) {
+      // Good: needs two consecutive Good to graduate
+      setCorrectCount(prev => prev + 1);
+      if (cardState.goodStreak === 1) {
+        // Second consecutive Good → graduate
+        shouldGraduate = true;
+      } else {
+        // First Good → mark learning, requeue mid/late
+        sessionCards.set(currentCard.id, { state: 'learning', goodStreak: 1 });
+        const insertPos = Math.floor(newQueue.length * (0.4 + Math.random() * 0.4));
+        newQueue.splice(insertPos, 0, currentCard);
+      }
+    } else if (rating === 2) {
+      // Hard: keep in learning, reset streak, requeue mid
+      setIncorrectCount(prev => prev + 1);
+      sessionCards.set(currentCard.id, { state: 'learning', goodStreak: 0 });
+      const insertPos = Math.floor(newQueue.length * 0.4);
+      newQueue.splice(insertPos, 0, currentCard);
+    } else if (rating === 1) {
+      // Again: reset, requeue near front
+      setIncorrectCount(prev => prev + 1);
+      sessionCards.set(currentCard.id, { state: 'learning', goodStreak: 0 });
+      const insertPos = Math.min(2, newQueue.length);
+      newQueue.splice(insertPos, 0, currentCard);
     }
 
-    if (wordsLearned + (wasLearned ? 1 : 0) >= sessionSize || newQueue.length === 0) {
+    if (shouldGraduate) {
+      setGraduated(prev => new Set([...prev, currentCard.id]));
+    }
+
+    // Session complete when all graduated or queue empty
+    if (graduated.size + (shouldGraduate ? 1 : 0) >= sessionSize || newQueue.length === 0) {
       completeSession();
       return;
     }
 
-    // 🚀 OPTIMISTIC UI: Move to next card IMMEDIATELY
     setStudyQueue(newQueue);
     setCurrentCard(newQueue[0]);
-
-    // 🚀 PERFORMANCE: Log card transition time
-    requestAnimationFrame(() => {
-      const nextCardRenderedTime = performance.now();
-      const deltaMs = nextCardRenderedTime - tapTime;
-      console.log(`[PERF] Card transition: ${deltaMs.toFixed(2)}ms`);
-    });
   };
 
   const handleEndSession = () => {
@@ -296,15 +247,16 @@ export default function FlashStudy() {
 
   if (vocabulary.length === 0) {
     return (
-      <div className="h-screen flex items-center justify-center p-4">
+      <div className={`h-screen flex items-center justify-center p-4 ${nightMode ? 'bg-slate-900' : ''}`}>
         <div className="text-center space-y-4">
-          <p className="text-xl text-slate-600">No vocabulary found for {uiLevel}</p>
-          <button
+          <p className={`text-xl ${nightMode ? 'text-slate-300' : 'text-slate-600'}`}>No vocabulary loaded for {uiLevel}</p>
+          <Button
             onClick={() => navigate(createPageUrl('Home'))}
-            className="text-teal-600 hover:text-teal-700 font-medium"
+            variant="outline"
+            className={nightMode ? 'border-slate-600 text-slate-300 hover:bg-slate-700' : ''}
           >
             ← Back to Home
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -328,57 +280,80 @@ export default function FlashStudy() {
 
   if (!currentCard) {
     return (
-      <div className="h-screen flex items-center justify-center">
+      <div className={`h-screen flex items-center justify-center ${nightMode ? 'bg-slate-900' : ''}`}>
         <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
-          <p className="text-slate-600">Preparing cards...</p>
+          <p className={nightMode ? 'text-slate-400' : 'text-slate-600'}>Preparing cards...</p>
         </div>
       </div>
     );
   }
 
+  const learningCount = Array.from(sessionCards.values()).filter(c => c.state === 'learning').length;
+  const remainingCount = sessionSize - graduated.size;
+
   return (
-    <div className={`h-screen flex flex-col ${nightMode ? 'bg-slate-900' : 'bg-gradient-to-br from-stone-100 via-teal-50 to-cyan-50'}`}>
-      <div className={`border-b px-3 md:px-6 py-2 md:py-3 flex items-center justify-between ${nightMode ? 'bg-slate-800/80 backdrop-blur-sm border-slate-700' : 'bg-white/80 backdrop-blur-sm border-stone-200'}`}>
-        <div className="flex items-center gap-4">
-          <AccuracyMeter
-            accuracy={accuracy}
-            correctCount={correctCount}
-            incorrectCount={incorrectCount}
-            currentCard={wordsLearned}
-            totalCards={sessionSize}
-            nightMode={nightMode}
-          />
+    <div className={`min-h-screen flex flex-col ${nightMode ? 'bg-slate-900' : 'bg-gradient-to-br from-stone-100 via-teal-50 to-cyan-50'}`}>
+      <div className={`border-b px-3 md:px-6 py-2 md:py-3 ${nightMode ? 'bg-slate-800/80 backdrop-blur-sm border-slate-700' : 'bg-white/80 backdrop-blur-sm border-stone-200'}`}>
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3 md:gap-6">
+            <div className="flex items-center gap-2">
+              <span className={`text-xs md:text-sm ${nightMode ? 'text-slate-300' : 'text-slate-600'}`}>Remaining:</span>
+              <span className={`font-semibold text-sm md:text-base ${nightMode ? 'text-cyan-400' : 'text-cyan-700'}`}>
+                {remainingCount}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className={`text-xs md:text-sm ${nightMode ? 'text-slate-300' : 'text-slate-600'}`}>Graduated:</span>
+              <span className={`font-semibold text-sm md:text-base ${nightMode ? 'text-emerald-400' : 'text-emerald-700'}`}>
+                {graduated.size}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className={`text-xs md:text-sm ${nightMode ? 'text-slate-300' : 'text-slate-600'}`}>Learning:</span>
+              <span className={`font-semibold text-sm md:text-base ${nightMode ? 'text-amber-400' : 'text-amber-700'}`}>
+                {learningCount}
+              </span>
+            </div>
+            
+            {!isPremium && (
+              <>
+                <div className={`h-6 w-px ${nightMode ? 'bg-slate-600' : 'bg-stone-300'} hidden md:block`}></div>
+                <div className="hidden md:flex items-center gap-2">
+                  <span className={`text-xs ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Free:</span>
+                  <span className={`font-semibold text-sm ${remainingSeconds < 60 ? 'text-rose-600' : nightMode ? 'text-teal-400' : 'text-teal-600'}`}>
+                    {formatTime(remainingSeconds)}
+                  </span>
+                </div>
+              </>
+            )}
+          </div>
           
-          {!isPremium && (
-            <>
-              <div className={`h-6 w-px ${nightMode ? 'bg-slate-600' : 'bg-stone-300'}`}></div>
-              <div className="flex items-center gap-2">
-                <span className={`text-xs ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Free:</span>
-                <span className={`font-semibold text-sm ${remainingSeconds < 60 ? 'text-rose-600' : nightMode ? 'text-teal-400' : 'text-teal-600'}`}>
-                  {formatTime(remainingSeconds)}
-                </span>
-              </div>
-            </>
-          )}
+          <Button
+            onClick={handleEndSession}
+            variant="ghost"
+            size="sm"
+            className={`text-xs ${nightMode ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-700' : 'text-slate-600 hover:text-slate-800 hover:bg-stone-100'}`}
+          >
+            End Session
+          </Button>
         </div>
-        
-        <Button
-          onClick={handleEndSession}
-          variant="ghost"
-          size="sm"
-          className={`text-xs ${nightMode ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-700' : 'text-slate-600 hover:text-slate-800 hover:bg-stone-100'}`}
-        >
-          End Session
-        </Button>
       </div>
 
-      <div className="flex-1 flex items-center justify-center p-4 overflow-y-auto">
+      <div className="flex-1 flex flex-col items-center justify-center p-4 overflow-y-auto gap-6">
         <FlashCard
           vocabulary={currentCard}
           mode={mode}
-          onAnswer={handleAnswer}
+          onAnswer={() => {}}
           showExampleSentences={settings?.show_example_sentences !== false}
+          hideButtons={true}
+          onRevealChange={handleRevealChange}
+        />
+        
+        <GradingButtons
+          onGrade={handleGrade}
+          nightMode={nightMode}
+          revealed={currentCard?._revealed}
         />
       </div>
     </div>
