@@ -152,13 +152,14 @@ export default function FlashStudy() {
   useEffect(() => {
     const checkRestTime = setInterval(() => {
       const timeSinceLastRest = Date.now() - lastRestTime;
-      if (timeSinceLastRest >= nextRestDuration && !showRest && !sessionComplete && cardsStudied > 0) {
+      const hasAnswered = correctCount + incorrectCount > 0;
+      if (timeSinceLastRest >= nextRestDuration && !showRest && !sessionComplete && hasAnswered) {
         setShowRest(true);
       }
     }, 1000);
 
     return () => clearInterval(checkRestTime);
-  }, [lastRestTime, nextRestDuration, showRest, sessionComplete, cardsStudied]);
+  }, [lastRestTime, nextRestDuration, showRest, sessionComplete, correctCount, incorrectCount]);
 
   const handleRevealChange = useCallback((isRevealed) => {
     setCurrentCard(prev => prev ? { ...prev, _revealed: isRevealed } : null);
