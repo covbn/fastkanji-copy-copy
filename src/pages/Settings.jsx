@@ -7,9 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge"; // Added Badge import
-import { Settings as SettingsIcon, Moon, Sun, Clock, Save, Brain, Bug, Trash2, CheckCircle2, XCircle } from "lucide-react";
+import { Settings as SettingsIcon, Moon, Sun, Clock, Save, Brain, Bug, Trash2, CheckCircle2, XCircle, Timer } from "lucide-react";
 import { motion } from "framer-motion";
 import { useToast } from "@/components/ui/use-toast";
+import { loadRemainingTime, saveRemainingTime } from "@/components/utils/timerPersistence";
 
 export default function Settings() {
   const queryClient = useQueryClient();
