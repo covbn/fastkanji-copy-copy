@@ -54,6 +54,8 @@ export default function SpacedRepetition() {
   const [doneReason, setDoneReason] = useState(null);
   const [dayKey] = useState(() => new Date().toISOString().split('T')[0]);
   const [remainingTime, setRemainingTime] = useState(null);
+
+  const today = new Date().toISOString().split('T')[0];
   
   const handleRevealChange = useCallback((isRevealed) => {
     setCurrentCard(prev => ({ ...prev, _revealed: isRevealed }));
@@ -155,8 +157,6 @@ export default function SpacedRepetition() {
       queryClient.invalidateQueries({ queryKey: ['allSessions'] });
     },
   });
-
-  const today = new Date().toISOString().split('T')[0];
 
   // Define completeSession early using useCallback
   const completeSession = useCallback(() => {

@@ -35,6 +35,8 @@ export default function FlashStudy() {
   const [currentUsage, setCurrentUsage] = useState(0);
   const [dayKey] = useState(() => new Date().toISOString().split('T')[0]);
   const [remainingTime, setRemainingTime] = useState(null);
+
+  const today = new Date().toISOString().split('T')[0];
   
   const { data: rawVocabulary = [], isLoading: isLoadingAll } = useQuery({
     queryKey: ['allVocabulary'],
@@ -100,8 +102,6 @@ export default function FlashStudy() {
       queryClient.invalidateQueries({ queryKey: ['allSessions'] });
     },
   });
-
-  const today = new Date().toISOString().split('T')[0];
 
   const totalAnswered = correctCount + incorrectCount;
   const accuracy = totalAnswered > 0 ? (correctCount / totalAnswered) * 100 : 0;
