@@ -49,17 +49,17 @@ export default function QuickStats({ sessions = [], totalWords = 0, streak = 0 }
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: index * 0.1 }}
         >
-          <Card className="border border-stone-200 shadow-sm bg-white hover:shadow-md transition-shadow duration-300">
+          <Card className="hover:shadow-md transition-shadow duration-300">
             <CardContent className="p-6">
               <div className="flex items-start justify-between mb-3">
                 <div className={`w-12 h-12 rounded-lg ${stat.color} flex items-center justify-center shadow-sm`}>
                   <stat.icon className="w-6 h-6 text-white" />
                 </div>
               </div>
-              <p className="text-2xl font-semibold text-slate-800">
+              <p className="text-2xl font-semibold text-foreground">
                 {stat.value}{stat.suffix}
               </p>
-              <p className="text-sm text-slate-500 mt-1">{stat.label}</p>
+              <p className="text-sm text-muted-foreground mt-1">{stat.label}</p>
             </CardContent>
           </Card>
         </motion.div>
