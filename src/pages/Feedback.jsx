@@ -63,7 +63,7 @@ export default function Feedback() {
 
   if (submitted) {
     return (
-      <div className={`min-h-screen flex items-center justify-center p-4 ${nightMode ? 'bg-slate-900' : 'bg-stone-50'}`}>
+      <div className="min-h-screen flex items-center justify-center p-4 bg-background">
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -72,10 +72,10 @@ export default function Feedback() {
           <div className="w-24 h-24 mx-auto rounded-full bg-emerald-500 flex items-center justify-center">
             <CheckCircle className="w-12 h-12 text-white" />
           </div>
-          <h2 className={`text-3xl font-semibold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`} style={{fontFamily: "'Crimson Pro', serif"}}>
+          <h2 className="text-3xl font-semibold text-foreground" style={{fontFamily: "'Crimson Pro', serif"}}>
             Thank You!
           </h2>
-          <p className={nightMode ? 'text-slate-400' : 'text-slate-600'}>
+          <p className="text-muted-foreground">
             Your {feedbackType === 'bug' ? 'bug report' : 'feedback'} has been submitted. 
             We appreciate you helping us improve FastKanji!
           </p>
@@ -85,7 +85,7 @@ export default function Feedback() {
   }
 
   return (
-    <div className={`min-h-screen p-4 md:p-8 ${nightMode ? 'bg-slate-900' : 'bg-stone-50'}`}>
+    <div className="min-h-screen p-4 md:p-8 bg-background">
       <div className="max-w-3xl mx-auto space-y-8">
         {/* Header */}
         <motion.div
@@ -96,25 +96,25 @@ export default function Feedback() {
           <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center shadow-lg">
             <MessageSquare className="w-8 h-8 text-white" />
           </div>
-          <h1 className={`text-4xl font-semibold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`} style={{fontFamily: "'Crimson Pro', serif"}}>
+          <h1 className="text-4xl font-semibold text-foreground" style={{fontFamily: "'Crimson Pro', serif"}}>
             Feedback & Bug Reports
           </h1>
-          <p className={nightMode ? 'text-slate-400' : 'text-slate-600'}>
+          <p className="text-muted-foreground">
             Help us improve FastKanji by sharing your thoughts or reporting issues
           </p>
         </motion.div>
 
         {/* Info Cards */}
         <div className="grid md:grid-cols-2 gap-4">
-          <Card className={`border ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
+          <Card className="border border-border bg-card">
             <CardContent className="p-6">
               <div className="flex items-start gap-4">
                 <div className="w-12 h-12 rounded-lg bg-teal-500 flex items-center justify-center flex-shrink-0">
                   <Lightbulb className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className={`font-semibold mb-2 ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>Feedback</h3>
-                  <p className={`text-sm ${nightMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                  <h3 className="font-semibold mb-2 text-card-foreground">Feedback</h3>
+                  <p className="text-sm text-muted-foreground">
                     Share feature requests, improvements, or general thoughts about FastKanji
                   </p>
                 </div>
@@ -122,15 +122,15 @@ export default function Feedback() {
             </CardContent>
           </Card>
 
-          <Card className={`border ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
+          <Card className="border border-border bg-card">
             <CardContent className="p-6">
               <div className="flex items-start gap-4">
                 <div className="w-12 h-12 rounded-lg bg-rose-500 flex items-center justify-center flex-shrink-0">
                   <Bug className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className={`font-semibold mb-2 ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>Bug Report</h3>
-                  <p className={`text-sm ${nightMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                  <h3 className="font-semibold mb-2 text-card-foreground">Bug Report</h3>
+                  <p className="text-sm text-muted-foreground">
                     Found something broken? Let us know so we can fix it quickly
                   </p>
                 </div>
@@ -140,18 +140,18 @@ export default function Feedback() {
         </div>
 
         {/* Form */}
-        <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
-          <CardHeader className={`border-b ${nightMode ? 'border-slate-700' : 'border-stone-200'}`}>
-            <CardTitle className={nightMode ? 'text-slate-100' : 'text-slate-800'}>
+        <Card className="border shadow-sm border-border bg-card">
+          <CardHeader className="border-b border-border">
+            <CardTitle className="text-card-foreground">
               Submit {feedbackType === 'bug' ? 'Bug Report' : 'Feedback'}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label className={nightMode ? 'text-slate-200' : 'text-slate-800'}>Type</Label>
+                <Label>Type</Label>
                 <Select value={feedbackType} onValueChange={setFeedbackType}>
-                  <SelectTrigger className={nightMode ? 'bg-slate-700 border-slate-600 text-slate-100' : ''}>
+                  <SelectTrigger>
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -172,7 +172,7 @@ export default function Feedback() {
               </div>
 
               <div className="space-y-2">
-                <Label className={nightMode ? 'text-slate-200' : 'text-slate-800'}>
+                <Label>
                   {feedbackType === 'bug' ? 'Describe the bug' : 'Your feedback'}
                 </Label>
                 <Textarea
@@ -183,13 +183,13 @@ export default function Feedback() {
                   }
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  className={`min-h-[200px] ${nightMode ? 'bg-slate-700 border-slate-600 text-slate-100' : ''}`}
+                  className="min-h-[200px]"
                   required
                 />
               </div>
 
-              <div className={`p-4 rounded-lg ${nightMode ? 'bg-slate-700' : 'bg-teal-50'} border ${nightMode ? 'border-slate-600' : 'border-teal-200'}`}>
-                <p className={`text-sm ${nightMode ? 'text-slate-300' : 'text-slate-700'}`}>
+              <div className="p-4 rounded-lg bg-muted border border-border">
+                <p className="text-sm text-muted-foreground">
                   <strong>Note:</strong> Your email ({user?.email}) will be included with your submission 
                   so we can follow up if needed.
                 </p>
@@ -200,7 +200,7 @@ export default function Feedback() {
                   type="button"
                   variant="outline"
                   onClick={() => navigate(createPageUrl('Home'))}
-                  className={`flex-1 ${nightMode ? 'border-slate-600 text-slate-300 hover:bg-slate-700' : ''}`}
+                  className="flex-1"
                 >
                   Cancel
                 </Button>
@@ -218,12 +218,12 @@ export default function Feedback() {
         </Card>
 
         {/* Additional Info */}
-        <Card className={`border ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
+        <Card className="border border-border bg-card">
           <CardContent className="p-6">
-            <h3 className={`font-semibold mb-3 ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>
+            <h3 className="font-semibold mb-3 text-foreground">
               What happens next?
             </h3>
-            <ul className={`space-y-2 text-sm ${nightMode ? 'text-slate-400' : 'text-slate-600'}`}>
+            <ul className="space-y-2 text-sm text-muted-foreground">
               <li>• We review all feedback and bug reports carefully</li>
               <li>• Bug fixes are typically addressed within 1-2 weeks</li>
               <li>• Feature requests are evaluated and prioritized</li>

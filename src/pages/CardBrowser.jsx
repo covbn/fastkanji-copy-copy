@@ -176,69 +176,69 @@ export default function CardBrowser() {
   }
 
   return (
-    <div className={`min-h-screen p-4 md:p-8 ${nightMode ? 'bg-slate-900' : 'bg-stone-50'}`}>
+    <div className="min-h-screen p-4 md:p-8 bg-background">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="text-center space-y-2">
-          <h1 className={`text-4xl font-semibold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`} style={{fontFamily: "'Crimson Pro', serif"}}>
+          <h1 className="text-4xl font-semibold text-foreground" style={{fontFamily: "'Crimson Pro', serif"}}>
             Card Browser
           </h1>
-          <p className={nightMode ? 'text-slate-400' : 'text-slate-600'}>View and track all your vocabulary cards</p>
+          <p className="text-muted-foreground">View and track all your vocabulary cards</p>
         </div>
 
         {/* Summary Stats */}
         <div className="grid md:grid-cols-4 gap-4">
-          <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
+          <Card className="border shadow-sm border-border bg-card">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-cyan-500 flex items-center justify-center">
                   <BookOpen className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <p className={`text-2xl font-bold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>{categorizedCards.newCards.length}</p>
-                  <p className={`text-sm ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>New</p>
+                  <p className="text-2xl font-bold text-foreground">{categorizedCards.newCards.length}</p>
+                  <p className="text-sm text-muted-foreground">New</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
+          <Card className="border shadow-sm border-border bg-card">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-amber-500 flex items-center justify-center">
                   <Brain className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <p className={`text-2xl font-bold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>{categorizedCards.learningCards.length}</p>
-                  <p className={`text-sm ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Learning</p>
+                  <p className="text-2xl font-bold text-foreground">{categorizedCards.learningCards.length}</p>
+                  <p className="text-sm text-muted-foreground">Learning</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
+          <Card className="border shadow-sm border-border bg-card">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-emerald-500 flex items-center justify-center">
                   <Clock className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <p className={`text-2xl font-bold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>{categorizedCards.dueCards.length}</p>
-                  <p className={`text-sm ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Due Now</p>
+                  <p className="text-2xl font-bold text-foreground">{categorizedCards.dueCards.length}</p>
+                  <p className="text-sm text-muted-foreground">Due Now</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
+          <Card className="border shadow-sm border-border bg-card">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-slate-500 flex items-center justify-center">
                   <CheckCircle className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <p className={`text-2xl font-bold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>{categorizedCards.reviewedCards.length}</p>
-                  <p className={`text-sm ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Reviewed</p>
+                  <p className="text-2xl font-bold text-foreground">{categorizedCards.reviewedCards.length}</p>
+                  <p className="text-sm text-muted-foreground">Reviewed</p>
                 </div>
               </div>
             </CardContent>
@@ -250,16 +250,16 @@ export default function CardBrowser() {
           <CardContent className="p-4">
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1 relative">
-                <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${nightMode ? 'text-slate-400' : 'text-slate-500'}`} />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   placeholder="Search by kanji, reading, or meaning..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className={`pl-10 ${nightMode ? 'bg-slate-700 border-slate-600 text-slate-100' : ''}`}
+                  className="pl-10"
                 />
               </div>
               <Select value={stateFilter} onValueChange={setStateFilter}>
-                <SelectTrigger className={`w-full md:w-40 ${nightMode ? 'bg-slate-700 border-slate-600 text-slate-100' : ''}`}>
+                <SelectTrigger className="w-full md:w-40">
                   <SelectValue placeholder="State" />
                 </SelectTrigger>
                 <SelectContent>
@@ -271,7 +271,7 @@ export default function CardBrowser() {
                 </SelectContent>
               </Select>
               <Select value={levelFilter} onValueChange={setLevelFilter}>
-                <SelectTrigger className={`w-full md:w-32 ${nightMode ? 'bg-slate-700 border-slate-600 text-slate-100' : ''}`}>
+                <SelectTrigger className="w-full md:w-32">
                   <SelectValue placeholder="Level" />
                 </SelectTrigger>
                 <SelectContent>
@@ -287,8 +287,8 @@ export default function CardBrowser() {
 
         {/* Cards List */}
         <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
-          <CardHeader className={`border-b ${nightMode ? 'border-slate-700' : 'border-stone-200'}`}>
-            <CardTitle className={nightMode ? 'text-slate-100' : 'text-slate-800'}>
+          <CardHeader className="border-b border-border">
+            <CardTitle className="text-card-foreground">
               {filteredCards.length} Cards
             </CardTitle>
           </CardHeader>
@@ -304,7 +304,7 @@ export default function CardBrowser() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.02 }}
-                    className={`p-4 rounded-lg border ${nightMode ? 'bg-slate-700/50 hover:bg-slate-700 border-slate-600' : 'bg-stone-50 hover:bg-stone-100 border-stone-200'} transition-colors`}
+                    className="p-4 rounded-lg border bg-muted hover:bg-accent border-border transition-colors"
                   >
                     <div className="flex items-center justify-between gap-4">
                       <div className="flex items-center gap-4 flex-1 min-w-0">
@@ -313,20 +313,20 @@ export default function CardBrowser() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <p className={`text-xl font-semibold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`} style={{fontFamily: "'Crimson Pro', serif"}}>
+                            <p className="text-xl font-semibold text-foreground" style={{fontFamily: "'Crimson Pro', serif"}}>
                               {card.word.kanji}
                             </p>
-                            <p className={`text-sm ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                            <p className="text-sm text-muted-foreground">
                               {card.word.hiragana}
                             </p>
                           </div>
-                          <p className={`text-sm ${nightMode ? 'text-slate-300' : 'text-slate-600'} truncate`}>
+                          <p className="text-sm text-muted-foreground truncate">
                             {card.word.meaning}
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        <Badge variant="outline" className={nightMode ? 'border-slate-600 text-slate-300' : ''}>
+                        <Badge variant="outline">
                           {card.word.level}
                         </Badge>
                         <Badge className={`${stateInfo.color} text-white`}>
@@ -334,11 +334,11 @@ export default function CardBrowser() {
                         </Badge>
                         {card.progress && (
                           <div className="text-right">
-                            <p className={`text-xs ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                            <p className="text-xs text-muted-foreground">
                               Next: {formatNextReview(card.progress.next_review)}
                             </p>
                             {card.progress.difficulty && (
-                              <p className={`text-xs ${nightMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                              <p className="text-xs text-muted-foreground">
                                 Diff: {card.progress.difficulty.toFixed(1)}
                               </p>
                             )}
@@ -351,7 +351,7 @@ export default function CardBrowser() {
               })}
               {filteredCards.length === 0 && (
                 <div className="text-center py-12">
-                  <p className={nightMode ? 'text-slate-400' : 'text-slate-500'}>No cards found matching your filters</p>
+                  <p className="text-muted-foreground">No cards found matching your filters</p>
                 </div>
               )}
             </div>

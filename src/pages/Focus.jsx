@@ -162,8 +162,8 @@ export default function Focus() {
   };
 
   return (
-    <div className={`min-h-screen flex items-center justify-center p-4 ${nightMode ? 'bg-slate-900' : 'bg-gradient-to-br from-teal-50 via-cyan-50 to-stone-50'}`}>
-      <Card className={`w-full max-w-2xl shadow-lg ${nightMode ? 'bg-slate-800 border-slate-700' : 'border-stone-200'}`}>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+      <Card className="w-full max-w-2xl shadow-lg border-border bg-card">
         <CardContent className="p-8 md:p-12">
           <AnimatePresence mode="wait">
             {/* Ready Phase */}
@@ -179,20 +179,20 @@ export default function Focus() {
                   <div className="w-20 h-20 mx-auto bg-gradient-to-br from-teal-500 to-cyan-500 rounded-3xl flex items-center justify-center shadow-lg">
                     <Wind className="w-10 h-10 text-white" />
                   </div>
-                  <h1 className={`text-4xl font-semibold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`} style={{fontFamily: "'Crimson Pro', serif"}}>
+                  <h1 className="text-4xl font-semibold text-foreground" style={{fontFamily: "'Crimson Pro', serif"}}>
                     Focus Exercise
                   </h1>
-                  <p className={nightMode ? 'text-slate-400 max-w-md mx-auto' : 'text-slate-600 max-w-md mx-auto'}>
+                  <p className="text-muted-foreground max-w-md mx-auto">
                     Prime your brain for peak learning with this neuroplasticity-activating protocol
                   </p>
                 </div>
 
-                <div className={`p-6 rounded-xl border text-left space-y-3 ${nightMode ? 'bg-slate-700/50 border-slate-600' : 'bg-teal-50 border-teal-200'}`}>
-                  <h3 className={`font-bold flex items-center gap-2 ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>
+                <div className="p-6 rounded-xl border border-border bg-muted text-left space-y-3">
+                  <h3 className="font-bold flex items-center gap-2 text-foreground">
                     <Brain className="w-5 h-5 text-teal-600" />
                     The Exercise (~2 minutes)
                   </h3>
-                  <ol className={`space-y-2 ${nightMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                  <ol className="space-y-2 text-foreground">
                     <li className="flex items-start gap-2">
                       <span className="font-semibold text-teal-600">1.</span>
                       <span>Take {totalBreaths} deep breaths (automatic 4s in, 1s hold, 4s out, 1s hold)</span>
@@ -225,7 +225,7 @@ export default function Focus() {
                     onClick={() => navigate(createPageUrl("Home"))}
                     variant="outline"
                     size="lg"
-                    className={`w-full ${nightMode ? 'border-slate-600 text-slate-300 hover:bg-slate-700' : ''}`}
+                    className="w-full"
                   >
                     <Home className="w-5 h-5 mr-2" />
                     Back to Home
@@ -258,7 +258,7 @@ export default function Focus() {
                   </motion.div>
                   
                   <div className="space-y-2">
-                    <h2 className={`text-5xl font-bold px-4 ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>
+                    <h2 className="text-5xl font-bold px-4 text-foreground">
                       {breathCount}/{totalBreaths}
                     </h2>
                     <p className={`text-2xl font-semibold ${
@@ -270,7 +270,7 @@ export default function Focus() {
                        breathPhase === 'exhale' ? 'Breathe Out' : 
                        'Hold'}
                     </p>
-                    <p className={nightMode ? 'text-slate-400' : 'text-slate-500'}>
+                    <p className="text-muted-foreground">
                       Follow the circle
                     </p>
                   </div>
@@ -280,7 +280,6 @@ export default function Focus() {
                   onClick={skipToEnd}
                   variant="outline"
                   size="sm"
-                  className={nightMode ? 'border-slate-600 text-slate-300 hover:bg-slate-700' : ''}
                 >
                   Skip Exercise
                 </Button>
@@ -301,13 +300,13 @@ export default function Focus() {
                     <Pause className="w-16 h-16 text-white" />
                   </div>
                   
-                  <h2 className={`text-6xl font-bold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>
+                  <h2 className="text-6xl font-bold text-foreground">
                     {holdTimer}s
                   </h2>
-                  <p className={`text-xl ${nightMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                  <p className="text-xl text-foreground">
                     Hold with empty lungs
                   </p>
-                  <p className={nightMode ? 'text-slate-400' : 'text-slate-500'}>
+                  <p className="text-muted-foreground">
                     Feel the tension build... this activates your alertness
                   </p>
                 </div>
@@ -346,13 +345,13 @@ export default function Focus() {
                     <Sparkles className="w-16 h-16 text-white" />
                   </motion.div>
                   
-                  <h2 className={`text-6xl font-bold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>
+                  <h2 className="text-6xl font-bold text-foreground">
                     {holdTimer}s
                   </h2>
-                  <p className={`text-xl ${nightMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                  <p className="text-xl text-foreground">
                     Hold deep breath
                   </p>
-                  <p className={nightMode ? 'text-slate-400' : 'text-slate-500'}>
+                  <p className="text-muted-foreground">
                     Hold for ~15 seconds, then continue
                   </p>
                 </div>
@@ -377,11 +376,11 @@ export default function Focus() {
                 className="text-center space-y-8"
               >
                 <div className="space-y-4">
-                  <Eye className={`w-12 h-12 mx-auto ${nightMode ? 'text-slate-400' : 'text-slate-600'}`} />
-                  <h2 className={`text-3xl font-semibold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`} style={{fontFamily: "'Crimson Pro', serif"}}>
+                  <Eye className="w-12 h-12 mx-auto text-muted-foreground" />
+                  <h2 className="text-3xl font-semibold text-foreground" style={{fontFamily: "'Crimson Pro', serif"}}>
                     Focus on the Dot
                   </h2>
-                  <p className={nightMode ? 'text-slate-400' : 'text-slate-600'}>
+                  <p className="text-muted-foreground">
                     Stare at the dot without looking away. Blink as needed.
                   </p>
                 </div>
@@ -401,10 +400,10 @@ export default function Focus() {
 
                 {/* Timer */}
                 <div className="space-y-2">
-                  <h3 className={`text-5xl font-bold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>
+                  <h3 className="text-5xl font-bold text-foreground">
                     {dotStareDuration - dotTimer}s
                   </h3>
-                  <p className={`text-sm ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  <p className="text-sm text-muted-foreground">
                     remaining
                   </p>
                 </div>
@@ -413,7 +412,6 @@ export default function Focus() {
                   onClick={finishExercise}
                   variant="outline"
                   size="sm"
-                  className={nightMode ? 'border-slate-600 text-slate-300 hover:bg-slate-700' : ''}
                 >
                   Skip
                 </Button>
@@ -444,16 +442,16 @@ export default function Focus() {
                     <Sparkles className="w-12 h-12 text-white" />
                   </motion.div>
                   
-                  <h2 className={`text-4xl font-semibold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`} style={{fontFamily: "'Crimson Pro', serif"}}>
+                  <h2 className="text-4xl font-semibold text-foreground" style={{fontFamily: "'Crimson Pro', serif"}}>
                     Exercise Complete!
                   </h2>
-                  <p className={`text-lg max-w-md mx-auto ${nightMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                  <p className="text-lg max-w-md mx-auto text-muted-foreground">
                     Your brain is now primed for maximum learning. Your alertness and focus are heightened - perfect time to study! 🧠
                   </p>
                 </div>
 
-                <div className={`p-6 rounded-xl border ${nightMode ? 'bg-slate-700/50 border-slate-600' : 'bg-teal-50 border-teal-200'}`}>
-                  <p className={nightMode ? 'text-slate-300' : 'text-slate-700'}>
+                <div className="p-6 rounded-xl border border-border bg-muted">
+                  <p className="text-foreground">
                     <strong>Pro tip:</strong> Do this exercise before each study session for best results. 
                     The effects last 45-90 minutes.
                   </p>
@@ -471,7 +469,7 @@ export default function Focus() {
                     onClick={reset}
                     variant="outline"
                     size="lg"
-                    className={`w-full ${nightMode ? 'border-slate-600 text-slate-300 hover:bg-slate-700' : ''}`}
+                    className="w-full"
                   >
                     <RotateCcw className="w-5 h-5 mr-2" />
                     Do Another Round
