@@ -589,11 +589,15 @@ export default function SpacedRepetition() {
             </p>
             <div className={`space-y-2 text-sm ${nightMode ? 'text-slate-400' : 'text-slate-600'}`}>
               <div className="flex justify-between items-center">
-                <span>New cards:</span>
+                <span>New introduced:</span>
                 <span className="font-semibold text-cyan-600">{newCardsToday} / {maxNewCardsPerDay}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span>Reviews:</span>
+                <span>New learned:</span>
+                <span className="font-semibold text-blue-600">{newLearnedToday}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span>Reviews (older):</span>
                 <span className="font-semibold text-emerald-600">{reviewsToday} / {maxReviewsPerDay}</span>
               </div>
               {totalLearningCount > 0 && (

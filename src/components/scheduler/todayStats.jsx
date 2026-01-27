@@ -17,7 +17,8 @@ export function calculateTodayStats(userProgress) {
     return {
       date: getTodayDateString(),
       newIntroducedToday: 0,
-      reviewsDoneToday: 0
+      newLearnedToday: 0,
+      reviewsCompletedToday: 0
     };
   }
 
@@ -26,20 +27,31 @@ export function calculateTodayStats(userProgress) {
   brusselsToday.setHours(0, 0, 0, 0);
   const todayTimestamp = brusselsToday.getTime();
 
-  // Count new cards introduced today
-  // CRITICAL: Use first_reviewed_day_key as source of truth
-  // This field is set ONLY on first rating and never changes
   const todayKey = getTodayDateString();
+
+  // 1) New Introduced Today
+  // Count cards whose first-ever exposure happened today
   const newIntroduced = userProgress.filter(p => {
     return p.first_reviewed_day_key === todayKey;
   }).length;
 
-  // Count reviews done today
-  // A review is "done today" if:
-  // - last_reviewed is today (Brussels timezone)
-  // - AND state is Review (or interday learning if we count that)
-  // - AND reps > 1 (not the first rating)
-  const reviewsDone = userProgress.filter(p => {
+  // 2) New Learned Today (Graduated)
+  // Cards introduced today AND graduated to Review state today
+  const newLearned = userProgress.filter(p => {
+    if (p.first_reviewed_day_key !== todayKey) return false;
+    if (p.state !== 'Review') return false;
+    if (!p.last_reviewed) return false;
+    
+    // Check if last_reviewed (graduation moment) was today
+    const reviewedBrussels = new Date(new Date(p.last_reviewed).toLocaleString('en-US', { timeZone: 'Europe/Brussels' }));
+    reviewedBrussels.setHours(0, 0, 0, 0);
+    return reviewedBrussels.getTime() === todayTimestamp;
+  }).length;
+
+  // 3) Reviews Completed (Older cards only)
+  // Cards introduced BEFORE today that were reviewed today
+  const reviewsCompleted = userProgress.filter(p => {
+    if (p.first_reviewed_day_key === todayKey) return false; // Exclude today's new cards
     if (!p.last_reviewed || !p.reps || p.reps <= 1) return false;
     if (p.state !== 'Review') return false;
     
@@ -54,17 +66,19 @@ export function calculateTodayStats(userProgress) {
       dayKey: todayKey,
       progressCount: userProgress.length,
       newIntroduced,
-      reviewsDone
+      newLearned,
+      reviewsCompleted
     };
 
     const hasChanged = !lastLoggedStats || 
       lastLoggedStats.dayKey !== currentStats.dayKey ||
       lastLoggedStats.progressCount !== currentStats.progressCount ||
       lastLoggedStats.newIntroduced !== currentStats.newIntroduced ||
-      lastLoggedStats.reviewsDone !== currentStats.reviewsDone;
+      lastLoggedStats.newLearned !== currentStats.newLearned ||
+      lastLoggedStats.reviewsCompleted !== currentStats.reviewsCompleted;
 
     if (hasChanged) {
-      console.log('[TodayStats] Day:', todayKey, '| New:', newIntroduced, '| Reviews:', reviewsDone, '| Progress records:', userProgress.length);
+      console.log('[TodayStats] Day:', todayKey, '| New:', newIntroduced, '| Learned:', newLearned, '| Reviews:', reviewsCompleted, '| Progress:', userProgress.length);
       lastLoggedStats = currentStats;
     }
   }
@@ -72,7 +86,8 @@ export function calculateTodayStats(userProgress) {
   return {
     date: getTodayDateString(),
     newIntroducedToday: newIntroduced,
-    reviewsDoneToday: reviewsDone
+    newLearnedToday: newLearned,
+    reviewsCompletedToday: reviewsCompleted
   };
 }
 
@@ -92,11 +107,11 @@ export function getTodayDateString() {
  * @param {number} maxNewCardsPerDay
  * @param {number} maxReviewsPerDay
  * @param {boolean} newIgnoresReviewLimit
- * @param {number} reviewsDone - Current reviews done (may differ from stats if updated)
+ * @param {number} reviewsCompleted - Current reviews done (may differ from stats if updated)
  * @returns {boolean}
  */
-export function canIntroduceNewCard(stats, maxNewCardsPerDay, maxReviewsPerDay, newIgnoresReviewLimit, reviewsDone = null) {
-  const actualReviewsDone = reviewsDone !== null ? reviewsDone : stats.reviewsDoneToday;
+export function canIntroduceNewCard(stats, maxNewCardsPerDay, maxReviewsPerDay, newIgnoresReviewLimit, reviewsCompleted = null) {
+  const actualReviewsDone = reviewsCompleted !== null ? reviewsCompleted : stats.reviewsCompletedToday;
   
   // Check new card limit
   if (stats.newIntroducedToday >= maxNewCardsPerDay) {
@@ -118,5 +133,5 @@ export function canIntroduceNewCard(stats, maxNewCardsPerDay, maxReviewsPerDay, 
  * @returns {boolean}
  */
 export function canDoReview(stats, maxReviewsPerDay) {
-  return stats.reviewsDoneToday < maxReviewsPerDay;
+  return stats.reviewsCompletedToday < maxReviewsPerDay;
 }
