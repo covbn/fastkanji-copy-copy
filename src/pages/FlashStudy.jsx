@@ -101,6 +101,8 @@ export default function FlashStudy() {
     },
   });
 
+  const today = new Date().toISOString().split('T')[0];
+
   const totalAnswered = correctCount + incorrectCount;
   const accuracy = totalAnswered > 0 ? (correctCount / totalAnswered) * 100 : 0;
 

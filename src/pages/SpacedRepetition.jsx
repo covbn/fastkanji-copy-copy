@@ -156,29 +156,7 @@ export default function SpacedRepetition() {
     },
   });
 
-  const updateUsageMutation = useMutation({
-    mutationFn: async (elapsedSeconds) => {
-      if (!settings || !user) return;
-      
-      const today = new Date().toISOString().split('T')[0];
-      const usageDate = settings.last_usage_date;
-      
-      let newUsage;
-      if (usageDate === today) {
-        newUsage = (settings.daily_usage_seconds || 0) + elapsedSeconds;
-      } else {
-        newUsage = elapsedSeconds;
-      }
-      
-      return base44.entities.UserSettings.update(settings.id, {
-        daily_usage_seconds: newUsage,
-        last_usage_date: today
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userSettings'] });
-    },
-  });
+  const today = new Date().toISOString().split('T')[0];
 
   // Define completeSession early using useCallback
   const completeSession = useCallback(() => {
