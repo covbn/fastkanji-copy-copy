@@ -270,7 +270,7 @@ export default function FlashStudy() {
         incorrectCount={incorrectCount}
         accuracy={accuracy}
         onContinue={() => navigate(createPageUrl('Home'))}
-        reviewWords={reviewAfterRest}
+        reviewWords={[]}
       />
     );
   }
