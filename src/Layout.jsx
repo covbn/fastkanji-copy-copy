@@ -90,8 +90,20 @@ export default function Layout({ children, currentPageName }) {
     enabled: !!user,
   });
 
-  const nightMode = settings?.night_mode || false;
-  const isPremium = settings?.subscription_status === 'premium'; // Added isPremium
+  // Apply theme globally on mount and when settings change
+  React.useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    const isDark = savedTheme ? savedTheme === 'dark' : (settings?.night_mode || false);
+    
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [settings?.night_mode]);
+
+  const nightMode = settings?.night_mode || localStorage.getItem('theme') === 'dark';
+  const isPremium = settings?.subscription_status === 'premium';
 
   return (
     <SidebarProvider>
@@ -100,13 +112,57 @@ export default function Layout({ children, currentPageName }) {
           @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Crimson+Pro:wght@400;600&display=swap');
           
           :root {
+            --background: 0 0% 100%;
+            --foreground: 222.2 84% 4.9%;
+            --card: 0 0% 100%;
+            --card-foreground: 222.2 84% 4.9%;
+            --popover: 0 0% 100%;
+            --popover-foreground: 222.2 84% 4.9%;
             --primary: 180 35% 55%;
             --primary-foreground: 0 0% 100%;
-            --accent: 25 75% 65%;
-            --destructive: 0 60% 60%;
+            --secondary: 210 40% 96.1%;
+            --secondary-foreground: 222.2 47.4% 11.2%;
+            --muted: 210 40% 96.1%;
+            --muted-foreground: 215.4 16.3% 46.9%;
+            --accent: 210 40% 96.1%;
+            --accent-foreground: 222.2 47.4% 11.2%;
+            --destructive: 0 84.2% 60.2%;
+            --destructive-foreground: 210 40% 98%;
+            --border: 214.3 31.8% 91.4%;
+            --input: 214.3 31.8% 91.4%;
+            --ring: 180 35% 55%;
+            --radius: 0.5rem;
+          }
+
+          .dark {
+            --background: 222.2 84% 4.9%;
+            --foreground: 210 40% 98%;
+            --card: 222.2 84% 4.9%;
+            --card-foreground: 210 40% 98%;
+            --popover: 222.2 84% 4.9%;
+            --popover-foreground: 210 40% 98%;
+            --primary: 180 35% 55%;
+            --primary-foreground: 0 0% 100%;
+            --secondary: 217.2 32.6% 17.5%;
+            --secondary-foreground: 210 40% 98%;
+            --muted: 217.2 32.6% 17.5%;
+            --muted-foreground: 215 20.2% 65.1%;
+            --accent: 217.2 32.6% 17.5%;
+            --accent-foreground: 210 40% 98%;
+            --destructive: 0 62.8% 30.6%;
+            --destructive-foreground: 210 40% 98%;
+            --border: 217.2 32.6% 17.5%;
+            --input: 217.2 32.6% 17.5%;
+            --ring: 180 35% 55%;
+          }
+          
+          * {
+            border-color: hsl(var(--border));
           }
           
           body {
+            background-color: hsl(var(--background));
+            color: hsl(var(--foreground));
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
           }
           
@@ -126,23 +182,23 @@ export default function Layout({ children, currentPageName }) {
           }
 
           .custom-scrollbar::-webkit-scrollbar-track {
-            background: #f1f5f9;
+            background: hsl(var(--muted));
             border-radius: 4px;
           }
 
           .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #94a3b8;
+            background: hsl(var(--muted-foreground));
             border-radius: 4px;
           }
 
           .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #64748b;
+            background: hsl(var(--foreground) / 0.5);
           }
 
           /* Firefox */
           .custom-scrollbar {
             scrollbar-width: thin;
-            scrollbar-color: #94a3b8 #f1f5f9;
+            scrollbar-color: hsl(var(--muted-foreground)) hsl(var(--muted));
           }
 
           /* Default scrollbar improvements */
@@ -152,36 +208,36 @@ export default function Layout({ children, currentPageName }) {
           }
 
           ::-webkit-scrollbar-track {
-            background: #f8fafc;
+            background: hsl(var(--background));
           }
 
           ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
+            background: hsl(var(--muted-foreground) / 0.5);
             border-radius: 5px;
           }
 
           ::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
+            background: hsl(var(--muted-foreground));
           }
 
           * {
             scrollbar-width: thin;
-            scrollbar-color: #cbd5e1 #f8fafc;
+            scrollbar-color: hsl(var(--muted-foreground) / 0.5) hsl(var(--background));
           }
         `}
       </style>
-      <div className={`min-h-screen flex w-full ${nightMode ? 'bg-slate-900' : 'bg-stone-50'}`}>
-        <Sidebar className={`border-r ${nightMode ? 'border-slate-700 bg-slate-800/95' : 'border-stone-200 bg-white/95'} backdrop-blur-sm`}>
-          <SidebarHeader className={`border-b ${nightMode ? 'border-slate-700' : 'border-stone-200'} p-6`}>
+      <div className="min-h-screen flex w-full bg-background text-foreground">
+        <Sidebar className="border-r border-border bg-card backdrop-blur-sm">
+          <SidebarHeader className="border-b border-border p-6">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-teal-500 rounded-lg flex items-center justify-center shadow-sm">
                 <span className="text-2xl">速</span>
               </div>
               <div>
-                <h2 className={`font-semibold text-xl ${nightMode ? 'text-slate-100' : 'text-slate-800'}`} style={{fontFamily: "'Crimson Pro', serif"}}>
+                <h2 className="font-semibold text-xl text-foreground" style={{fontFamily: "'Crimson Pro', serif"}}>
                   FastKanji
                 </h2>
-                <p className={`text-xs ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>速く学ぶ</p>
+                <p className="text-xs text-muted-foreground">速く学ぶ</p>
               </div>
             </div>
           </SidebarHeader>
@@ -214,7 +270,7 @@ export default function Layout({ children, currentPageName }) {
             )}
 
             <SidebarGroup>
-              <SidebarGroupLabel className={`text-xs font-medium ${nightMode ? 'text-slate-400' : 'text-slate-500'} uppercase tracking-wider px-3 py-2`}>
+              <SidebarGroupLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-3 py-2">
                 Study
               </SidebarGroupLabel>
               <SidebarGroupContent>
@@ -223,10 +279,10 @@ export default function Layout({ children, currentPageName }) {
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton 
                         asChild 
-                        className={`${nightMode ? 'hover:bg-slate-700 hover:text-teal-400' : 'hover:bg-stone-100 hover:text-teal-700'} transition-all duration-200 rounded-lg mb-1 ${
+                        className={`hover:bg-accent hover:text-accent-foreground transition-all duration-200 rounded-lg mb-1 ${
                           location.pathname === item.url 
                             ? 'bg-teal-500 text-white shadow-sm' 
-                            : nightMode ? 'text-slate-300' : 'text-slate-700'
+                            : 'text-foreground'
                         }`}
                       >
                         <Link to={item.url} className="flex items-center gap-3 px-4 py-2.5">
@@ -241,7 +297,7 @@ export default function Layout({ children, currentPageName }) {
             </SidebarGroup>
 
             <SidebarGroup className="mt-4">
-              <SidebarGroupLabel className={`text-xs font-medium ${nightMode ? 'text-slate-400' : 'text-slate-500'} uppercase tracking-wider px-3 py-2`}>
+              <SidebarGroupLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-3 py-2">
                 Tools
               </SidebarGroupLabel>
               <SidebarGroupContent>
@@ -250,10 +306,10 @@ export default function Layout({ children, currentPageName }) {
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton 
                         asChild 
-                        className={`${nightMode ? 'hover:bg-slate-700 hover:text-teal-400' : 'hover:bg-stone-100 hover:text-teal-700'} transition-all duration-200 rounded-lg mb-1 ${
+                        className={`hover:bg-accent hover:text-accent-foreground transition-all duration-200 rounded-lg mb-1 ${
                           location.pathname === item.url 
                             ? 'bg-teal-500 text-white shadow-sm' 
-                            : nightMode ? 'text-slate-300' : 'text-slate-700'
+                            : 'text-foreground'
                         }`}
                       >
                         <Link to={item.url} className="flex items-center gap-3 px-4 py-2.5">
@@ -268,24 +324,24 @@ export default function Layout({ children, currentPageName }) {
             </SidebarGroup>
           </SidebarContent>
 
-          <SidebarFooter className={`border-t ${nightMode ? 'border-slate-700' : 'border-stone-200'} p-4`}>
+          <SidebarFooter className="border-t border-border p-4">
             <div className="flex items-center gap-3 px-2">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${nightMode ? 'bg-slate-700' : 'bg-stone-100'}`}>
-                <span className={`${nightMode ? 'text-teal-400' : 'text-teal-600'} font-semibold text-sm`}>学</span>
+              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-muted">
+                <span className="text-teal-600 font-semibold text-sm">学</span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className={`font-medium text-sm truncate ${nightMode ? 'text-slate-200' : 'text-slate-800'}`}>Learner</p>
-                <p className={`text-xs truncate ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>頑張って</p>
+                <p className="font-medium text-sm truncate text-foreground">Learner</p>
+                <p className="text-xs truncate text-muted-foreground">頑張って</p>
               </div>
             </div>
           </SidebarFooter>
         </Sidebar>
 
         <main className="flex-1 flex flex-col">
-          <header className={`${nightMode ? 'bg-slate-800/95 border-slate-700' : 'bg-white/95 border-stone-200'} backdrop-blur-sm border-b px-6 py-4 md:hidden`}>
+          <header className="bg-card/95 border-b border-border backdrop-blur-sm px-6 py-4 md:hidden">
             <div className="flex items-center gap-4">
-              <SidebarTrigger className={`${nightMode ? 'hover:bg-slate-700' : 'hover:bg-stone-100'} p-2 rounded-lg transition-colors duration-200`} />
-              <h1 className={`text-xl font-semibold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`} style={{fontFamily: "'Crimson Pro', serif"}}>
+              <SidebarTrigger className="hover:bg-accent p-2 rounded-lg transition-colors duration-200" />
+              <h1 className="text-xl font-semibold text-foreground" style={{fontFamily: "'Crimson Pro', serif"}}>
                 FastKanji
               </h1>
             </div>
