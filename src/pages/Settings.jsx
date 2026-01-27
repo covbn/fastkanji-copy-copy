@@ -111,7 +111,7 @@ export default function Settings() {
   }, [formData.debug_mode, userProgress, settings]);
 
   const nightMode = settings?.night_mode || false;
-  const isPremium = settings?.subscription_status === 'premium'; // Added isPremium calculation
+  const isPremium = settings?.subscription_status === 'premium' || localStorage.getItem('premium_status') === 'premium';
 
   const saveSettingsMutation = useMutation({
     mutationFn: async (data) => {
@@ -497,6 +497,48 @@ export default function Settings() {
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6 space-y-6">
+            {/* Remove Premium Button */}
+            <div className="p-4 rounded-lg bg-muted border border-border">
+              <h4 className="font-semibold mb-2 text-foreground">Premium Status</h4>
+              <p className="text-sm text-muted-foreground mb-3">
+                Current: <strong>{isPremium ? 'Premium' : 'Free'}</strong>
+              </p>
+              {isPremium && (
+                <Button
+                  onClick={async () => {
+                    try {
+                      // Remove from cloud if settings exist
+                      if (settings?.id) {
+                        await base44.entities.UserSettings.update(settings.id, {
+                          subscription_status: 'free'
+                        });
+                      }
+                      
+                      // Remove from localStorage
+                      localStorage.removeItem('premium_status');
+                      
+                      // Invalidate queries
+                      await queryClient.invalidateQueries({ queryKey: ['userSettings'] });
+                      
+                      console.log('[PREMIUM] debugRemove -> isPremium=false (source=both)');
+                      
+                      toast({
+                        title: "Premium Removed",
+                        description: "Switched back to free plan for testing.",
+                        duration: 3000,
+                      });
+                    } catch (e) {
+                      console.error('[PREMIUM] debugRemove error:', e);
+                    }
+                  }}
+                  variant="outline"
+                  size="sm"
+                >
+                  Remove Premium (Testing)
+                </Button>
+              )}
+            </div>
+
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <Label className="text-base font-medium text-foreground">Debug Mode</Label>
