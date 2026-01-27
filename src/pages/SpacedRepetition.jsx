@@ -12,6 +12,7 @@ import GradingButtons from "../components/srs/GradingButtons";
 import AccuracyMeter from "../components/flash/AccuracyMeter";
 import RestInterval from "../components/flash/RestInterval";
 import SessionComplete from "../components/flash/SessionComplete";
+import { loadRemainingTime, saveRemainingTime, checkAndResetIfNewDay, logTick } from "@/components/utils/timerPersistence";
 
 // New Anki-style SM-2 scheduler
 import { DEFAULT_OPTIONS } from "../components/scheduler/types";
@@ -51,6 +52,8 @@ export default function SpacedRepetition() {
   const [limitPromptType, setLimitPromptType] = useState(null); // 'new', 'review', or 'both'
   const [statsReady, setStatsReady] = useState(false);
   const [doneReason, setDoneReason] = useState(null);
+  const [dayKey] = useState(() => new Date().toISOString().split('T')[0]);
+  const [remainingTime, setRemainingTime] = useState(null);
   
   const handleRevealChange = useCallback((isRevealed) => {
     setCurrentCard(prev => ({ ...prev, _revealed: isRevealed }));
@@ -87,15 +90,24 @@ export default function SpacedRepetition() {
   const restMaxSeconds = settings?.rest_max_seconds || 150;
   const restDurationSeconds = settings?.rest_duration_seconds || 10;
   const nightMode = settings?.night_mode || false;
-  const isPremium = settings?.subscription_status === 'premium';
+  const isPremium = settings?.subscription_status === 'premium' || localStorage.getItem('premium_status') === 'premium';
   
-  const dailyLimit = 7.5 * 60;
-  const today = new Date().toISOString().split('T')[0];
-  const usageDate = settings?.last_usage_date;
-  const isNewDay = usageDate !== today;
-  const baseUsage = isNewDay ? 0 : (settings?.daily_usage_seconds || 0);
-  const totalUsage = baseUsage + currentUsage;
-  const remainingSeconds = Math.max(0, dailyLimit - totalUsage);
+  const remainingSeconds = remainingTime !== null ? remainingTime : (7.5 * 60);
+
+  // Load persisted timer on mount
+  useEffect(() => {
+    if (isPremium) return;
+    
+    const userId = user?.email || 'guest';
+    const currentDayKey = new Date().toISOString().split('T')[0];
+    
+    // Check for day change
+    checkAndResetIfNewDay(userId, dayKey);
+    
+    // Load remaining time
+    const { remainingSeconds } = loadRemainingTime(userId);
+    setRemainingTime(remainingSeconds);
+  }, [user, isPremium]);
   
   // Today-only extension deltas (persisted in localStorage)
   const baseMaxNewCardsPerDay = settings?.max_new_cards_per_day || 20;
@@ -172,6 +184,12 @@ export default function SpacedRepetition() {
   const completeSession = useCallback(() => {
     const duration = Math.floor((Date.now() - sessionStartTime) / 1000);
     
+    // Save timer before completing
+    if (!isPremium && remainingTime !== null) {
+      const userId = user?.email || 'guest';
+      saveRemainingTime(userId, remainingTime, 'finish');
+    }
+    
     createSessionMutation.mutate({
       mode,
       level: uiLevel,
@@ -183,33 +201,33 @@ export default function SpacedRepetition() {
     });
 
     setSessionComplete(true);
-  }, [sessionStartTime, createSessionMutation, mode, uiLevel, correctCount, incorrectCount]);
+  }, [sessionStartTime, createSessionMutation, mode, uiLevel, correctCount, incorrectCount, isPremium, remainingTime, user]);
 
   // Track usage time in real-time
   useEffect(() => {
-    if (isPremium || sessionComplete) return;
+    if (isPremium || sessionComplete || remainingTime === null) return;
 
     const interval = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
-      setCurrentUsage(elapsed);
-
-      // Update usage in real-time (every 10 seconds)
-      if (elapsed % 10 === 0 && elapsed > 0 && settings) {
-        const currentStoredUsage = settings.daily_usage_seconds || 0;
-        base44.entities.UserSettings.update(settings.id, {
-          daily_usage_seconds: currentStoredUsage + 10,
-          last_usage_date: today
-        });
-      }
-
-      if (baseUsage + elapsed >= dailyLimit) {
-        alert("Daily study limit reached (7.5 minutes). Upgrade to Premium for unlimited access!");
-        navigate(createPageUrl('Subscription'));
-      }
+      setRemainingTime(prev => {
+        const newRemaining = Math.max(0, prev - 1);
+        logTick(newRemaining);
+        
+        if (newRemaining <= 0) {
+          alert("Daily study limit reached (7.5 minutes). Upgrade to Premium for unlimited access!");
+          navigate(createPageUrl('Subscription'));
+        }
+        
+        return newRemaining;
+      });
     }, 1000);
 
-    return () => clearInterval(interval);
-  }, [isPremium, sessionComplete, baseUsage, dailyLimit, sessionStartTime, today, navigate, settings]);
+    return () => {
+      clearInterval(interval);
+      // Save on unmount
+      const userId = user?.email || 'guest';
+      saveRemainingTime(userId, remainingTime, 'unmount');
+    };
+  }, [isPremium, sessionComplete, remainingTime, navigate, user]);
 
   useEffect(() => {
     const stats = calculateTodayStats(userProgress);
@@ -551,6 +569,11 @@ export default function SpacedRepetition() {
 
   const handleEndSession = () => {
     if (window.confirm('Are you sure you want to end this session early? Your progress will be saved.')) {
+      // Save timer before completing
+      if (!isPremium && remainingTime !== null) {
+        const userId = user?.email || 'guest';
+        saveRemainingTime(userId, remainingTime, 'quit');
+      }
       completeSession();
     }
   };
