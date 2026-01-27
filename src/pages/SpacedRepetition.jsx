@@ -691,7 +691,7 @@ export default function SpacedRepetition() {
 
   return (
     <div className={`min-h-screen flex flex-col ${nightMode ? 'bg-slate-900' : 'bg-gradient-to-br from-stone-100 via-teal-50 to-cyan-50'}`}>
-      <div className={`border-b px-3 md:px-6 py-2 md:py-3 ${nightMode ? 'bg-slate-800/80 backdrop-blur-sm border-slate-700' : 'bg-white/80 backdrop-blur-sm border-stone-200'}`}>
+      <div className="border-b border-border px-3 md:px-6 py-2 md:py-3 bg-card/80 backdrop-blur-sm">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3 md:gap-6">
             <div className="flex items-center gap-1.5 md:gap-2">

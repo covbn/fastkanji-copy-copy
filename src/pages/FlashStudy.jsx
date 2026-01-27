@@ -248,13 +248,12 @@ export default function FlashStudy() {
 
   if (vocabulary.length === 0) {
     return (
-      <div className={`h-screen flex items-center justify-center p-4 ${nightMode ? 'bg-slate-900' : ''}`}>
+      <div className="h-screen flex items-center justify-center p-4 bg-background">
         <div className="text-center space-y-4">
-          <p className={`text-xl ${nightMode ? 'text-slate-300' : 'text-slate-600'}`}>No vocabulary loaded for {uiLevel}</p>
+          <p className="text-xl text-foreground">No vocabulary loaded for {uiLevel}</p>
           <Button
             onClick={() => navigate(createPageUrl('Home'))}
             variant="outline"
-            className={nightMode ? 'border-slate-600 text-slate-300 hover:bg-slate-700' : ''}
           >
             ← Back to Home
           </Button>
@@ -281,10 +280,10 @@ export default function FlashStudy() {
 
   if (!currentCard) {
     return (
-      <div className={`h-screen flex items-center justify-center ${nightMode ? 'bg-slate-900' : ''}`}>
+      <div className="h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
-          <p className={nightMode ? 'text-slate-400' : 'text-slate-600'}>Preparing cards...</p>
+          <p className="text-muted-foreground">Preparing cards...</p>
         </div>
       </div>
     );
@@ -294,35 +293,35 @@ export default function FlashStudy() {
   const remainingCount = sessionSize - graduated.size;
 
   return (
-    <div className={`min-h-screen flex flex-col ${nightMode ? 'bg-slate-900' : 'bg-gradient-to-br from-stone-100 via-teal-50 to-cyan-50'}`}>
-      <div className={`border-b px-3 md:px-6 py-2 md:py-3 ${nightMode ? 'bg-slate-800/80 backdrop-blur-sm border-slate-700' : 'bg-white/80 backdrop-blur-sm border-stone-200'}`}>
+    <div className="min-h-screen flex flex-col bg-background">
+      <div className="border-b border-border px-3 md:px-6 py-2 md:py-3 bg-card/80 backdrop-blur-sm">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3 md:gap-6">
             <div className="flex items-center gap-2">
-              <span className={`text-xs md:text-sm ${nightMode ? 'text-slate-300' : 'text-slate-600'}`}>Remaining:</span>
-              <span className={`font-semibold text-sm md:text-base ${nightMode ? 'text-cyan-400' : 'text-cyan-700'}`}>
+              <span className="text-xs md:text-sm text-muted-foreground">Remaining:</span>
+              <span className="font-semibold text-sm md:text-base text-cyan-700 dark:text-cyan-400">
                 {remainingCount}
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <span className={`text-xs md:text-sm ${nightMode ? 'text-slate-300' : 'text-slate-600'}`}>Graduated:</span>
-              <span className={`font-semibold text-sm md:text-base ${nightMode ? 'text-emerald-400' : 'text-emerald-700'}`}>
+              <span className="text-xs md:text-sm text-muted-foreground">Graduated:</span>
+              <span className="font-semibold text-sm md:text-base text-emerald-700 dark:text-emerald-400">
                 {graduated.size}
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <span className={`text-xs md:text-sm ${nightMode ? 'text-slate-300' : 'text-slate-600'}`}>Learning:</span>
-              <span className={`font-semibold text-sm md:text-base ${nightMode ? 'text-amber-400' : 'text-amber-700'}`}>
+              <span className="text-xs md:text-sm text-muted-foreground">Learning:</span>
+              <span className="font-semibold text-sm md:text-base text-amber-700 dark:text-amber-400">
                 {learningCount}
               </span>
             </div>
-            
+
             {!isPremium && (
               <>
-                <div className={`h-6 w-px ${nightMode ? 'bg-slate-600' : 'bg-stone-300'} hidden md:block`}></div>
+                <div className="h-6 w-px bg-border hidden md:block"></div>
                 <div className="hidden md:flex items-center gap-2">
-                  <span className={`text-xs ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Free:</span>
-                  <span className={`font-semibold text-sm ${remainingSeconds < 60 ? 'text-rose-600' : nightMode ? 'text-teal-400' : 'text-teal-600'}`}>
+                  <span className="text-xs text-muted-foreground">Free:</span>
+                  <span className={`font-semibold text-sm ${remainingSeconds < 60 ? 'text-rose-600' : 'text-teal-600 dark:text-teal-400'}`}>
                     {formatTime(remainingSeconds)}
                   </span>
                 </div>
@@ -334,7 +333,7 @@ export default function FlashStudy() {
             onClick={handleEndSession}
             variant="ghost"
             size="sm"
-            className={`text-xs ${nightMode ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-700' : 'text-slate-600 hover:text-slate-800 hover:bg-stone-100'}`}
+            className="text-xs"
           >
             End Session
           </Button>
