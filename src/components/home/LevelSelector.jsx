@@ -24,7 +24,7 @@ export default function LevelSelector({ selectedLevel, onSelectLevel, vocabulary
 
   return (
     <div className="space-y-3">
-      <Label className="text-base font-semibold text-slate-700">JLPT Level</Label>
+      <Label className="text-base font-semibold text-foreground">JLPT Level</Label>
       <div className="space-y-2">
         {levels.map((level) => {
           const locked = isLocked(level.id);
@@ -38,8 +38,8 @@ export default function LevelSelector({ selectedLevel, onSelectLevel, vocabulary
                 onClick={() => !locked && onSelectLevel(level.id)}
                 className={`${locked ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'} transition-all duration-300 border ${
                   selectedLevel === level.id && !locked
-                    ? 'border-2 border-teal-500 bg-teal-50 shadow-md'
-                    : 'border-stone-200 hover:border-teal-300 hover:shadow-sm'
+                    ? 'border-2 border-teal-500 bg-teal-50 dark:bg-teal-950 shadow-md'
+                    : 'border-border hover:border-teal-300 hover:shadow-sm'
                 }`}
               >
                 <CardContent className="p-4">
@@ -50,19 +50,19 @@ export default function LevelSelector({ selectedLevel, onSelectLevel, vocabulary
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <p className="font-semibold text-slate-800">{level.label}</p>
+                          <p className="font-semibold text-foreground">{level.label}</p>
                           {locked && (
-                            <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-300">
+                            <Badge variant="outline" className="text-xs bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700">
                               Premium
                             </Badge>
                           )}
                         </div>
-                        <p className="text-sm text-slate-500">{level.description}</p>
+                        <p className="text-sm text-muted-foreground">{level.description}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
                       {!locked && (
-                        <Badge variant="secondary" className="text-xs bg-stone-100 text-slate-600">
+                        <Badge variant="secondary" className="text-xs">
                           {getCountForLevel(level.id)} words
                         </Badge>
                       )}
