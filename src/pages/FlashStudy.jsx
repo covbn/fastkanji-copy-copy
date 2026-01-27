@@ -214,7 +214,9 @@ export default function FlashStudy() {
     }
 
     setStudyQueue(newQueue);
-    setCurrentCard(newQueue[0]);
+    const nextCard = { ...newQueue[0] };
+    delete nextCard._revealed;
+    setCurrentCard(nextCard);
   };
 
   const handleEndSession = () => {
