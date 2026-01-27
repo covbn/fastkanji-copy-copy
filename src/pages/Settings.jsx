@@ -379,38 +379,36 @@ export default function Settings() {
           <CardContent className="p-6 space-y-6">
             <div className="grid md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label className={nightMode ? 'text-slate-200' : 'text-slate-800'}>Max New Cards/Day</Label>
+                <Label>Max New Cards/Day</Label>
                 <Input
                   type="number"
                   min="0"
                   max="100"
                   value={formData.max_new_cards_per_day}
                   onChange={(e) => setFormData({ ...formData, max_new_cards_per_day: parseInt(e.target.value) })}
-                  className={nightMode ? 'bg-slate-700 border-slate-600 text-slate-100' : ''}
                 />
-                <p className={`text-xs ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Maximum new words to learn daily (Spaced Repetition mode)</p>
+                <p className="text-xs text-muted-foreground">Maximum new words to learn daily (Spaced Repetition mode)</p>
               </div>
 
               <div className="space-y-2">
-                <Label className={nightMode ? 'text-slate-200' : 'text-slate-800'}>Max Reviews/Day</Label>
+                <Label>Max Reviews/Day</Label>
                 <Input
                   type="number"
                   min="0"
                   max="1000"
                   value={formData.max_reviews_per_day}
                   onChange={(e) => setFormData({ ...formData, max_reviews_per_day: parseInt(e.target.value) })}
-                  className={nightMode ? 'bg-slate-700 border-slate-600 text-slate-100' : ''}
                 />
-                <p className={`text-xs ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Maximum reviews per day (Spaced Repetition mode)</p>
+                <p className="text-xs text-muted-foreground">Maximum reviews per day (Spaced Repetition mode)</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Rest Intervals */}
-        <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'} ${!isPremium ? 'opacity-50' : ''}`}>
-          <CardHeader className={`border-b ${nightMode ? 'border-slate-700' : 'border-stone-200'}`}>
-            <CardTitle className={`flex items-center gap-2 ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>
+        <Card className={!isPremium ? 'opacity-50' : ''}>
+          <CardHeader className="border-b border-border">
+            <CardTitle className="flex items-center gap-2">
               <Clock className="w-5 h-5" />
               Random Rest Intervals
               {!isPremium && (
@@ -419,65 +417,62 @@ export default function Settings() {
                 </Badge>
               )}
             </CardTitle>
-            <CardDescription className={nightMode ? 'text-slate-400' : 'text-slate-600'}>
+            <CardDescription>
               Science-backed random breaks activate neuroplasticity 10x more effectively
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6 space-y-6">
             <div className="grid md:grid-cols-3 gap-6">
               <div className="space-y-2">
-                <Label className={nightMode ? 'text-slate-200' : 'text-slate-800'}>Min Interval (seconds)</Label>
+                <Label>Min Interval (seconds)</Label>
                 <Input
                   type="number"
                   step="10"
                   min="30"
                   value={formData.rest_min_seconds}
                   onChange={(e) => setFormData({ ...formData, rest_min_seconds: parseInt(e.target.value) })}
-                  className={nightMode ? 'bg-slate-700 border-slate-600 text-slate-100' : ''}
                   disabled={!isPremium}
                 />
-                <p className={`text-xs ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Minimum time before rest</p>
+                <p className="text-xs text-muted-foreground">Minimum time before rest</p>
               </div>
 
               <div className="space-y-2">
-                <Label className={nightMode ? 'text-slate-200' : 'text-slate-800'}>Max Interval (seconds)</Label>
+                <Label>Max Interval (seconds)</Label>
                 <Input
                   type="number"
                   step="10"
                   min="30"
                   value={formData.rest_max_seconds}
                   onChange={(e) => setFormData({ ...formData, rest_max_seconds: parseInt(e.target.value) })}
-                  className={nightMode ? 'bg-slate-700 border-slate-600 text-slate-100' : ''}
                   disabled={!isPremium}
                 />
-                <p className={`text-xs ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Maximum time before rest</p>
+                <p className="text-xs text-muted-foreground">Maximum time before rest</p>
               </div>
 
               <div className="space-y-2">
-                <Label className={nightMode ? 'text-slate-200' : 'text-slate-800'}>Rest Duration (seconds)</Label>
+                <Label>Rest Duration (seconds)</Label>
                 <Input
                   type="number"
                   step="30"
                   min="60"
                   value={formData.rest_duration_seconds}
                   onChange={(e) => setFormData({ ...formData, rest_duration_seconds: parseInt(e.target.value) })}
-                  className={nightMode ? 'bg-slate-700 border-slate-600 text-slate-100' : ''}
                   disabled={!isPremium}
                 />
-                <p className={`text-xs ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>How long to rest</p>
+                <p className="text-xs text-muted-foreground">How long to rest</p>
               </div>
             </div>
 
             {!isPremium && (
-              <div className={`${nightMode ? 'bg-slate-700' : 'bg-amber-50'} p-4 rounded-lg border ${nightMode ? 'border-slate-600' : 'border-amber-200'}`}>
-                <p className={`text-sm ${nightMode ? 'text-slate-300' : 'text-slate-700'}`}>
+              <div className="bg-amber-50 dark:bg-amber-950 p-4 rounded-lg border border-amber-200 dark:border-amber-800">
+                <p className="text-sm text-foreground">
                   <strong>Upgrade to Premium</strong> to customize your rest interval settings and maximize your learning efficiency!
                 </p>
               </div>
             )}
 
-            <div className={`${nightMode ? 'bg-slate-700' : 'bg-teal-50'} p-4 rounded-lg border ${nightMode ? 'border-slate-600' : 'border-teal-200'}`}>
-              <p className={`text-sm ${nightMode ? 'text-slate-300' : 'text-slate-700'}`}>
+            <div className="bg-muted p-4 rounded-lg border border-border">
+              <p className="text-sm text-foreground">
                 <strong>Why random?</strong> Research shows that unpredictable rest intervals trigger heightened alertness 
                 and attention, activating neural pathways 10x more effectively than scheduled breaks.
               </p>
@@ -488,13 +483,13 @@ export default function Settings() {
 
 
         {/* Debug Tools */}
-        <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
-          <CardHeader className={`border-b ${nightMode ? 'border-slate-700' : 'border-stone-200'}`}>
-            <CardTitle className={`flex items-center gap-2 ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>
+        <Card>
+          <CardHeader className="border-b border-border">
+            <CardTitle className="flex items-center gap-2">
               <Bug className="w-5 h-5" />
               Debug Tools
             </CardTitle>
-            <CardDescription className={nightMode ? 'text-slate-400' : 'text-slate-600'}>
+            <CardDescription>
               Developer tools for testing
             </CardDescription>
           </CardHeader>
@@ -517,9 +512,9 @@ export default function Settings() {
                 className="space-y-4"
               >
                 {debugStats && (
-                  <div className={`p-4 rounded-lg ${nightMode ? 'bg-slate-700 border border-slate-600' : 'bg-slate-50 border border-slate-200'}`}>
-                    <h4 className={`font-semibold mb-3 ${nightMode ? 'text-slate-200' : 'text-slate-800'}`}>📊 Debug Stats</h4>
-                    <div className={`grid grid-cols-2 gap-3 text-sm ${nightMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                  <div className="p-4 rounded-lg bg-muted border border-border">
+                    <h4 className="font-semibold mb-3 text-foreground">📊 Debug Stats</h4>
+                    <div className="grid grid-cols-2 gap-3 text-sm text-foreground">
                       <div>Total Progress: <strong>{debugStats.totalProgress}</strong></div>
                       <div>New State: <strong>{debugStats.newState}</strong></div>
                       <div>Learning: <strong>{debugStats.learningState}</strong></div>
@@ -547,7 +542,7 @@ export default function Settings() {
                   <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className={`flex items-center gap-2 p-3 rounded-lg ${nightMode ? 'bg-emerald-900/50 text-emerald-300 border border-emerald-700' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}
+                    className="flex items-center gap-2 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
                   >
                     <CheckCircle2 className="w-4 h-4" />
                     <span className="text-sm font-medium">Reset successful! All data cleared.</span>
@@ -558,14 +553,14 @@ export default function Settings() {
                   <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className={`flex items-center gap-2 p-3 rounded-lg ${nightMode ? 'bg-red-900/50 text-red-300 border border-red-700' : 'bg-red-50 text-red-700 border border-red-200'}`}
+                    className="flex items-center gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800"
                   >
                     <XCircle className="w-4 h-4" />
                     <span className="text-sm font-medium">Reset failed: {resetProgressMutation.error?.message}</span>
                   </motion.div>
                 )}
 
-                <p className={`text-xs ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                <p className="text-xs text-muted-foreground">
                   ⚠️ This will delete all card progress and reset daily new/review counts to 0. Use for testing only.
                 </p>
               </motion.div>
