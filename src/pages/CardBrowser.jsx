@@ -246,7 +246,7 @@ export default function CardBrowser() {
         </div>
 
         {/* Filters */}
-        <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
+        <Card>
           <CardContent className="p-4">
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1 relative">
@@ -286,7 +286,7 @@ export default function CardBrowser() {
         </Card>
 
         {/* Cards List */}
-        <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
+        <Card>
           <CardHeader className="border-b border-border">
             <CardTitle className="text-card-foreground">
               {filteredCards.length} Cards

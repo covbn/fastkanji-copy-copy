@@ -563,10 +563,10 @@ export default function SpacedRepetition() {
 
   if (isLoadingAll || !statsReady) {
     return (
-      <div className={`h-screen flex items-center justify-center ${nightMode ? 'bg-slate-900' : ''}`}>
+      <div className="h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
-          <p className={nightMode ? 'text-slate-400' : 'text-slate-600'}>Loading vocabulary...</p>
+          <p className="text-muted-foreground">Loading vocabulary...</p>
         </div>
       </div>
     );
@@ -578,18 +578,18 @@ export default function SpacedRepetition() {
 
     // Unified completion screen - always show the same options
     return (
-      <div className={`min-h-screen flex items-center justify-center p-4 ${nightMode ? 'bg-slate-900' : 'bg-stone-50'}`}>
+      <div className="min-h-screen flex items-center justify-center p-4 bg-background">
         <div className="text-center space-y-6 max-w-lg">
           <div className="text-6xl">{totalLearningCount > 0 ? '⏰' : '🎉'}</div>
-          <h2 className={`text-2xl font-semibold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`} style={{fontFamily: "'Crimson Pro', serif"}}>
+          <h2 className="text-2xl font-semibold text-foreground" style={{fontFamily: "'Crimson Pro', serif"}}>
             {totalLearningCount > 0 ? 'Done for Now!' : 'All Done!'}
           </h2>
 
-          <div className={`p-5 rounded-lg ${nightMode ? 'bg-slate-800 border border-slate-700' : 'bg-white border border-stone-200'}`}>
-            <p className={`font-medium mb-3 ${nightMode ? 'text-slate-200' : 'text-slate-700'}`}>
+          <div className="p-5 rounded-lg bg-card border border-border">
+            <p className="font-medium mb-3 text-foreground">
               📊 Today's Progress
             </p>
-            <div className={`space-y-2 text-sm ${nightMode ? 'text-slate-400' : 'text-slate-600'}`}>
+            <div className="space-y-2 text-sm text-muted-foreground">
               <div className="flex justify-between items-center">
                 <span>New introduced:</span>
                 <span className="font-semibold text-cyan-600">{newCardsToday} / {maxNewCardsPerDay}</span>
@@ -651,7 +651,7 @@ export default function SpacedRepetition() {
             <Button
               onClick={() => navigate(createPageUrl('Home'))}
               variant="outline"
-              className={`w-full ${nightMode ? 'border-slate-600 text-slate-300 hover:bg-slate-700' : ''}`}
+              className="w-full"
             >
               Back to Home
             </Button>
@@ -680,10 +680,10 @@ export default function SpacedRepetition() {
 
   if (!currentCard && studyMode === 'ADVANCING') {
     return (
-      <div className={`min-h-screen flex items-center justify-center ${nightMode ? 'bg-slate-900' : ''}`}>
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
-          <p className={nightMode ? 'text-slate-400' : 'text-slate-600'}>Loading next card...</p>
+          <p className="text-muted-foreground">Loading next card...</p>
         </div>
       </div>
     );
