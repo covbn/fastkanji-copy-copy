@@ -43,6 +43,7 @@ export default function SpacedRepetition() {
   const [reviewAfterRest, setReviewAfterRest] = useState([]);
   const [lastRestTime, setLastRestTime] = useState(Date.now());
   const [newCardsToday, setNewCardsToday] = useState(0);
+  const [newLearnedToday, setNewLearnedToday] = useState(0);
   const [reviewsToday, setReviewsToday] = useState(0);
   const [recentlyRatedIds, setRecentlyRatedIds] = useState(new Set());
   const [currentUsage, setCurrentUsage] = useState(0);
@@ -213,7 +214,8 @@ export default function SpacedRepetition() {
   useEffect(() => {
     const stats = calculateTodayStats(userProgress);
     setNewCardsToday(stats.newIntroducedToday);
-    setReviewsToday(stats.reviewsDoneToday);
+    setNewLearnedToday(stats.newLearnedToday);
+    setReviewsToday(stats.reviewsCompletedToday);
     setStatsReady(true);
   }, [userProgress]);
 
