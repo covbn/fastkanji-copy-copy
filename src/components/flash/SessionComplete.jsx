@@ -29,7 +29,7 @@ export default function SessionComplete({ correctCount, incorrectCount, accuracy
   const isGood = accuracy >= 75;
 
   return (
-    <div className={`min-h-screen flex items-center justify-center p-4 ${nightMode ? 'bg-slate-900' : 'bg-gradient-to-br from-teal-50 via-cyan-50 to-stone-50'}`}>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
       <motion.div
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -57,70 +57,70 @@ export default function SessionComplete({ correctCount, incorrectCount, accuracy
 
         {/* Title */}
         <div className="text-center space-y-2">
-          <h1 className={`text-4xl md:text-5xl font-semibold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`} style={{fontFamily: "'Crimson Pro', serif"}}>
+          <h1 className="text-4xl md:text-5xl font-semibold text-foreground" style={{fontFamily: "'Crimson Pro', serif"}}>
             {isExcellent ? "Excellent Work!" : isGood ? "Great Job!" : "Session Complete!"}
           </h1>
-          <p className={`text-lg ${nightMode ? 'text-slate-400' : 'text-slate-600'}`}>
+          <p className="text-lg text-muted-foreground">
             You studied {totalCards} cards
           </p>
         </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-3 gap-3 md:gap-4">
-          <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
+          <Card>
             <CardContent className="p-4 md:p-6 text-center">
               <div className={`w-10 h-10 md:w-12 md:h-12 mx-auto rounded-full flex items-center justify-center mb-2 ${
                 isExcellent ? 'bg-emerald-500' : isGood ? 'bg-cyan-500' : 'bg-amber-500'
               }`}>
                 <Target className="w-5 h-5 md:w-6 md:h-6 text-white" />
               </div>
-              <p className={`text-2xl md:text-3xl font-bold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>
+              <p className="text-2xl md:text-3xl font-bold text-foreground">
                 {accuracy.toFixed(0)}%
               </p>
-              <p className={`text-xs md:text-sm ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Accuracy</p>
+              <p className="text-xs md:text-sm text-muted-foreground">Accuracy</p>
             </CardContent>
           </Card>
 
-          <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
+          <Card>
             <CardContent className="p-4 md:p-6 text-center">
               <div className="w-10 h-10 md:w-12 md:h-12 mx-auto rounded-full bg-emerald-500 flex items-center justify-center mb-2">
                 <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-white" />
               </div>
-              <p className={`text-2xl md:text-3xl font-bold text-emerald-600 ${nightMode ? 'text-emerald-400' : ''}`}>
+              <p className="text-2xl md:text-3xl font-bold text-emerald-600 dark:text-emerald-400">
                 {correctCount}
               </p>
-              <p className={`text-xs md:text-sm ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Correct</p>
+              <p className="text-xs md:text-sm text-muted-foreground">Correct</p>
             </CardContent>
           </Card>
 
-          <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
+          <Card>
             <CardContent className="p-4 md:p-6 text-center">
               <div className="w-10 h-10 md:w-12 md:h-12 mx-auto rounded-full bg-rose-500 flex items-center justify-center mb-2">
                 <TrendingUp className="w-5 h-5 md:w-6 md:h-6 text-white" />
               </div>
-              <p className={`text-2xl md:text-3xl font-bold text-rose-600 ${nightMode ? 'text-rose-400' : ''}`}>
+              <p className="text-2xl md:text-3xl font-bold text-rose-600 dark:text-rose-400">
                 {incorrectCount}
               </p>
-              <p className={`text-xs md:text-sm ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>To Review</p>
+              <p className="text-xs md:text-sm text-muted-foreground">To Review</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Review Words */}
         {reviewWords.length > 0 && (
-          <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
+          <Card>
             <CardContent className="p-4 md:p-6">
-              <h3 className={`text-lg font-semibold mb-3 ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>
+              <h3 className="text-lg font-semibold mb-3 text-foreground">
                 Words to Review
               </h3>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-40 overflow-y-auto custom-scrollbar">
                 {reviewWords.map((word, idx) => (
                   <div
                     key={idx}
-                    className={`p-2 rounded-lg border text-center ${nightMode ? 'bg-slate-700 border-slate-600' : 'bg-stone-50 border-stone-200'}`}
+                    className="p-2 rounded-lg border border-border bg-muted text-center"
                   >
-                    <p className={`font-medium text-sm ${nightMode ? 'text-slate-200' : 'text-slate-800'}`}>{word.kanji}</p>
-                    <p className={`text-xs ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>{word.meaning}</p>
+                    <p className="font-medium text-sm text-foreground">{word.kanji}</p>
+                    <p className="text-xs text-muted-foreground">{word.meaning}</p>
                   </div>
                 ))}
               </div>
@@ -129,9 +129,9 @@ export default function SessionComplete({ correctCount, incorrectCount, accuracy
         )}
 
         {/* Encouragement Message */}
-        <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-teal-200 bg-teal-50'}`}>
+        <Card className="border-teal-200 dark:border-teal-800 bg-teal-50 dark:bg-teal-950">
           <CardContent className="p-4 md:p-6 text-center">
-            <p className={`text-sm md:text-base ${nightMode ? 'text-slate-300' : 'text-slate-700'}`}>
+            <p className="text-sm md:text-base text-foreground">
               {isExcellent ? "🎯 Outstanding! Your retention is excellent. Keep up the amazing work!" :
                isGood ? "💪 Great progress! You're building strong memories." :
                "📚 Every review makes you stronger. Keep practicing!"}
