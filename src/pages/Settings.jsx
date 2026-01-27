@@ -497,48 +497,6 @@ export default function Settings() {
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6 space-y-6">
-            {/* Remove Premium Button */}
-            <div className="p-4 rounded-lg bg-muted border border-border">
-              <h4 className="font-semibold mb-2 text-foreground">Premium Status</h4>
-              <p className="text-sm text-muted-foreground mb-3">
-                Current: <strong>{isPremium ? 'Premium' : 'Free'}</strong>
-              </p>
-              {isPremium && (
-                <Button
-                  onClick={async () => {
-                    try {
-                      // Remove from cloud if settings exist
-                      if (settings?.id) {
-                        await base44.entities.UserSettings.update(settings.id, {
-                          subscription_status: 'free'
-                        });
-                      }
-                      
-                      // Remove from localStorage
-                      localStorage.removeItem('premium_status');
-                      
-                      // Invalidate queries
-                      await queryClient.invalidateQueries({ queryKey: ['userSettings'] });
-                      
-                      console.log('[PREMIUM] debugRemove -> isPremium=false (source=both)');
-                      
-                      toast({
-                        title: "Premium Removed",
-                        description: "Switched back to free plan for testing.",
-                        duration: 3000,
-                      });
-                    } catch (e) {
-                      console.error('[PREMIUM] debugRemove error:', e);
-                    }
-                  }}
-                  variant="outline"
-                  size="sm"
-                >
-                  Remove Premium (Testing)
-                </Button>
-              )}
-            </div>
-
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <Label className="text-base font-medium text-foreground">Debug Mode</Label>
@@ -549,6 +507,125 @@ export default function Settings() {
                 onCheckedChange={(checked) => setFormData({ ...formData, debug_mode: checked })}
               />
             </div>
+
+            {formData.debug_mode && (
+              <>
+                {/* Remove Premium Button */}
+                <div className="p-4 rounded-lg bg-muted border border-border">
+                  <h4 className="font-semibold mb-2 text-foreground">Premium Status</h4>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Current: <strong>{isPremium ? 'Premium' : 'Free'}</strong>
+                  </p>
+                  {isPremium && (
+                    <Button
+                      onClick={async () => {
+                        try {
+                          // Remove from cloud if settings exist
+                          if (settings?.id) {
+                            await base44.entities.UserSettings.update(settings.id, {
+                              subscription_status: 'free'
+                            });
+                          }
+                          
+                          // Remove from localStorage
+                          localStorage.removeItem('premium_status');
+                          
+                          // Invalidate queries
+                          await queryClient.invalidateQueries({ queryKey: ['userSettings'] });
+                          
+                          console.log('[PREMIUM] debugRemove -> isPremium=false (source=both)');
+                          
+                          toast({
+                            title: "Premium Removed",
+                            description: "Switched back to free plan for testing.",
+                            duration: 3000,
+                          });
+                        } catch (e) {
+                          console.error('[PREMIUM] debugRemove error:', e);
+                        }
+                      }}
+                      variant="outline"
+                      size="sm"
+                    >
+                      Remove Premium (Testing)
+                    </Button>
+                  )}
+                </div>
+
+                {/* Free Timer Controls */}
+                {!isPremium && (
+                  <div className="p-4 rounded-lg bg-muted border border-border">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Timer className="w-4 h-4 text-foreground" />
+                      <h4 className="font-semibold text-foreground">Free Timer</h4>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Adjust remaining time for testing
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        onClick={() => {
+                          const userId = user?.email || 'guest';
+                          const dayKey = new Date().toISOString().split('T')[0];
+                          const { remainingSeconds } = loadRemainingTime(userId);
+                          const newRemaining = Math.max(0, remainingSeconds - 30);
+                          saveRemainingTime(userId, newRemaining, 'debug');
+                          console.log(`[TIMER DEBUG] adjust delta=-30 newRemaining=${newRemaining} dayKey=${dayKey}`);
+                          toast({ title: "Timer adjusted", description: `-30 seconds`, duration: 2000 });
+                        }}
+                        variant="outline"
+                        size="sm"
+                      >
+                        -30s
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          const userId = user?.email || 'guest';
+                          const dayKey = new Date().toISOString().split('T')[0];
+                          const { remainingSeconds } = loadRemainingTime(userId);
+                          const newRemaining = Math.max(0, remainingSeconds - 120);
+                          saveRemainingTime(userId, newRemaining, 'debug');
+                          console.log(`[TIMER DEBUG] adjust delta=-120 newRemaining=${newRemaining} dayKey=${dayKey}`);
+                          toast({ title: "Timer adjusted", description: `-2 minutes`, duration: 2000 });
+                        }}
+                        variant="outline"
+                        size="sm"
+                      >
+                        -2m
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          const userId = user?.email || 'guest';
+                          const dayKey = new Date().toISOString().split('T')[0];
+                          const { remainingSeconds } = loadRemainingTime(userId);
+                          const newRemaining = Math.max(0, remainingSeconds - 600);
+                          saveRemainingTime(userId, newRemaining, 'debug');
+                          console.log(`[TIMER DEBUG] adjust delta=-600 newRemaining=${newRemaining} dayKey=${dayKey}`);
+                          toast({ title: "Timer adjusted", description: `-10 minutes`, duration: 2000 });
+                        }}
+                        variant="outline"
+                        size="sm"
+                      >
+                        -10m
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          const userId = user?.email || 'guest';
+                          const dayKey = new Date().toISOString().split('T')[0];
+                          saveRemainingTime(userId, 7.5 * 60, 'debug-reset');
+                          console.log(`[TIMER DEBUG] adjust delta=reset newRemaining=${7.5 * 60} dayKey=${dayKey}`);
+                          toast({ title: "Timer reset", description: `Reset to 7.5 minutes`, duration: 2000 });
+                        }}
+                        variant="default"
+                        size="sm"
+                      >
+                        Reset
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
 
             {formData.debug_mode && (
               <motion.div

@@ -13,6 +13,7 @@ import ModeSelector from "../components/home/ModeSelector";
 import LevelSelector from "../components/home/LevelSelector";
 import QuickStats from "../components/home/QuickStats";
 import SessionSizeSelector from "../components/home/SessionSizeSelector";
+import { useDailyStudyTimer } from "../components/utils/useDailyStudyTimer";
 
 export default function Home() {
   const navigate = useNavigate();
@@ -52,14 +53,9 @@ export default function Home() {
   
   console.log(`[PREMIUM] homeGate isPremium=${isPremium}`);
   
-  // Check daily usage limit for free users
-  const dailyLimit = 7.5 * 60; // 7.5 minutes in seconds
-  const usageToday = settings?.daily_usage_seconds || 0;
-  const usageDate = settings?.last_usage_date;
-  const today = new Date().toISOString().split('T')[0];
-  const isNewDay = usageDate !== today;
-  const remainingTime = isNewDay ? dailyLimit : Math.max(0, dailyLimit - usageToday);
-  const hasReachedLimit = !isPremium && remainingTime <= 0 && !isNewDay;
+  // Use shared timer hook for free users
+  const { remainingSeconds: remainingTime, isLoading: timerLoading } = useDailyStudyTimer(user?.email, isPremium);
+  const hasReachedLimit = !isPremium && remainingTime !== null && remainingTime <= 0;
 
   // Check if user should see focus exercise prompt
   useEffect(() => {
