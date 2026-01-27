@@ -50,9 +50,16 @@ export default function Subscription() {
       console.log(`[PREMIUM] saved cloud=ok local=n/a new=true`);
       return result;
     },
-    onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ['userSettings'] });
-      console.log(`[PREMIUM] uiUpdated isPremium=true`);
+    onSuccess: async (result) => {
+      // Update localStorage immediately
+      localStorage.setItem('premium_status', 'premium');
+      
+      // Invalidate and wait for refetch
+      await queryClient.invalidateQueries({ queryKey: ['userSettings'] });
+      await queryClient.refetchQueries({ queryKey: ['userSettings'] });
+      
+      const source = result?.saved === 'local' ? 'local' : 'settings';
+      console.log(`[PREMIUM] afterUpdate isPremium=true source=${source}`);
       
       toast({
         title: "🎉 Premium Unlocked!",

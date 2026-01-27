@@ -48,7 +48,9 @@ export default function Home() {
   });
 
   const nightMode = settings?.night_mode || false;
-  const isPremium = settings?.subscription_status === 'premium';
+  const isPremium = settings?.subscription_status === 'premium' || localStorage.getItem('premium_status') === 'premium';
+  
+  console.log(`[PREMIUM] homeGate isPremium=${isPremium}`);
   
   // Check daily usage limit for free users
   const dailyLimit = 7.5 * 60; // 7.5 minutes in seconds
