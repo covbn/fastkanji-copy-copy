@@ -27,7 +27,7 @@ const modes = [
 export default function ModeSelector({ selectedMode, onSelectMode }) {
   return (
     <div className="space-y-3">
-      <Label className="text-base font-semibold text-slate-700">Study Mode</Label>
+      <Label className="text-base font-semibold text-foreground">Study Mode</Label>
       <div className="space-y-2">
         {modes.map((mode) => (
           <motion.div
@@ -39,16 +39,16 @@ export default function ModeSelector({ selectedMode, onSelectMode }) {
               onClick={() => onSelectMode(mode.id)}
               className={`cursor-pointer transition-all duration-300 border ${
                 selectedMode === mode.id
-                  ? 'border-2 border-teal-500 bg-teal-50 shadow-md'
-                  : 'border-stone-200 hover:border-teal-300 hover:shadow-sm'
+                  ? 'border-2 border-teal-500 bg-teal-50 dark:bg-teal-950 shadow-md'
+                  : 'border-border hover:border-teal-300 hover:shadow-sm'
               }`}
             >
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
                   <div className="space-y-1">
-                    <p className="font-semibold text-slate-800">{mode.label}</p>
-                    <p className="text-sm text-slate-500">{mode.description}</p>
-                    <p className="text-base font-medium text-teal-700 mt-2">{mode.example}</p>
+                    <p className="font-semibold text-foreground">{mode.label}</p>
+                    <p className="text-sm text-muted-foreground">{mode.description}</p>
+                    <p className="text-base font-medium text-teal-700 dark:text-teal-400 mt-2">{mode.example}</p>
                   </div>
                   {selectedMode === mode.id && (
                     <div className="w-5 h-5 rounded-full bg-teal-600 flex items-center justify-center">
