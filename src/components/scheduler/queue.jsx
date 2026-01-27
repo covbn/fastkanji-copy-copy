@@ -8,7 +8,7 @@ import { getCardState } from './sm2Anki';
 
 const MINUTES_TO_MS = 60 * 1000;
 const DAYS_TO_MS = 24 * 60 * 60 * 1000;
-const LEARNING_LOOKAHEAD_MINUTES = 60;
+const LEARNING_LOOKAHEAD_MINUTES = 20;
 const DEBUG_SCHEDULER = false;
 let lastQueueSnapshot = null;
 
