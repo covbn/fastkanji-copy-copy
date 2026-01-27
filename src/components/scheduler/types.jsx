@@ -79,11 +79,18 @@ export const RATINGS = {
 
 /**
  * Default Anki-like scheduler options
+ * 
+ * Learning Steps Explanation:
+ * - With [10] (one step): New card → Learning → Review = 2 Good presses to graduate
+ * - With [1, 10] (two steps): New card → Learning step 0 → step 1 → Review = 3 Good presses
+ * 
+ * Anki's common default is [10] or [1, 10]. We use [10] for faster graduation (2 Good presses).
+ * To require 3 Good presses, change to: learningSteps: [1, 10]
  */
 export const DEFAULT_OPTIONS = {
   maxNewCardsPerDay: 20,
   maxReviewsPerDay: 200,
-  learningSteps: [1, 10], // minutes
+  learningSteps: [10], // minutes - ONE step = 2 Good presses to graduate
   relearningSteps: [10], // minutes
   graduatingInterval: 1, // days
   easyInterval: 4, // days

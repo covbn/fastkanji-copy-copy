@@ -161,6 +161,13 @@ export function getSessionEndState(queues, todayStats, options) {
   const hasNewAvailable = queues.newCards.length > 0;
   const hasLearningBeyondLookahead = queues.totalLearning > 0 && !hasIntradayLearning && !hasInterdayLearning;
 
+  // Diagnostic log (temporary)
+  const nextLearningMin = queues.nextLearningCard ? queues.nextLearningCard.minutesUntilDue : null;
+  const willContinue = hasIntradayLearning || hasInterdayLearning;
+  if (DEBUG_SCHEDULER && (hasIntradayLearning || hasInterdayLearning || nextLearningMin !== null)) {
+    console.log(`[LOOKAHEAD] nextLearningDueInMin=${nextLearningMin} lookaheadMin=${LEARNING_LOOKAHEAD_MINUTES} willContinue=${willContinue}`);
+  }
+
   // CRITICAL: If ANY learning cards are within lookahead, session MUST continue
   if (hasIntradayLearning || hasInterdayLearning) {
     return {
