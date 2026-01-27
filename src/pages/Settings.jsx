@@ -30,23 +30,28 @@ export default function Settings() {
     enabled: !!user,
   });
 
-  const [formData, setFormData] = useState({
-    night_mode: false,
-    rest_min_seconds: 90,
-    rest_max_seconds: 150,
-    rest_duration_seconds: 10,
-    show_example_sentences: true,
-    max_new_cards_per_day: 20,
-    max_reviews_per_day: 200,
-    debug_mode: false,
+  const [formData, setFormData] = useState(() => {
+    // Load night mode from localStorage immediately
+    const savedTheme = localStorage.getItem('theme');
+    return {
+      night_mode: savedTheme === 'dark',
+      rest_min_seconds: 90,
+      rest_max_seconds: 150,
+      rest_duration_seconds: 10,
+      show_example_sentences: true,
+      max_new_cards_per_day: 20,
+      max_reviews_per_day: 200,
+      debug_mode: false,
+    };
   });
 
   const [debugStats, setDebugStats] = useState(null);
 
   useEffect(() => {
     if (settings) {
+      const savedTheme = localStorage.getItem('theme');
       setFormData({
-        night_mode: settings.night_mode || false,
+        night_mode: savedTheme ? savedTheme === 'dark' : (settings.night_mode || false),
         rest_min_seconds: settings.rest_min_seconds || 90,
         rest_max_seconds: settings.rest_max_seconds || 150,
         rest_duration_seconds: settings.rest_duration_seconds || 10,
@@ -58,12 +63,14 @@ export default function Settings() {
     }
   }, [settings]);
 
-  // Apply night mode globally
+  // Apply night mode globally + persist to localStorage
   useEffect(() => {
     if (formData.night_mode) {
       document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
     } else {
       document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
     }
   }, [formData.night_mode]);
 
@@ -105,7 +112,8 @@ export default function Settings() {
 
   const saveSettingsMutation = useMutation({
     mutationFn: async (data) => {
-      console.warn('[SETTINGS] save clicked', data);
+      const hasExisting = !!settings?.id;
+      console.warn('[SETTINGS] save start hasExisting=', hasExisting, 'userId=', user?.email);
       
       if (!user?.email) {
         throw new Error('User not authenticated');
@@ -120,32 +128,61 @@ export default function Settings() {
         max_reviews_per_day: parseInt(data.max_reviews_per_day),
       };
 
+      // Only update if settings exist, otherwise save to localStorage
       if (settings?.id) {
+        console.warn('[SETTINGS] save path = update');
         return base44.entities.UserSettings.update(settings.id, dataToSave);
       } else {
-        return base44.entities.UserSettings.create({
-          user_email: user.email,
-          ...dataToSave,
+        console.warn('[SETTINGS] save path = local (no cloud record)');
+        // Save to localStorage as fallback
+        localStorage.setItem('userSettings', JSON.stringify(dataToSave));
+        return { saved: 'local', data: dataToSave };
+      }
+    },
+    onSuccess: (result) => {
+      console.warn('[SETTINGS] save success');
+      queryClient.invalidateQueries({ queryKey: ['userSettings'] });
+      
+      if (result?.saved === 'local') {
+        toast({
+          title: "✅ Settings Saved Locally",
+          description: "Your preferences have been saved to this device.",
+          duration: 3000,
+        });
+      } else {
+        toast({
+          title: "✅ Settings Saved",
+          description: "Your preferences have been updated successfully.",
+          duration: 3000,
         });
       }
     },
-    onSuccess: () => {
-      console.warn('[SETTINGS] save success');
-      queryClient.invalidateQueries({ queryKey: ['userSettings'] });
-      toast({
-        title: "✅ Settings Saved",
-        description: "Your preferences have been updated successfully.",
-        duration: 3000,
-      });
-    },
     onError: (error) => {
-      console.error('[Settings] Save error:', error);
-      toast({
-        variant: "destructive",
-        title: "❌ Save Failed",
-        description: error.message || "Failed to save settings. Please try again.",
-        duration: 5000,
-      });
+      console.warn('[SETTINGS] save error', error.message);
+      // Even on error, save to localStorage
+      try {
+        const dataToSave = {
+          ...formData,
+          rest_min_seconds: parseInt(formData.rest_min_seconds),
+          rest_max_seconds: parseInt(formData.rest_max_seconds),
+          rest_duration_seconds: parseInt(formData.rest_duration_seconds),
+          max_new_cards_per_day: parseInt(formData.max_new_cards_per_day),
+          max_reviews_per_day: parseInt(formData.max_reviews_per_day),
+        };
+        localStorage.setItem('userSettings', JSON.stringify(dataToSave));
+        toast({
+          title: "✅ Saved Locally",
+          description: "Cloud save unavailable, saved to this device instead.",
+          duration: 3000,
+        });
+      } catch (localError) {
+        toast({
+          variant: "destructive",
+          title: "❌ Save Failed",
+          description: error.message || "Failed to save settings.",
+          duration: 5000,
+        });
+      }
     },
   });
 
