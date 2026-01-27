@@ -100,6 +100,9 @@ export default function Layout({ children, currentPageName }) {
     } else {
       document.documentElement.classList.remove('dark');
     }
+    
+    // Diagnostic log
+    console.log(`[THEME] nightMode=${isDark} darkClassApplied=${document.documentElement.classList.contains('dark')} root=${document.documentElement.className}`);
   }, [settings?.night_mode]);
 
   const nightMode = settings?.night_mode || localStorage.getItem('theme') === 'dark';

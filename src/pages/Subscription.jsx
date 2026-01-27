@@ -8,10 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Crown, Check, Zap, Lock, Unlock, Clock, Brain, TrendingUp, Settings as SettingsIcon } from "lucide-react";
 import { motion } from "framer-motion";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function Subscription() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data: user } = useQuery({
     queryKey: ['user'],
@@ -33,15 +35,32 @@ export default function Subscription() {
 
   const upgradeMutation = useMutation({
     mutationFn: async () => {
-      if (!settings) return;
-      return base44.entities.UserSettings.update(settings.id, {
+      console.log(`[PREMIUM] click userId=${user?.email} current=${isPremium}`);
+      
+      if (!settings) {
+        // No cloud settings, save to localStorage
+        console.log(`[PREMIUM] saved cloud=fail local=attempting new=true`);
+        localStorage.setItem('premium_status', 'premium');
+        return { saved: 'local' };
+      }
+      
+      const result = await base44.entities.UserSettings.update(settings.id, {
         subscription_status: 'premium'
       });
+      console.log(`[PREMIUM] saved cloud=ok local=n/a new=true`);
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['userSettings'] });
-      alert("Welcome to Premium! 🎉 Enjoy unlimited access!");
-      navigate(createPageUrl('Home'));
+      console.log(`[PREMIUM] uiUpdated isPremium=true`);
+      
+      toast({
+        title: "🎉 Premium Unlocked!",
+        description: "You now have unlimited access to all features and JLPT levels.",
+        duration: 4000,
+      });
+      
+      setTimeout(() => navigate(createPageUrl('Home')), 1500);
     },
   });
 
@@ -76,7 +95,7 @@ export default function Subscription() {
   ];
 
   return (
-    <div className={`min-h-screen p-4 md:p-8 ${nightMode ? 'bg-slate-900' : 'bg-stone-50'}`}>
+    <div className="min-h-screen p-4 md:p-8 bg-background">
       <div className="max-w-6xl mx-auto space-y-8">
         {/* Header */}
         <motion.div
@@ -87,10 +106,10 @@ export default function Subscription() {
           <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-lg">
             <Crown className="w-10 h-10 text-white" />
           </div>
-          <h1 className={`text-4xl md:text-5xl font-semibold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`} style={{fontFamily: "'Crimson Pro', serif"}}>
+          <h1 className="text-4xl md:text-5xl font-semibold text-foreground" style={{fontFamily: "'Crimson Pro', serif"}}>
             Upgrade to Premium
           </h1>
-          <p className={`text-lg max-w-2xl mx-auto ${nightMode ? 'text-slate-400' : 'text-slate-600'}`}>
+          <p className="text-lg max-w-2xl mx-auto text-muted-foreground">
             Unlock unlimited learning potential and master Japanese faster
           </p>
         </motion.div>
@@ -101,11 +120,11 @@ export default function Subscription() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <Card className="border-2 border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50">
+            <Card className="border-2 border-amber-300 dark:border-amber-700 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950 dark:to-orange-950">
               <CardContent className="p-6 text-center">
-                <Crown className="w-12 h-12 mx-auto mb-3 text-amber-600" />
-                <h3 className="text-xl font-semibold text-slate-800 mb-2">You're a Premium Member! 🎉</h3>
-                <p className="text-slate-600">
+                <Crown className="w-12 h-12 mx-auto mb-3 text-amber-600 dark:text-amber-400" />
+                <h3 className="text-xl font-semibold text-foreground mb-2">You're a Premium Member! 🎉</h3>
+                <p className="text-muted-foreground">
                   Enjoying unlimited access to all features. Keep up the great work!
                 </p>
               </CardContent>
@@ -121,12 +140,12 @@ export default function Subscription() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.1 }}
           >
-            <Card className={`border ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'} h-full`}>
-              <CardHeader className={`border-b ${nightMode ? 'border-slate-700' : 'border-stone-200'}`}>
+            <Card className="h-full">
+              <CardHeader className="border-b border-border">
                 <Badge variant="outline" className="w-fit mb-2">Free</Badge>
-                <CardTitle className={`text-3xl font-bold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>
+                <CardTitle className="text-3xl font-bold text-foreground">
                   $0
-                  <span className="text-base font-normal text-slate-500"> / forever</span>
+                  <span className="text-base font-normal text-muted-foreground"> / forever</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6">
@@ -139,8 +158,8 @@ export default function Subscription() {
                       transition={{ delay: 0.2 + idx * 0.05 }}
                       className="flex items-center gap-3"
                     >
-                      <Check className={`w-5 h-5 flex-shrink-0 ${feature.included ? 'text-teal-600' : 'text-slate-300'}`} />
-                      <span className={nightMode ? 'text-slate-300' : 'text-slate-700'}>{feature.name}</span>
+                      <Check className={`w-5 h-5 flex-shrink-0 ${feature.included ? 'text-teal-600' : 'text-muted-foreground'}`} />
+                      <span className="text-foreground">{feature.name}</span>
                     </motion.li>
                   ))}
                 </ul>
@@ -163,17 +182,17 @@ export default function Subscription() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <Card className="border-2 border-amber-400 bg-gradient-to-br from-amber-50 to-orange-50 shadow-xl relative overflow-hidden h-full">
+            <Card className="border-2 border-amber-400 dark:border-amber-600 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950 dark:to-orange-950 shadow-xl relative overflow-hidden h-full">
               <div className="absolute top-0 right-0 bg-gradient-to-br from-amber-500 to-orange-500 text-white px-4 py-1 text-sm font-semibold transform rotate-12 translate-x-8 translate-y-4">
                 BEST VALUE
               </div>
-              <CardHeader className="border-b border-amber-200">
+              <CardHeader className="border-b border-amber-200 dark:border-amber-800">
                 <Badge className="w-fit mb-2 bg-amber-500 text-white">Premium</Badge>
-                <CardTitle className="text-3xl font-bold text-slate-800">
+                <CardTitle className="text-3xl font-bold text-foreground">
                   $9.99
-                  <span className="text-base font-normal text-slate-600"> / month</span>
+                  <span className="text-base font-normal text-muted-foreground"> / month</span>
                 </CardTitle>
-                <p className="text-sm text-slate-600 mt-2">Limited time: First month free! 🎁</p>
+                <p className="text-sm text-muted-foreground mt-2">Limited time: First month free! 🎁</p>
               </CardHeader>
               <CardContent className="p-6">
                 <ul className="space-y-4">
@@ -185,10 +204,10 @@ export default function Subscription() {
                       transition={{ delay: 0.3 + idx * 0.05 }}
                       className="flex items-center gap-3"
                     >
-                      <div className={`w-8 h-8 rounded-lg bg-white flex items-center justify-center shadow-sm`}>
+                      <div className="w-8 h-8 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center shadow-sm">
                         <feature.icon className={`w-4 h-4 ${feature.color}`} />
                       </div>
-                      <span className="text-slate-800 font-medium">{feature.name}</span>
+                      <span className="text-foreground font-medium">{feature.name}</span>
                     </motion.li>
                   ))}
                 </ul>
@@ -209,9 +228,9 @@ export default function Subscription() {
         </div>
 
         {/* Why Premium Section */}
-        <Card className={`border ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
-          <CardHeader className={`border-b ${nightMode ? 'border-slate-700' : 'border-stone-200'}`}>
-            <CardTitle className={nightMode ? 'text-slate-100' : 'text-slate-800'}>Why Go Premium?</CardTitle>
+        <Card>
+          <CardHeader className="border-b border-border">
+            <CardTitle className="text-card-foreground">Why Go Premium?</CardTitle>
           </CardHeader>
           <CardContent className="p-6">
             <div className="grid md:grid-cols-3 gap-6">
@@ -219,8 +238,8 @@ export default function Subscription() {
                 <div className="w-16 h-16 mx-auto rounded-2xl bg-teal-500 flex items-center justify-center">
                   <Unlock className="w-8 h-8 text-white" />
                 </div>
-                <h3 className={`font-semibold text-lg ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>Full Access</h3>
-                <p className={`text-sm ${nightMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                <h3 className="font-semibold text-lg text-foreground">Full Access</h3>
+                <p className="text-sm text-muted-foreground">
                   Study all JLPT levels from beginner to expert without restrictions
                 </p>
               </div>
@@ -228,8 +247,8 @@ export default function Subscription() {
                 <div className="w-16 h-16 mx-auto rounded-2xl bg-cyan-500 flex items-center justify-center">
                   <Clock className="w-8 h-8 text-white" />
                 </div>
-                <h3 className={`font-semibold text-lg ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>No Limits</h3>
-                <p className={`text-sm ${nightMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                <h3 className="font-semibold text-lg text-foreground">No Limits</h3>
+                <p className="text-sm text-muted-foreground">
                   Study as long as you want, whenever you want, with no daily restrictions
                 </p>
               </div>
@@ -237,8 +256,8 @@ export default function Subscription() {
                 <div className="w-16 h-16 mx-auto rounded-2xl bg-amber-500 flex items-center justify-center">
                   <TrendingUp className="w-8 h-8 text-white" />
                 </div>
-                <h3 className={`font-semibold text-lg ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>Learn Faster</h3>
-                <p className={`text-sm ${nightMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                <h3 className="font-semibold text-lg text-foreground">Learn Faster</h3>
+                <p className="text-sm text-muted-foreground">
                   Customize rest intervals and leverage advanced features to optimize learning
                 </p>
               </div>
@@ -252,7 +271,6 @@ export default function Subscription() {
             onClick={() => navigate(createPageUrl('Home'))}
             variant="outline"
             size="lg"
-            className={nightMode ? 'border-slate-600 text-slate-300 hover:bg-slate-700' : ''}
           >
             Back to Home
           </Button>

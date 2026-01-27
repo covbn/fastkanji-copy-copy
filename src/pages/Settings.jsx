@@ -72,6 +72,9 @@ export default function Settings() {
       document.documentElement.classList.remove('dark');
       localStorage.setItem('theme', 'light');
     }
+    
+    // Diagnostic log on toggle
+    console.log(`[THEME] nightMode=${formData.night_mode} darkClassApplied=${document.documentElement.classList.contains('dark')} root=${document.documentElement.className}`);
   }, [formData.night_mode]);
 
   const { data: userProgress = [], refetch: refetchProgress } = useQuery({
@@ -366,13 +369,13 @@ export default function Settings() {
         </Card>
 
         {/* Spaced Repetition Settings */}
-        <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
-          <CardHeader className={`border-b ${nightMode ? 'border-slate-700' : 'border-stone-200'}`}>
-            <CardTitle className={`flex items-center gap-2 ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>
+        <Card>
+          <CardHeader className="border-b border-border">
+            <CardTitle className="flex items-center gap-2 text-card-foreground">
               <Brain className="w-5 h-5" />
               Spaced Repetition Limits
             </CardTitle>
-            <CardDescription className={nightMode ? 'text-slate-400' : 'text-slate-600'}>
+            <CardDescription>
               Daily limits for new cards and reviews
             </CardDescription>
           </CardHeader>
@@ -496,8 +499,8 @@ export default function Settings() {
           <CardContent className="p-6 space-y-6">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
-                <Label className={`text-base font-medium ${nightMode ? 'text-slate-200' : 'text-slate-800'}`}>Debug Mode</Label>
-                <p className={`text-sm ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Show detailed stats and reset tools</p>
+                <Label className="text-base font-medium text-foreground">Debug Mode</Label>
+                <p className="text-sm text-muted-foreground">Show detailed stats and reset tools</p>
               </div>
               <Switch
                 checked={formData.debug_mode}
