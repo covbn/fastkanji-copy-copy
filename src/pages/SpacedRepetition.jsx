@@ -571,143 +571,89 @@ export default function SpacedRepetition() {
   }
 
   if (studyMode === 'DONE') {
-    const remainingNew = maxNewCardsPerDay - newCardsToday;
-    const remainingReviews = maxReviewsPerDay - reviewsToday;
-    const hasNewAvailable = cardCategories.newCards.length > 0;
     const totalLearningCount = cardCategories.totalLearning || 0;
     const nextLearning = cardCategories.nextLearningCard;
 
-    // Learning cards are ongoing reviews that must be completed regardless of daily limits
-    if (doneReason === 'LEARNING_PENDING' || totalLearningCount > 0) {
-      return (
-        <div className={`min-h-screen flex items-center justify-center p-4 ${nightMode ? 'bg-slate-900' : 'bg-stone-50'}`}>
-          <div className="text-center space-y-6 max-w-md">
-            <div className="text-6xl">⏰</div>
-            <h2 className={`text-2xl font-semibold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`} style={{fontFamily: "'Crimson Pro', serif"}}>
-              Done for Now!
-            </h2>
-            <div className={`p-4 rounded-lg ${nightMode ? 'bg-slate-800 border border-slate-700' : 'bg-white border border-stone-200'}`}>
-              <p className={nightMode ? 'text-slate-300' : 'text-slate-700'}>
-                📊 Today's Progress:
-              </p>
-              <div className={`mt-3 space-y-2 text-sm ${nightMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                <p>New cards introduced: {newCardsToday} / {maxNewCardsPerDay}</p>
-                <p>Reviews completed: {reviewsToday} / {maxReviewsPerDay}</p>
-                <p className="text-amber-600 font-medium">{totalLearningCount} learning card{totalLearningCount !== 1 ? 's' : ''} in progress</p>
-                {nextLearning && (
-                  <p className="text-teal-600 font-medium">Next card in ~{nextLearning.minutesUntilDue} minute{nextLearning.minutesUntilDue !== 1 ? 's' : ''}</p>
-                )}
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Button
-                onClick={() => navigate(createPageUrl('FlashStudy?mode=' + mode + '&level=' + uiLevel))}
-                className="w-full bg-teal-600 hover:bg-teal-700 text-white"
-              >
-                Switch to Flash Study
-              </Button>
-              <Button
-                onClick={() => navigate(createPageUrl('Home'))}
-                variant="outline"
-                className={`w-full ${nightMode ? 'border-slate-600 text-slate-300 hover:bg-slate-700' : ''}`}
-              >
-                Back to Home
-              </Button>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-// Check limit-based termination (only if no learning exists)
-if (doneReason === 'DAILY_LIMIT_REACHED') {
-      return (
-        <div className={`min-h-screen flex items-center justify-center p-4 ${nightMode ? 'bg-slate-900' : 'bg-stone-50'}`}>
-          <div className="text-center space-y-6 max-w-lg">
-            <div className="text-6xl">🎯</div>
-            <h2 className={`text-2xl font-semibold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`} style={{fontFamily: "'Crimson Pro', serif"}}>
-              Daily Limit Reached
-            </h2>
-
-            <div className={`p-5 rounded-lg ${nightMode ? 'bg-slate-800 border border-slate-700' : 'bg-white border border-stone-200'}`}>
-              <p className={`font-medium mb-3 ${nightMode ? 'text-slate-200' : 'text-slate-700'}`}>
-                📊 Today's Progress
-              </p>
-              <div className={`space-y-2 text-sm ${nightMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                <div className="flex justify-between items-center">
-                  <span>New cards:</span>
-                  <span className="font-semibold text-cyan-600">{newCardsToday} / {maxNewCardsPerDay}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span>Reviews:</span>
-                  <span className="font-semibold text-emerald-600">{reviewsToday} / {maxReviewsPerDay}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Button
-                onClick={() => {
-                  try {
-                    const dayKey = new Date().toISOString().split('T')[0];
-                    const currentDelta = getTodayDelta();
-                    console.warn('[EXTEND] 1 start', { dayKey, baseLimit: baseMaxNewCardsPerDay, currentDelta });
-                    
-                    const nextDelta = currentDelta + 10;
-                    console.warn('[EXTEND] 2 beforePersist', { nextDelta });
-                    
-                    const storageKey = `sr:newLimitDelta:${uiLevel}:${dayKey}`;
-                    localStorage.setItem(storageKey, nextDelta.toString());
-                    
-                    console.warn('[EXTEND] 3 afterPersist', { savedDelta: nextDelta });
-                    
-                    setLimitLogOnce(false);
-                    setDoneReason(null);
-                    setStudyQueue([]);
-                    setCurrentCard(null);
-                    setStudyMode('STUDYING');
-                  } catch (e) {
-                    console.error('[EXTEND] ERROR', e);
-                  }
-                }}
-                className="w-full bg-amber-600 hover:bg-amber-700 text-white"
-              >
-                Study more new cards today (+10)
-              </Button>
-              <Button
-                onClick={() => navigate(createPageUrl('FlashStudy?mode=' + mode + '&level=' + uiLevel))}
-                className="w-full bg-teal-600 hover:bg-teal-700 text-white"
-              >
-                Switch to Flash Study
-              </Button>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    // Truly done - nothing available
+    // Unified completion screen - always show the same options
     return (
       <div className={`min-h-screen flex items-center justify-center p-4 ${nightMode ? 'bg-slate-900' : 'bg-stone-50'}`}>
-        <div className="text-center space-y-6 max-w-md">
-          <div className="text-6xl">🎉</div>
+        <div className="text-center space-y-6 max-w-lg">
+          <div className="text-6xl">{totalLearningCount > 0 ? '⏰' : '🎉'}</div>
           <h2 className={`text-2xl font-semibold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`} style={{fontFamily: "'Crimson Pro', serif"}}>
-            All Done!
+            {totalLearningCount > 0 ? 'Done for Now!' : 'All Done!'}
           </h2>
-          <div className={`p-4 rounded-lg ${nightMode ? 'bg-slate-800 border border-slate-700' : 'bg-white border border-stone-200'}`}>
-            <p className={nightMode ? 'text-slate-300' : 'text-slate-700'}>📊 Today's Progress:</p>
-            <div className={`mt-3 space-y-2 text-sm ${nightMode ? 'text-slate-400' : 'text-slate-600'}`}>
-              <p>New cards introduced: {newCardsToday} / {maxNewCardsPerDay}</p>
-              <p>Reviews completed: {reviewsToday} / {maxReviewsPerDay}</p>
+
+          <div className={`p-5 rounded-lg ${nightMode ? 'bg-slate-800 border border-slate-700' : 'bg-white border border-stone-200'}`}>
+            <p className={`font-medium mb-3 ${nightMode ? 'text-slate-200' : 'text-slate-700'}`}>
+              📊 Today's Progress
+            </p>
+            <div className={`space-y-2 text-sm ${nightMode ? 'text-slate-400' : 'text-slate-600'}`}>
+              <div className="flex justify-between items-center">
+                <span>New cards:</span>
+                <span className="font-semibold text-cyan-600">{newCardsToday} / {maxNewCardsPerDay}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span>Reviews:</span>
+                <span className="font-semibold text-emerald-600">{reviewsToday} / {maxReviewsPerDay}</span>
+              </div>
+              {totalLearningCount > 0 && (
+                <>
+                  <div className="flex justify-between items-center">
+                    <span>Learning:</span>
+                    <span className="font-semibold text-amber-600">{totalLearningCount} in progress</span>
+                  </div>
+                  {nextLearning && (
+                    <div className="flex justify-between items-center">
+                      <span>Next card:</span>
+                      <span className="font-semibold text-teal-600">~{nextLearning.minutesUntilDue} min</span>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </div>
-          <Button onClick={() => navigate(createPageUrl('Home'))} className="w-full bg-teal-600 hover:bg-teal-700 text-white">
-            Back to Home
-          </Button>
+
+          <div className="space-y-2">
+            <Button
+              onClick={() => {
+                try {
+                  const dayKey = new Date().toISOString().split('T')[0];
+                  const currentDelta = getTodayDelta();
+                  const nextDelta = currentDelta + 10;
+                  const storageKey = `sr:newLimitDelta:${uiLevel}:${dayKey}`;
+                  localStorage.setItem(storageKey, nextDelta.toString());
+                  
+                  setLimitLogOnce(false);
+                  setDoneReason(null);
+                  setStudyQueue([]);
+                  setCurrentCard(null);
+                  setStudyMode('STUDYING');
+                } catch (e) {
+                  console.error('[EXTEND] ERROR', e);
+                }
+              }}
+              className="w-full bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              +10 New Cards (Today Only)
+            </Button>
+            <Button
+              onClick={() => navigate(createPageUrl('FlashStudy?mode=' + mode + '&level=' + uiLevel))}
+              className="w-full bg-teal-600 hover:bg-teal-700 text-white"
+            >
+              Switch to Flash Study
+            </Button>
+            <Button
+              onClick={() => navigate(createPageUrl('Home'))}
+              variant="outline"
+              className={`w-full ${nightMode ? 'border-slate-600 text-slate-300 hover:bg-slate-700' : ''}`}
+            >
+              Back to Home
+            </Button>
+          </div>
         </div>
       </div>
     );
-    }
+  }
 
 
   if (sessionComplete) {
