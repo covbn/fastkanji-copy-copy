@@ -7,11 +7,16 @@ import { Check, X, Eye } from "lucide-react";
 export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSentences = true, hideButtons = false, onRevealChange }) {
   const [revealed, setRevealed] = useState(false);
 
+  // Reset reveal state when card changes
+  React.useEffect(() => {
+    setRevealed(false);
+  }, [vocabulary.id]);
+
   React.useEffect(() => {
     if (onRevealChange) {
       onRevealChange(revealed);
     }
-  }, [revealed]);
+  }, [revealed, onRevealChange]);
 
   // Keyboard shortcuts
   React.useEffect(() => {
