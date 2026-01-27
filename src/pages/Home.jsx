@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -144,7 +143,7 @@ export default function Home() {
   };
 
   return (
-    <div className={`min-h-screen p-4 md:p-8 ${nightMode ? 'bg-slate-900' : 'bg-stone-50'}`}>
+    <div className="min-h-screen p-4 md:p-8 bg-background">
       <div className="max-w-6xl mx-auto space-y-8">
         {/* Hero Section */}
         <motion.div
@@ -154,20 +153,20 @@ export default function Home() {
           className="text-center space-y-4 py-8"
         >
           <div className="flex items-center justify-center gap-3 flex-wrap">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-700 rounded-full text-sm font-medium border border-amber-200">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 rounded-full text-sm font-medium border border-amber-200 dark:border-amber-800">
               <Flame className="w-4 h-4" />
               {getStreak()} Day Streak
             </div>
             {!isPremium && (
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-teal-50 text-teal-700 rounded-full text-sm font-medium border border-teal-200">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 rounded-full text-sm font-medium border border-teal-200 dark:border-teal-800">
                 ⏱️ {formatTime(remainingTime)} remaining today
               </div>
             )}
           </div>
-          <h1 className={`text-4xl md:text-6xl font-semibold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`} style={{fontFamily: "'Crimson Pro', serif"}}>
+          <h1 className="text-4xl md:text-6xl font-semibold text-foreground" style={{fontFamily: "'Crimson Pro', serif"}}>
             Master Japanese Vocabulary
           </h1>
-          <p className={`text-lg max-w-2xl mx-auto font-light ${nightMode ? 'text-slate-400' : 'text-slate-600'}`}>
+          <p className="text-lg max-w-2xl mx-auto font-light text-muted-foreground">
             Lightning-fast flashcards with spaced repetition
           </p>
         </motion.div>
@@ -179,13 +178,13 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             className="max-w-2xl mx-auto"
           >
-            <Card className="border-2 border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50">
+            <Card className="border-2 border-amber-300 dark:border-amber-700 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950 dark:to-orange-950">
               <CardContent className="p-6 text-center">
                 <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-500 flex items-center justify-center">
                   <Award className="w-8 h-8 text-white" />
                 </div>
-                <h3 className="text-xl font-semibold text-slate-800 mb-2">Daily Limit Reached</h3>
-                <p className="text-slate-600 mb-4">
+                <h3 className="text-xl font-semibold text-foreground mb-2">Daily Limit Reached</h3>
+                <p className="text-muted-foreground mb-4">
                   You've used your 7.5 minutes today. Upgrade to Premium for unlimited study time and access to all JLPT levels!
                 </p>
                 <Button
@@ -207,9 +206,9 @@ export default function Home() {
         />
 
         {/* Study Setup */}
-        <Card className={`border ${nightMode ? 'border-slate-700 bg-slate-800/80' : 'border-stone-200 bg-white'} shadow-sm ${hasReachedLimit ? 'opacity-50' : ''}`}>
-          <CardHeader className={`border-b ${nightMode ? 'border-slate-700' : 'border-stone-200'}`}>
-            <CardTitle className={`text-2xl font-semibold flex items-center gap-2 ${nightMode ? 'text-slate-100' : 'text-slate-800'}`} style={{fontFamily: "'Crimson Pro', serif"}}>
+        <Card className={`border border-border bg-card shadow-sm ${hasReachedLimit ? 'opacity-50' : ''}`}>
+          <CardHeader className="border-b border-border">
+            <CardTitle className="text-2xl font-semibold flex items-center gap-2 text-card-foreground" style={{fontFamily: "'Crimson Pro', serif"}}>
               <Target className="w-6 h-6 text-teal-600" />
               Start Your Study Session
             </CardTitle>
@@ -230,15 +229,15 @@ export default function Home() {
             </div>
 
             {/* Session Size - Only for Flash Study */}
-            <div className={`p-4 rounded-lg border ${nightMode ? 'bg-slate-700 border-slate-600' : 'bg-teal-50 border-teal-200'}`}>
-              <h3 className={`text-sm font-semibold mb-3 ${nightMode ? 'text-slate-200' : 'text-slate-700'}`}>
+            <div className="p-4 rounded-lg border border-border bg-muted">
+              <h3 className="text-sm font-semibold mb-3 text-foreground">
                 Flash Study Session Size
               </h3>
               <SessionSizeSelector
                 sessionSize={sessionSize}
                 onSelectSize={setSessionSize}
               />
-              <p className={`text-xs mt-2 ${nightMode ? 'text-slate-400' : 'text-slate-600'}`}>
+              <p className="text-xs mt-2 text-muted-foreground">
                 Note: Spaced Repetition continues until all due cards are reviewed
               </p>
             </div>
@@ -259,7 +258,7 @@ export default function Home() {
                 size="lg"
                 variant="outline"
                 disabled={hasReachedLimit}
-                className="h-14 text-base font-medium border-2 border-teal-200 text-teal-700 hover:bg-teal-50 hover:border-teal-300 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="h-14 text-base font-medium border-2 border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-950 hover:border-teal-300 dark:hover:border-teal-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Brain className="w-5 h-5 mr-2" />
                 Spaced Repetition
@@ -270,9 +269,9 @@ export default function Home() {
 
         {/* Recent Activity */}
         {recentSessions.length > 0 && (
-          <Card className={`border ${nightMode ? 'border-slate-700 bg-slate-800/80' : 'border-stone-200 bg-white'} shadow-sm`}>
-            <CardHeader className={`border-b ${nightMode ? 'border-slate-700' : 'border-stone-200'}`}>
-              <CardTitle className={`flex items-center gap-2 font-semibold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`} style={{fontFamily: "'Crimson Pro', serif"}}>
+          <Card className="border border-border bg-card shadow-sm">
+            <CardHeader className="border-b border-border">
+              <CardTitle className="flex items-center gap-2 font-semibold text-card-foreground" style={{fontFamily: "'Crimson Pro', serif"}}>
                 <TrendingUp className="w-5 h-5 text-teal-600" />
                 Recent Sessions
               </CardTitle>
@@ -284,7 +283,7 @@ export default function Home() {
                     key={session.id}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className={`flex items-center justify-between p-4 rounded-lg ${nightMode ? 'bg-slate-700/50 hover:bg-slate-700' : 'bg-stone-50 hover:bg-stone-100'} transition-colors border ${nightMode ? 'border-slate-600' : 'border-stone-200'}`}
+                    className="flex items-center justify-between p-4 rounded-lg bg-muted hover:bg-accent transition-colors border border-border"
                   >
                     <div className="flex items-center gap-4">
                       {session.session_type === 'flash' ? (
@@ -293,10 +292,10 @@ export default function Home() {
                         <Brain className="w-5 h-5 text-cyan-600" />
                       )}
                       <div>
-                        <p className={`font-medium ${nightMode ? 'text-slate-200' : 'text-slate-800'}`}>
+                        <p className="font-medium text-foreground">
                           {session.mode.replace(/_/g, ' ').replace('to', '→').toUpperCase()}
                         </p>
-                        <p className={`text-sm ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                        <p className="text-sm text-muted-foreground">
                           {session.level} • {session.total_cards} cards
                         </p>
                       </div>
@@ -335,11 +334,11 @@ export default function Home() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className={`max-w-md w-full rounded-2xl shadow-2xl p-6 space-y-4 ${nightMode ? 'bg-slate-800 border border-slate-700' : 'bg-white'}`}
+              className="max-w-md w-full rounded-2xl shadow-2xl p-6 space-y-4 bg-card border border-border"
             >
               <button
                 onClick={dismissFocusPrompt}
-                className={`absolute top-4 right-4 p-1 rounded-lg ${nightMode ? 'hover:bg-slate-700 text-slate-400' : 'hover:bg-stone-100 text-slate-500'}`}
+                className="absolute top-4 right-4 p-1 rounded-lg hover:bg-accent text-muted-foreground"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -349,10 +348,10 @@ export default function Home() {
               </div>
 
               <div className="text-center space-y-2">
-                <h3 className={`text-2xl font-semibold ${nightMode ? 'text-slate-100' : 'text-slate-800'}`} style={{fontFamily: "'Crimson Pro', serif"}}>
+                <h3 className="text-2xl font-semibold text-foreground" style={{fontFamily: "'Crimson Pro', serif"}}>
                   Boost Your Learning?
                 </h3>
-                <p className={`text-sm ${nightMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                <p className="text-sm text-muted-foreground">
                   Science shows that doing the focus exercise before studying can increase retention by 10x. 
                   It only takes 2-3 minutes!
                 </p>
@@ -371,7 +370,7 @@ export default function Home() {
                   onClick={dismissFocusPrompt}
                   variant="outline"
                   size="lg"
-                  className={`w-full ${nightMode ? 'border-slate-600 text-slate-300 hover:bg-slate-700' : ''}`}
+                  className="w-full"
                 >
                   Skip for Now
                 </Button>

@@ -314,7 +314,7 @@ export default function Settings() {
   }
 
   return (
-    <div className={`min-h-screen p-4 md:p-8 ${nightMode ? 'bg-slate-900' : 'bg-stone-50'}`}>
+    <div className="min-h-screen p-4 md:p-8 bg-background">
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Header */}
         <motion.div
@@ -324,27 +324,27 @@ export default function Settings() {
         >
           <div className="flex items-center justify-center gap-3 mb-4">
             <SettingsIcon className="w-8 h-8 text-teal-600" />
-            <h1 className="text-4xl font-semibold text-slate-800" style={{fontFamily: "'Crimson Pro', serif"}}>
+            <h1 className="text-4xl font-semibold text-foreground" style={{fontFamily: "'Crimson Pro', serif"}}>
               Settings
             </h1>
           </div>
-          <p className={nightMode ? 'text-slate-400' : 'text-slate-600'}>Customize your learning experience</p>
+          <p className="text-muted-foreground">Customize your learning experience</p>
         </motion.div>
 
         {/* Appearance */}
-        <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
-          <CardHeader className={`border-b ${nightMode ? 'border-slate-700' : 'border-stone-200'}`}>
-            <CardTitle className={`flex items-center gap-2 ${nightMode ? 'text-slate-100' : 'text-slate-800'}`}>
+        <Card className="border border-border shadow-sm bg-card">
+          <CardHeader className="border-b border-border">
+            <CardTitle className="flex items-center gap-2 text-card-foreground">
               {formData.night_mode ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
               Appearance
             </CardTitle>
-            <CardDescription className={nightMode ? 'text-slate-400' : 'text-slate-600'}>Adjust visual preferences</CardDescription>
+            <CardDescription>Adjust visual preferences</CardDescription>
           </CardHeader>
           <CardContent className="p-6 space-y-6">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
-                <Label className={`text-base font-medium ${nightMode ? 'text-slate-200' : 'text-slate-800'}`}>Night Mode</Label>
-                <p className={`text-sm ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Enable dark theme for studying</p>
+                <Label className="text-base font-medium text-foreground">Night Mode</Label>
+                <p className="text-sm text-muted-foreground">Enable dark theme for studying</p>
               </div>
               <Switch
                 checked={formData.night_mode}
@@ -354,8 +354,8 @@ export default function Settings() {
 
             <div className="flex items-center justify-between">
               <div className="space-y-1">
-                <Label className={`text-base font-medium ${nightMode ? 'text-slate-200' : 'text-slate-800'}`}>Show Example Sentences</Label>
-                <p className={`text-sm ${nightMode ? 'text-slate-400' : 'text-slate-500'}`}>Display context sentences on flashcards</p>
+                <Label className="text-base font-medium text-foreground">Show Example Sentences</Label>
+                <p className="text-sm text-muted-foreground">Display context sentences on flashcards</p>
               </div>
               <Switch
                 checked={formData.show_example_sentences}
