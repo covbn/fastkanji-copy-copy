@@ -295,7 +295,7 @@ export default function Profile() {
         </div>
 
         {/* FSRS-4 Progress */}
-        <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
+        <Card>
           <CardHeader className="border-b border-border">
             <CardTitle className="flex items-center gap-2">
               <Brain className="w-5 h-5 text-teal-600" />
@@ -335,7 +335,7 @@ export default function Profile() {
         </Card>
 
         {/* Achievements */}
-        <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
+        <Card>
           <CardHeader className="border-b border-border">
             <CardTitle className="flex items-center gap-2">
               <Trophy className="w-5 h-5 text-amber-500" />
@@ -379,7 +379,7 @@ export default function Profile() {
         </Card>
 
         {/* Member Since */}
-        <Card className={`border shadow-sm ${nightMode ? 'border-slate-700 bg-slate-800' : 'border-stone-200 bg-white'}`}>
+        <Card>
           <CardContent className="p-6 text-center">
             <p className="text-muted-foreground">
               Member since {format(new Date(user.created_date), 'MMMM yyyy')}
