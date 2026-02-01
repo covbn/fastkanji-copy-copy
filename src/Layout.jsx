@@ -20,6 +20,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/toaster";
+import { ConfirmDialogProvider } from "@/components/utils/ConfirmDialog";
 
 const navigationItems = [
   {
@@ -109,6 +110,7 @@ export default function Layout({ children, currentPageName }) {
   const isPremium = settings?.subscription_status === 'premium';
 
   return (
+    <ConfirmDialogProvider>
     <SidebarProvider>
       <style>
         {`
@@ -357,5 +359,6 @@ export default function Layout({ children, currentPageName }) {
       </div>
       <Toaster />
     </SidebarProvider>
+    </ConfirmDialogProvider>
   );
 }

@@ -14,6 +14,7 @@ import LevelSelector from "../components/home/LevelSelector";
 import QuickStats from "../components/home/QuickStats";
 import SessionSizeSelector from "../components/home/SessionSizeSelector";
 import { useDailyStudyTimer } from "../components/utils/useDailyStudyTimer";
+import { confirmDialog } from "../components/utils/ConfirmDialog";
 
 export default function Home() {
   const navigate = useNavigate();
@@ -76,10 +77,15 @@ export default function Home() {
     }
   }, [recentSessions]);
 
-  const handleStartStudy = (url) => {
+  const handleStartStudy = async (url) => {
     if (hasReachedLimit) {
-      alert("You've reached your daily study limit (7.5 minutes). Upgrade to Premium for unlimited access!");
-      navigate(createPageUrl('Subscription'));
+      const ok = await confirmDialog.show({
+        title: "Daily Limit Reached",
+        description: "You've reached your 7.5 minute daily limit. Upgrade to Premium for unlimited access!",
+        confirmText: "Upgrade Now",
+        cancelText: "Cancel"
+      });
+      if (ok) navigate(createPageUrl('Subscription'));
       return;
     }
 

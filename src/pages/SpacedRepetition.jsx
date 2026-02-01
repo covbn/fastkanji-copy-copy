@@ -191,8 +191,15 @@ export default function SpacedRepetition() {
         logTick(newRemaining);
         
         if (newRemaining <= 0) {
-          alert("Daily study limit reached (7.5 minutes). Upgrade to Premium for unlimited access!");
-          navigate(createPageUrl('Subscription'));
+          confirmDialog.show({
+            title: "Daily Limit Reached",
+            description: "You've used your 7.5 minutes today. Upgrade to Premium for unlimited access!",
+            confirmText: "Upgrade Now",
+            cancelText: "OK"
+          }).then((ok) => {
+            if (ok) navigate(createPageUrl('Subscription'));
+            else navigate(createPageUrl('Home'));
+          });
         }
         
         return newRemaining;

@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { normalizeVocabArray } from "@/components/utils/vocabNormalizer";
+import { confirmDialog } from "@/components/utils/ConfirmDialog";
 
 import FlashCard from "../components/flash/FlashCard";
 import GradingButtons from "../components/srs/GradingButtons";
@@ -139,8 +140,15 @@ export default function FlashStudy() {
         logTick(newRemaining);
         
         if (newRemaining <= 0) {
-          alert("Daily study limit reached (7.5 minutes). Upgrade to Premium for unlimited access!");
-          navigate(createPageUrl('Subscription'));
+          confirmDialog.show({
+            title: "Daily Limit Reached",
+            description: "You've used your 7.5 minutes today. Upgrade to Premium for unlimited access!",
+            confirmText: "Upgrade Now",
+            cancelText: "OK"
+          }).then((ok) => {
+            if (ok) navigate(createPageUrl('Subscription'));
+            else navigate(createPageUrl('Home'));
+          });
         }
         
         return newRemaining;
@@ -237,8 +245,14 @@ export default function FlashStudy() {
     setCurrentCard(newQueue[0]);
   };
 
-  const handleEndSession = () => {
-    if (window.confirm('Are you sure you want to end this session early? Your progress will be saved.')) {
+  const handleEndSession = async () => {
+    const ok = await confirmDialog.show({
+      title: "End Session Early?",
+      description: "Your progress will be saved. Are you sure you want to stop now?",
+      confirmText: "End Session",
+      cancelText: "Keep Studying"
+    });
+    if (ok) {
       // Save timer before completing
       if (!isPremium && remainingTime !== null) {
         const userId = user?.email || 'guest';

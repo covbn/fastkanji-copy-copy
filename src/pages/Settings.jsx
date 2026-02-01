@@ -11,6 +11,7 @@ import { Settings as SettingsIcon, Moon, Sun, Clock, Save, Brain, Bug, Trash2, C
 import { motion } from "framer-motion";
 import { useToast } from "@/components/ui/use-toast";
 import { loadRemainingTime, saveRemainingTime } from "@/components/utils/timerPersistence";
+import { confirmDialog } from "@/components/utils/ConfirmDialog";
 
 export default function Settings() {
   const queryClient = useQueryClient();
@@ -286,17 +287,15 @@ export default function Settings() {
     },
   });
 
-  const handleResetProgress = () => {
+  const handleResetProgress = async () => {
     console.log('[DEBUG] 🖱️ Reset button clicked');
-    const confirmed = window.confirm(
-      '⚠️ RESET ALL PROGRESS\n\n' +
-      'This will:\n' +
-      '• Delete ALL card progress\n' +
-      '• Reset all scheduling data\n' +
-      '• Reset daily new/review counts to 0\n' +
-      '• Reset daily usage time to 0\n\n' +
-      'This cannot be undone. Continue?'
-    );
+    const confirmed = await confirmDialog.show({
+      title: "⚠️ Reset All Progress",
+      description: "This will delete ALL card progress, reset all scheduling data, and reset daily limits. This cannot be undone. Continue?",
+      confirmText: "Reset Everything",
+      cancelText: "Cancel",
+      destructive: true
+    });
     
     if (confirmed) {
       console.log('[DEBUG] ✅ User confirmed reset');
