@@ -35,54 +35,59 @@ export default function Subscription() {
 
   const upgradeMutation = useMutation({
     mutationFn: async () => {
-      console.log(`[PREMIUM] click userId=${user?.email} current=${isPremium}`);
-      
-      if (!settings) {
-        // No cloud settings, save to localStorage
-        console.log(`[PREMIUM] saved cloud=fail local=attempting new=true`);
-        localStorage.setItem('premium_status', 'premium');
-        return { saved: 'local' };
+      // Check if running in iframe (preview mode)
+      if (window.self !== window.top) {
+        throw new Error('IFRAME_BLOCKED');
       }
-      
-      const result = await base44.entities.UserSettings.update(settings.id, {
-        subscription_status: 'premium'
+
+      // Create Stripe checkout session
+      const response = await base44.functions.invoke('createCheckoutSession', {
+        priceId: 'price_1Sw5soEgEO1hy3ItM5zgSb8D'
       });
-      console.log(`[PREMIUM] saved cloud=ok local=n/a new=true`);
-      return result;
+
+      if (!response.data.url) {
+        throw new Error('Failed to create checkout session');
+      }
+
+      return response.data;
     },
-    onSuccess: async (result) => {
-      // Update localStorage immediately
-      localStorage.setItem('premium_status', 'premium');
-      
-      // Invalidate and wait for refetch
-      await queryClient.invalidateQueries({ queryKey: ['userSettings'] });
-      await queryClient.refetchQueries({ queryKey: ['userSettings'] });
-      
-      const source = result?.saved === 'local' ? 'local' : 'settings';
-      console.log(`[PREMIUM] afterUpdate isPremium=true source=${source}`);
-      
-      toast({
-        title: "🎉 Premium Unlocked!",
-        description: "You now have unlimited access to all features and JLPT levels.",
-        duration: 4000,
-      });
-      
-      setTimeout(() => navigate(createPageUrl('Home')), 1500);
+    onSuccess: (data) => {
+      // Redirect to Stripe checkout
+      window.location.href = data.url;
+    },
+    onError: (error) => {
+      if (error.message === 'IFRAME_BLOCKED') {
+        toast({
+          title: "Please Open Published App",
+          description: "Checkout only works in the published app, not in the preview. Click 'Publish' to open your live app.",
+          variant: "destructive",
+          duration: 5000,
+        });
+      } else {
+        toast({
+          title: "Checkout Error",
+          description: error.message || "Failed to start checkout. Please try again.",
+          variant: "destructive",
+        });
+      }
     },
   });
 
-  const downgradeMutation = useMutation({
-    mutationFn: async () => {
-      if (!settings) return;
-      return base44.entities.UserSettings.update(settings.id, {
-        subscription_status: 'free'
+  // Check for successful checkout
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('success') === 'true') {
+      toast({
+        title: "🎉 Welcome to Premium!",
+        description: "Your subscription is now active. Enjoy unlimited access!",
+        duration: 5000,
       });
-    },
-    onSuccess: () => {
+      // Clean up URL
+      window.history.replaceState({}, '', createPageUrl('Subscription'));
+      // Refetch settings
       queryClient.invalidateQueries({ queryKey: ['userSettings'] });
-      navigate(createPageUrl('Home'));
-    },
-  });
+    }
+  }, [queryClient, toast]);
 
   const freeFeatures = [
     { name: "N5 Vocabulary Access", included: true },
@@ -171,13 +176,11 @@ export default function Subscription() {
                   ))}
                 </ul>
                 {isPremium && (
-                  <Button
-                    onClick={() => downgradeMutation.mutate()}
-                    variant="outline"
-                    className="w-full mt-6"
-                  >
-                    Downgrade to Free
-                  </Button>
+                  <div className="mt-6 text-center">
+                    <p className="text-sm text-muted-foreground">
+                      To manage your subscription, visit your Stripe customer portal or contact support.
+                    </p>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -226,7 +229,7 @@ export default function Subscription() {
                     disabled={upgradeMutation.isPending}
                   >
                     <Crown className="w-5 h-5 mr-2" />
-                    {upgradeMutation.isPending ? 'Upgrading...' : 'Upgrade to Premium'}
+                    {upgradeMutation.isPending ? 'Redirecting to Checkout...' : 'Subscribe Now - $9.99/month'}
                   </Button>
                 )}
               </CardContent>
