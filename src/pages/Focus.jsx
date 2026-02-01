@@ -15,14 +15,21 @@ export default function Focus() {
   const [breathCount, setBreathCount] = useState(0);
   const [holdTimer, setHoldTimer] = useState(0);
   const [isActive, setIsActive] = useState(false);
-  const [breathPhase, setBreathPhase] = useState("inhale"); // inhale, exhale
-  const [breathTimer, setBreathTimer] = useState(0);
   const [dotTimer, setDotTimer] = useState(0);
+  
+  // Synced breathing state
+  const [breathPhaseIndex, setBreathPhaseIndex] = useState(0);
+  const [phaseStartMs, setPhaseStartMs] = useState(0);
+  const [breathProgress, setBreathProgress] = useState(0);
+  const [breathRemaining, setBreathRemaining] = useState(0);
 
   const totalBreaths = 20;
-  const inhaleSeconds = 4;
-  const exhaleSeconds = 4;
-  const holdSeconds = 1;
+  const breathPhases = [
+    { key: 'inhale', seconds: 4 },
+    { key: 'hold1', seconds: 1 },
+    { key: 'exhale', seconds: 4 },
+    { key: 'hold2', seconds: 1 },
+  ];
   const dotStareDuration = 30;
 
   const { data: user } = useQuery({
@@ -54,45 +61,48 @@ export default function Focus() {
     },
   });
 
-  // Automatic breathing timer
+  // Synced breathing timer using requestAnimationFrame
   useEffect(() => {
-    let interval = null;
-    if (phase === "breathing" && isActive) {
-      interval = setInterval(() => {
-        setBreathTimer((prev) => {
-          const cycleLength = inhaleSeconds + holdSeconds + exhaleSeconds + holdSeconds;
-          const newTimer = prev + 1;
+    if (phase !== "breathing" || !isActive) return;
+
+    let animationFrameId;
+    const tick = () => {
+      const nowMs = performance.now();
+      const currentPhase = breathPhases[breathPhaseIndex];
+      const elapsed = (nowMs - phaseStartMs) / 1000;
+      const remaining = Math.max(0, currentPhase.seconds - elapsed);
+      const progress = Math.min(elapsed / currentPhase.seconds, 1);
+
+      setBreathProgress(progress);
+      setBreathRemaining(Math.ceil(remaining));
+
+      // Check for phase transition
+      if (elapsed >= currentPhase.seconds) {
+        const nextIndex = (breathPhaseIndex + 1) % breathPhases.length;
+        
+        // Check if we completed a full breath cycle
+        if (nextIndex === 0) {
+          const newCount = breathCount + 1;
+          setBreathCount(newCount);
           
-          // Update phase based on current timer position
-          if (newTimer <= inhaleSeconds) {
-            setBreathPhase("inhale");
-          } else if (newTimer <= inhaleSeconds + holdSeconds) {
-            setBreathPhase("hold");
-          } else if (newTimer <= inhaleSeconds + holdSeconds + exhaleSeconds) {
-            setBreathPhase("exhale");
-          } else if (newTimer <= cycleLength) {
-            setBreathPhase("hold");
+          if (newCount >= totalBreaths) {
+            setPhase("hold_empty");
+            setHoldTimer(0);
+            setIsActive(false);
+            return;
           }
-          
-          if (newTimer >= cycleLength) {
-            const newCount = breathCount + 1;
-            setBreathCount(newCount);
-            
-            if (newCount >= totalBreaths) {
-              setPhase("hold_empty");
-              setHoldTimer(0);
-              setIsActive(false);
-              return 0;
-            }
-            return 1; // Start next cycle at 1
-          }
-          
-          return newTimer;
-        });
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [phase, isActive, breathCount]);
+        }
+        
+        setBreathPhaseIndex(nextIndex);
+        setPhaseStartMs(nowMs);
+      }
+
+      animationFrameId = requestAnimationFrame(tick);
+    };
+
+    animationFrameId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [phase, isActive, breathPhaseIndex, phaseStartMs, breathCount, breathPhases, totalBreaths]);
 
   // Timer for hold phases
   useEffect(() => {
@@ -125,8 +135,10 @@ export default function Focus() {
   const startExercise = () => {
     setPhase("breathing");
     setBreathCount(0);
-    setBreathTimer(0);
-    setBreathPhase("inhale");
+    setBreathPhaseIndex(0);
+    setPhaseStartMs(performance.now());
+    setBreathProgress(0);
+    setBreathRemaining(breathPhases[0].seconds);
     setIsActive(true);
   };
 
@@ -156,8 +168,11 @@ export default function Focus() {
     setPhase("ready");
     setBreathCount(0);
     setHoldTimer(0);
-    setBreathTimer(0);
     setDotTimer(0);
+    setBreathPhaseIndex(0);
+    setPhaseStartMs(0);
+    setBreathProgress(0);
+    setBreathRemaining(0);
     setIsActive(false);
   };
 
@@ -235,56 +250,67 @@ export default function Focus() {
             )}
 
             {/* Breathing Phase */}
-            {phase === "breathing" && (
-              <motion.div
-                key="breathing"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="text-center space-y-8"
-              >
-                <div className="space-y-4">
-                  <motion.div
-                    animate={{ 
-                      scale: breathPhase === "inhale" ? 1.3 : breathPhase === "exhale" ? 1 : (breathPhase === "hold" && breathTimer <= inhaleSeconds + holdSeconds) ? 1.3 : 1,
-                    }}
-                    transition={{ 
-                      duration: breathPhase === "inhale" ? inhaleSeconds : breathPhase === "exhale" ? exhaleSeconds : holdSeconds,
-                      ease: "easeInOut"
-                    }}
-                    className="w-32 h-32 md:w-32 md:h-32 mx-auto rounded-full bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center shadow-xl relative"
-                  >
-                    <Wind className="w-16 h-16 text-white" />
-                  </motion.div>
-                  
-                  <div className="space-y-2">
-                    <h2 className="text-5xl font-bold px-4 text-foreground">
-                      {breathCount}/{totalBreaths}
-                    </h2>
-                    <p className={`text-2xl font-semibold ${
-                      breathPhase === 'inhale' ? 'text-teal-600' : 
-                      breathPhase === 'exhale' ? 'text-cyan-600' : 
-                      'text-amber-600'
-                    }`}>
-                      {breathPhase === 'inhale' ? 'Breathe In' : 
-                       breathPhase === 'exhale' ? 'Breathe Out' : 
-                       'Hold'}
-                    </p>
-                    <p className="text-muted-foreground">
-                      Follow the circle
-                    </p>
-                  </div>
-                </div>
-
-                <Button
-                  onClick={skipToEnd}
-                  variant="outline"
-                  size="sm"
+            {phase === "breathing" && (() => {
+              const currentPhase = breathPhases[breathPhaseIndex];
+              const isInhale = currentPhase.key === 'inhale';
+              const isExhale = currentPhase.key === 'exhale';
+              const isHold = currentPhase.key === 'hold1' || currentPhase.key === 'hold2';
+              
+              // Calculate scale based on phase and progress
+              let scale = 1;
+              if (isInhale) {
+                scale = 1 + breathProgress * 0.3; // 1 -> 1.3
+              } else if (isExhale) {
+                scale = 1.3 - breathProgress * 0.3; // 1.3 -> 1
+              } else if (isHold) {
+                scale = currentPhase.key === 'hold1' ? 1.3 : 1; // hold1 stays large, hold2 stays small
+              }
+              
+              return (
+                <motion.div
+                  key="breathing"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="text-center space-y-8"
                 >
-                  Skip Exercise
-                </Button>
-              </motion.div>
-            )}
+                  <div className="space-y-4">
+                    <div
+                      style={{ transform: `scale(${scale})` }}
+                      className="w-32 h-32 md:w-32 md:h-32 mx-auto rounded-full bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center shadow-xl relative transition-transform duration-100"
+                    >
+                      <Wind className="w-16 h-16 text-white" />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <h2 className="text-5xl font-bold px-4 text-foreground">
+                        {breathCount}/{totalBreaths}
+                      </h2>
+                      <p className={`text-2xl font-semibold ${
+                        isInhale ? 'text-teal-600' : 
+                        isExhale ? 'text-cyan-600' : 
+                        'text-amber-600'
+                      }`}>
+                        {isInhale ? 'Breathe In' : 
+                         isExhale ? 'Breathe Out' : 
+                         'Hold'}
+                      </p>
+                      <p className="text-muted-foreground">
+                        {breathRemaining}s
+                      </p>
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={skipToEnd}
+                    variant="outline"
+                    size="sm"
+                  >
+                    Skip Exercise
+                  </Button>
+                </motion.div>
+              );
+            })()}
 
             {/* Hold Empty Phase */}
             {phase === "hold_empty" && (
