@@ -37,7 +37,8 @@ const toastVariants = cva(
   }
 );
 
-const Toast = React.forwardRef(({ className, variant, ...props }, ref) => {
+const Toast = React.forwardRef(({ className, variant, onOpenChange, ...props }, ref) => {
+  // Filter out onOpenChange from props passed to div
   return (
     <div
       ref={ref}
