@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,13 +6,34 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, Brain, Clock, CheckCircle, Search } from "lucide-react";
-import { motion } from "framer-motion";
+import { FixedSizeList as List } from 'react-window';
 import { normalizeVocabArray, getUiLevels } from "@/components/utils/vocabNormalizer";
+import { getCardState } from "@/components/scheduler/sm2Anki";
+import { useDebounce } from "@/components/utils/useDebounce";
+
+/**
+ * Derive card display state from progress (shared logic for counts & filters)
+ */
+function deriveCardState(vocab, progress, now) {
+  const card = getCardState(progress, vocab);
+  
+  if (card.state === "New") {
+    return "new";
+  } else if (card.state === "Learning" || card.state === "Relearning") {
+    return card.dueAt <= now ? "learning_due" : "learning";
+  } else if (card.state === "Review") {
+    return card.dueAt <= now ? "due" : "reviewed";
+  }
+  return "new";
+}
 
 export default function CardBrowser() {
   const [searchQuery, setSearchQuery] = useState("");
   const [stateFilter, setStateFilter] = useState("all");
   const [levelFilter, setLevelFilter] = useState("all");
+  
+  // Debounce search to avoid filtering on every keystroke
+  const debouncedSearch = useDebounce(searchQuery, 200);
 
   const { data: rawVocabulary = [], isLoading: isLoadingVocab } = useQuery({
     queryKey: ['allVocabulary'],
@@ -52,100 +73,84 @@ export default function CardBrowser() {
     enabled: !!user,
   });
 
-  const progressMap = new Map(userProgress.map(p => [p.vocabulary_id, p]));
-
-  // Categorize all cards
-  const categorizedCards = React.useMemo(() => {
-    const now = new Date();
-    const newCards = [];
-    const learningCards = [];
-    const dueCards = [];
-    const reviewedCards = [];
-
-    allVocabulary.forEach(word => {
-      const progress = progressMap.get(word.id);
+  // Pre-compute progress map, derived states, and search keys (memoized)
+  const { progressMap, cardsWithState, searchIndex } = useMemo(() => {
+    const now = Date.now();
+    const pMap = new Map(userProgress.map(p => [p.vocabulary_id, p]));
+    const cards = [];
+    const sIndex = new Map();
+    
+    allVocabulary.forEach(vocab => {
+      const progress = pMap.get(vocab.id);
+      const derivedState = deriveCardState(vocab, progress, now);
+      const card = getCardState(progress, vocab);
       
-      if (!progress || progress.state === "New") {
-        newCards.push({ word, progress: null });
-      } else if (progress.state === "Learning" || progress.state === "Relearning") {
-        const nextReview = new Date(progress.next_review);
-        if (nextReview <= now) {
-          learningCards.push({ word, progress, isDue: true });
-        } else {
-          learningCards.push({ word, progress, isDue: false });
-        }
-      } else if (progress.state === "Review") {
-        const nextReview = new Date(progress.next_review);
-        if (nextReview <= now) {
-          dueCards.push({ word, progress });
-        } else {
-          reviewedCards.push({ word, progress });
-        }
-      }
+      cards.push({
+        vocab,
+        progress,
+        derivedState,
+        card,
+        dueAt: card.dueAt
+      });
+      
+      // Pre-compute search key
+      const searchKey = `${vocab.kanji} ${vocab.hiragana} ${vocab.meaning}`.toLowerCase();
+      sIndex.set(vocab.id, searchKey);
     });
-
-    return { newCards, learningCards, dueCards, reviewedCards };
+    
+    return { progressMap: pMap, cardsWithState: cards, searchIndex: sIndex };
   }, [allVocabulary, userProgress]);
+  
+  // Categorize for stats (memoized)
+  const stats = useMemo(() => {
+    const counts = { new: 0, learning: 0, due: 0, reviewed: 0 };
+    cardsWithState.forEach(c => {
+      if (c.derivedState === "new") counts.new++;
+      else if (c.derivedState === "learning" || c.derivedState === "learning_due") counts.learning++;
+      else if (c.derivedState === "due") counts.due++;
+      else if (c.derivedState === "reviewed") counts.reviewed++;
+    });
+    return counts;
+  }, [cardsWithState]);
 
-  // Apply filters
-  const filteredCards = React.useMemo(() => {
-    let cards = [];
+  // Apply filters (memoized, uses debounced search)
+  const filteredCards = useMemo(() => {
+    let cards = cardsWithState;
     
-    if (stateFilter === "all") {
-      cards = [
-        ...categorizedCards.newCards,
-        ...categorizedCards.learningCards,
-        ...categorizedCards.dueCards,
-        ...categorizedCards.reviewedCards
-      ];
-    } else if (stateFilter === "new") {
-      cards = categorizedCards.newCards;
-    } else if (stateFilter === "learning") {
-      cards = categorizedCards.learningCards;
-    } else if (stateFilter === "due") {
-      cards = categorizedCards.dueCards;
-    } else if (stateFilter === "reviewed") {
-      cards = categorizedCards.reviewedCards;
+    // State filter
+    if (stateFilter !== "all") {
+      if (stateFilter === "learning") {
+        cards = cards.filter(c => c.derivedState === "learning" || c.derivedState === "learning_due");
+      } else {
+        cards = cards.filter(c => c.derivedState === stateFilter);
+      }
     }
-
+    
+    // Level filter
     if (levelFilter !== "all") {
-      cards = cards.filter(c => c.word.level === levelFilter);
+      cards = cards.filter(c => c.vocab.level === levelFilter);
     }
-
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      cards = cards.filter(c => 
-        c.word.kanji.toLowerCase().includes(query) ||
-        c.word.hiragana.toLowerCase().includes(query) ||
-        c.word.meaning.toLowerCase().includes(query)
-      );
+    
+    // Search filter (debounced)
+    if (debouncedSearch) {
+      const query = debouncedSearch.toLowerCase();
+      cards = cards.filter(c => searchIndex.get(c.vocab.id).includes(query));
     }
-
+    
     return cards;
-  }, [categorizedCards, stateFilter, levelFilter, searchQuery]);
+  }, [cardsWithState, stateFilter, levelFilter, debouncedSearch, searchIndex]);
 
-  const getStateInfo = (card) => {
-    if (!card.progress) {
+  const getStateInfo = (derivedState) => {
+    if (derivedState === "new") {
       return { label: "New", color: "bg-cyan-500", icon: BookOpen };
+    } else if (derivedState === "learning" || derivedState === "learning_due") {
+      return { label: "Learning", color: "bg-amber-500", icon: Brain };
+    } else if (derivedState === "due") {
+      return { label: "Due", color: "bg-emerald-500", icon: Clock };
+    } else if (derivedState === "reviewed") {
+      return { label: "Reviewed", color: "bg-slate-500", icon: CheckCircle };
     }
-    
-    const state = card.progress.state;
-    const now = new Date();
-    const nextReview = new Date(card.progress.next_review);
-    
-    if (state === "Learning" || state === "Relearning") {
-      if (nextReview <= now) {
-        return { label: state, color: "bg-amber-500", icon: Brain, isDue: true };
-      }
-      return { label: state, color: "bg-amber-500", icon: Brain, isDue: false };
-    } else if (state === "Review") {
-      if (nextReview <= now) {
-        return { label: "Due", color: "bg-emerald-500", icon: Clock, isDue: true };
-      }
-      return { label: "Review", color: "bg-slate-500", icon: CheckCircle, isDue: false };
-    }
-    
-    return { label: state, color: "bg-slate-500", icon: CheckCircle };
+    return { label: "Unknown", color: "bg-slate-500", icon: CheckCircle };
   };
 
   const formatNextReview = (dateString) => {
@@ -195,7 +200,7 @@ export default function CardBrowser() {
                   <BookOpen className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">{categorizedCards.newCards.length}</p>
+                  <p className="text-2xl font-bold text-foreground">{stats.new}</p>
                   <p className="text-sm text-muted-foreground">New</p>
                 </div>
               </div>
@@ -209,7 +214,7 @@ export default function CardBrowser() {
                   <Brain className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">{categorizedCards.learningCards.length}</p>
+                  <p className="text-2xl font-bold text-foreground">{stats.learning}</p>
                   <p className="text-sm text-muted-foreground">Learning</p>
                 </div>
               </div>
@@ -223,7 +228,7 @@ export default function CardBrowser() {
                   <Clock className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">{categorizedCards.dueCards.length}</p>
+                  <p className="text-2xl font-bold text-foreground">{stats.due}</p>
                   <p className="text-sm text-muted-foreground">Due Now</p>
                 </div>
               </div>
@@ -237,7 +242,7 @@ export default function CardBrowser() {
                   <CheckCircle className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">{categorizedCards.reviewedCards.length}</p>
+                  <p className="text-2xl font-bold text-foreground">{stats.reviewed}</p>
                   <p className="text-sm text-muted-foreground">Reviewed</p>
                 </div>
               </div>
@@ -285,76 +290,80 @@ export default function CardBrowser() {
           </CardContent>
         </Card>
 
-        {/* Cards List */}
+        {/* Cards List - Virtualized */}
         <Card>
           <CardHeader className="border-b border-border">
             <CardTitle className="text-card-foreground">
               {filteredCards.length} Cards
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-4">
-            <div className="space-y-2 max-h-[600px] overflow-y-auto custom-scrollbar">
-              {filteredCards.map((card, idx) => {
-                const stateInfo = getStateInfo(card);
-                const StateIcon = stateInfo.icon;
-                
-                return (
-                  <motion.div
-                    key={card.word.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.02 }}
-                    className="p-4 rounded-lg border bg-muted hover:bg-accent border-border transition-colors"
-                  >
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-4 flex-1 min-w-0">
-                        <div className={`w-10 h-10 rounded-lg ${stateInfo.color} flex items-center justify-center flex-shrink-0`}>
-                          <StateIcon className="w-5 h-5 text-white" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <p className="text-xl font-semibold text-foreground" style={{fontFamily: "'Crimson Pro', serif"}}>
-                              {card.word.kanji}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {card.word.hiragana}
-                            </p>
-                          </div>
-                          <p className="text-sm text-muted-foreground truncate">
-                            {card.word.meaning}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <Badge variant="outline">
-                          {card.word.level}
-                        </Badge>
-                        <Badge className={`${stateInfo.color} text-white`}>
-                          {stateInfo.label}
-                        </Badge>
-                        {card.progress && (
-                          <div className="text-right">
-                            <p className="text-xs text-muted-foreground">
-                              Next: {formatNextReview(card.progress.next_review)}
-                            </p>
-                            {card.progress.difficulty && (
-                              <p className="text-xs text-muted-foreground">
-                                Diff: {card.progress.difficulty.toFixed(1)}
+          <CardContent className="p-0">
+            {filteredCards.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No cards found matching your filters</p>
+              </div>
+            ) : (
+              <List
+                height={600}
+                itemCount={filteredCards.length}
+                itemSize={90}
+                width="100%"
+                className="custom-scrollbar"
+              >
+                {({ index, style }) => {
+                  const card = filteredCards[index];
+                  const stateInfo = getStateInfo(card.derivedState);
+                  const StateIcon = stateInfo.icon;
+                  
+                  return (
+                    <div style={style} className="px-4 py-2">
+                      <div className="p-4 rounded-lg border bg-muted hover:bg-accent border-border transition-colors h-full">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-4 flex-1 min-w-0">
+                            <div className={`w-10 h-10 rounded-lg ${stateInfo.color} flex items-center justify-center flex-shrink-0`}>
+                              <StateIcon className="w-5 h-5 text-white" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <p className="text-xl font-semibold text-foreground" style={{fontFamily: "'Crimson Pro', serif"}}>
+                                  {card.vocab.kanji}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  {card.vocab.hiragana}
+                                </p>
+                              </div>
+                              <p className="text-sm text-muted-foreground truncate">
+                                {card.vocab.meaning}
                               </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <Badge variant="outline">
+                              {card.vocab.level}
+                            </Badge>
+                            <Badge className={`${stateInfo.color} text-white`}>
+                              {stateInfo.label}
+                            </Badge>
+                            {card.progress && (
+                              <div className="text-right">
+                                <p className="text-xs text-muted-foreground">
+                                  Next: {formatNextReview(card.progress.next_review)}
+                                </p>
+                                {card.card.ease > 0 && (
+                                  <p className="text-xs text-muted-foreground">
+                                    Ease: {card.card.ease.toFixed(1)}
+                                  </p>
+                                )}
+                              </div>
                             )}
                           </div>
-                        )}
+                        </div>
                       </div>
                     </div>
-                  </motion.div>
-                );
-              })}
-              {filteredCards.length === 0 && (
-                <div className="text-center py-12">
-                  <p className="text-muted-foreground">No cards found matching your filters</p>
-                </div>
-              )}
-            </div>
+                  );
+                }}
+              </List>
+            )}
           </CardContent>
         </Card>
       </div>
