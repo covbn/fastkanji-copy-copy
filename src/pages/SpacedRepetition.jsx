@@ -13,6 +13,7 @@ import AccuracyMeter from "../components/flash/AccuracyMeter";
 import RestInterval from "../components/flash/RestInterval";
 import SessionComplete from "../components/flash/SessionComplete";
 import { loadRemainingTime, saveRemainingTime, checkAndResetIfNewDay, logTick } from "@/components/utils/timerPersistence";
+import { confirmDialog } from "@/components/utils/ConfirmDialog";
 
 // New Anki-style SM-2 scheduler
 import { DEFAULT_OPTIONS } from "../components/scheduler/types";
@@ -552,8 +553,14 @@ export default function SpacedRepetition() {
     setNextRestDuration(Math.floor(Math.random() * (restMaxSeconds - restMinSeconds) * 1000) + (restMinSeconds * 1000));
   };
 
-  const handleEndSession = () => {
-    if (window.confirm('Are you sure you want to end this session early? Your progress will be saved.')) {
+  const handleEndSession = async () => {
+    const ok = await confirmDialog.show({
+      title: "End Session Early?",
+      description: "Your progress will be saved. Are you sure you want to stop now?",
+      confirmText: "End Session",
+      cancelText: "Keep Studying"
+    });
+    if (ok) {
       // Save timer before completing
       if (!isPremium && remainingTime !== null) {
         const userId = user?.email || 'guest';
@@ -708,9 +715,6 @@ export default function SpacedRepetition() {
               <span className="font-semibold text-cyan-700 dark:text-cyan-400 text-sm md:text-base">
                 {Math.max(0, maxNewCardsPerDay - newCardsToday)}
               </span>
-              <span className="text-xs opacity-50 text-muted-foreground">
-                ({cardCategories.totalUnseen || 0} unseen)
-              </span>
             </div>
             <div className="flex items-center gap-1.5 md:gap-2">
               <Brain className="w-3 h-3 md:w-4 md:h-4 text-amber-600" />
@@ -718,11 +722,6 @@ export default function SpacedRepetition() {
               <span className="font-semibold text-amber-700 dark:text-amber-400 text-sm md:text-base">
                 {cardCategories.totalLearning || 0}
               </span>
-              {cardCategories.learningCards.length < (cardCategories.totalLearning || 0) && (
-                <span className="text-xs opacity-50 text-muted-foreground">
-                  ({cardCategories.learningCards.length} due)
-                </span>
-              )}
             </div>
             <div className="flex items-center gap-1.5 md:gap-2">
               <Clock className="w-3 h-3 md:w-4 md:h-4 text-emerald-600" />
