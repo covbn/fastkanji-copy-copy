@@ -23,6 +23,7 @@ Deno.serve(async (req) => {
 
     const session = await stripe.checkout.sessions.create({
       customer_email: user.email,
+      client_reference_id: user.email,
       line_items: [
         {
           price: priceId,
@@ -32,11 +33,21 @@ Deno.serve(async (req) => {
       mode: 'subscription',
       success_url: `${appUrl}/?success=true`,
       cancel_url: `${appUrl}/Subscription?canceled=true`,
+      subscription_data: {
+        metadata: {
+          userId: user.email,
+          userEmail: user.email,
+          base44_app_id: Deno.env.get("BASE44_APP_ID")
+        }
+      },
       metadata: {
-        base44_app_id: Deno.env.get("BASE44_APP_ID"),
-        user_email: user.email,
+        userId: user.email,
+        userEmail: user.email,
+        base44_app_id: Deno.env.get("BASE44_APP_ID")
       },
     });
+
+    console.log(`[STRIPE CHECKOUT] userId=${user.email} email=${user.email} priceId=${priceId} mode=subscription sessionId=${session.id}`);
 
     return Response.json({ url: session.url });
   } catch (error) {

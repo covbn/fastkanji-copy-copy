@@ -50,9 +50,7 @@ export default function Home() {
   });
 
   const nightMode = settings?.night_mode || false;
-  const isPremium = settings?.subscription_status === 'premium' || localStorage.getItem('premium_status') === 'premium';
-  
-  console.log(`[PREMIUM] homeGate isPremium=${isPremium}`);
+  const isPremium = settings?.subscription_status === 'premium';
   
   // Use shared timer hook for free users
   const { remainingSeconds: remainingTime, isLoading: timerLoading } = useDailyStudyTimer(user?.email, isPremium);
