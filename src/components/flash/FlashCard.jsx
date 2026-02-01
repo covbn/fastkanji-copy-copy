@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, X, Eye } from "lucide-react";
+import { boldVocabInSentence, renderWithBold } from "../utils/boldVocabInSentence";
 
 export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSentences = true, hideButtons = false, onRevealChange }) {
   const [revealed, setRevealed] = useState(false);
@@ -99,11 +100,18 @@ export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSente
 
               {/* Example sentence hint for reading_to_meaning (before reveal) */}
               {isReadingToMeaning && shouldShowExample && !revealed && (
-                <div className="text-xs text-muted-foreground mb-2 px-4">
+                <div className="mb-2 px-4">
                   <p 
-                    className="italic"
-                    dangerouslySetInnerHTML={{ __html: vocabulary.example_sentence }}
-                  />
+                    className="text-xl md:text-2xl text-foreground italic leading-relaxed"
+                    style={{fontFamily: "'Crimson Pro', serif"}}
+                  >
+                    {renderWithBold(boldVocabInSentence(vocabulary.example_sentence, vocabulary.kanji))}
+                  </p>
+                  {vocabulary.example_sentence_kana && (
+                    <p className="text-sm md:text-base text-muted-foreground mt-2 italic">
+                      {renderWithBold(boldVocabInSentence(vocabulary.example_sentence_kana, vocabulary.hiragana))}
+                    </p>
+                  )}
                 </div>
               )}
 

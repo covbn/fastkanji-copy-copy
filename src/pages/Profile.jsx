@@ -78,9 +78,32 @@ export default function Profile() {
 
   const focusCount = settings?.focus_exercises_completed || 0;
 
-  // FSRS-4 breakdown
+  // SM-2 Scheduler stats
+  const today = new Date().toISOString().split('T')[0];
+  
+  const newIntroducedToday = progress.filter(p => 
+    p.first_reviewed_day_key === today
+  ).length;
+  
+  const newLearnedToday = progress.filter(p => {
+    // Card was introduced today AND is now in Review state
+    return p.first_reviewed_day_key === today && p.state === "Review";
+  }).length;
+  
+  const reviewsCompletedToday = progress.filter(p => {
+    // Card was reviewed today but NOT introduced today (i.e., was already known from before)
+    const wasReviewedToday = p.last_reviewed && 
+      new Date(p.last_reviewed).toISOString().split('T')[0] === today;
+    const wasIntroducedToday = p.first_reviewed_day_key === today;
+    return wasReviewedToday && !wasIntroducedToday;
+  }).length;
+  
+  const learningInProgress = progress.filter(p => 
+    p.state === "Learning" || p.state === "Relearning"
+  ).length;
+  
+  // State breakdown
   const newCards = progress.filter(p => !p.state || p.state === "New").length;
-  const learningCards = progress.filter(p => p.state === "Learning" || p.state === "Relearning").length;
   const reviewCards = progress.filter(p => p.state === "Review").length;
 
   // Achievements - expanded
@@ -294,41 +317,70 @@ export default function Profile() {
           </Card>
         </div>
 
-        {/* FSRS-4 Progress */}
+        {/* Spaced Repetition Progress */}
         <Card>
           <CardHeader className="border-b border-border">
             <CardTitle className="flex items-center gap-2">
               <Brain className="w-5 h-5 text-teal-600" />
-              Learning Progress (FSRS-4)
+              Spaced Repetition Progress
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6">
-            <div className="grid md:grid-cols-3 gap-4">
+            <div className="grid md:grid-cols-4 gap-4 mb-6">
               <div className="p-4 rounded-lg border bg-cyan-50 dark:bg-cyan-950 border-cyan-200 dark:border-cyan-800">
                 <div className="flex items-center gap-3 mb-2">
                   <BookOpen className="w-5 h-5 text-cyan-600" />
-                  <p className="font-semibold text-foreground">New</p>
+                  <p className="font-semibold text-foreground">New Today</p>
                 </div>
-                <p className="text-3xl font-bold text-cyan-700 dark:text-cyan-400">{newCards}</p>
-                <p className="text-sm mt-1 text-muted-foreground">Words not yet started</p>
+                <p className="text-3xl font-bold text-cyan-700 dark:text-cyan-400">{newIntroducedToday}</p>
+                <p className="text-sm mt-1 text-muted-foreground">Cards introduced today</p>
               </div>
 
-              <div className="p-4 rounded-lg border bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800">
+              <div className="p-4 rounded-lg border bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
                 <div className="flex items-center gap-3 mb-2">
-                  <Zap className="w-5 h-5 text-amber-600" />
-                  <p className="font-semibold text-foreground">Learning</p>
+                  <Trophy className="w-5 h-5 text-blue-600" />
+                  <p className="font-semibold text-foreground">Learned Today</p>
                 </div>
-                <p className="text-3xl font-bold text-amber-700 dark:text-amber-400">{learningCards}</p>
-                <p className="text-sm mt-1 text-muted-foreground">Currently learning</p>
+                <p className="text-3xl font-bold text-blue-700 dark:text-blue-400">{newLearnedToday}</p>
+                <p className="text-sm mt-1 text-muted-foreground">New cards graduated</p>
               </div>
 
               <div className="p-4 rounded-lg border bg-emerald-50 dark:bg-emerald-950 border-emerald-200 dark:border-emerald-800">
                 <div className="flex items-center gap-3 mb-2">
-                  <Trophy className="w-5 h-5 text-emerald-600" />
-                  <p className="font-semibold text-foreground">Mastered</p>
+                  <Zap className="w-5 h-5 text-emerald-600" />
+                  <p className="font-semibold text-foreground">Reviews Today</p>
                 </div>
-                <p className="text-3xl font-bold text-emerald-700 dark:text-emerald-400">{reviewCards}</p>
-                <p className="text-sm mt-1 text-muted-foreground">In review phase</p>
+                <p className="text-3xl font-bold text-emerald-700 dark:text-emerald-400">{reviewsCompletedToday}</p>
+                <p className="text-sm mt-1 text-muted-foreground">Older cards reviewed</p>
+              </div>
+
+              <div className="p-4 rounded-lg border bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800">
+                <div className="flex items-center gap-3 mb-2">
+                  <Target className="w-5 h-5 text-amber-600" />
+                  <p className="font-semibold text-foreground">In Learning</p>
+                </div>
+                <p className="text-3xl font-bold text-amber-700 dark:text-amber-400">{learningInProgress}</p>
+                <p className="text-sm mt-1 text-muted-foreground">Cards in progress</p>
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="p-4 rounded-lg border bg-muted">
+                <div className="flex items-center gap-3 mb-2">
+                  <BookOpen className="w-5 h-5 text-muted-foreground" />
+                  <p className="font-semibold text-foreground">Unseen</p>
+                </div>
+                <p className="text-3xl font-bold text-foreground">{newCards}</p>
+                <p className="text-sm mt-1 text-muted-foreground">Words not yet started</p>
+              </div>
+
+              <div className="p-4 rounded-lg border bg-muted">
+                <div className="flex items-center gap-3 mb-2">
+                  <Trophy className="w-5 h-5 text-muted-foreground" />
+                  <p className="font-semibold text-foreground">In Review</p>
+                </div>
+                <p className="text-3xl font-bold text-foreground">{reviewCards}</p>
+                <p className="text-sm mt-1 text-muted-foreground">Cards in review phase</p>
               </div>
             </div>
           </CardContent>
