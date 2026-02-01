@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { Lock } from "lucide-react";
+import { uiLevelToDatasetLevel } from "../utils/vocabNormalizer";
 
 const levels = [
   { id: "N5", label: "N5 - Beginner", description: "Basic vocabulary", color: "bg-emerald-500" },
@@ -14,8 +15,9 @@ const levels = [
 ];
 
 export default function LevelSelector({ selectedLevel, onSelectLevel, vocabularyCount = [], isPremium = false }) {
-  const getCountForLevel = (level) => {
-    return vocabularyCount.filter(v => v.level === level).length;
+  const getCountForLevel = (uiLevel) => {
+    const datasetLevel = uiLevelToDatasetLevel(uiLevel);
+    return vocabularyCount.filter(v => v.level === datasetLevel).length;
   };
 
   const isLocked = (level) => {
