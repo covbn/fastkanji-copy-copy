@@ -8,15 +8,35 @@ export function useSubscription(user) {
     queryKey: ['subscription', normalizedEmail],
     queryFn: async () => {
       if (!normalizedEmail) return null;
-      const existing = await base44.entities.UserSubscription.filter({ 
-        user_email: normalizedEmail 
+      
+      console.log("[SUB_FETCH] start", { email: normalizedEmail, hasModel: !!base44.entities.UserSubscription });
+      
+      // First: check if ANY rows exist (no filter)
+      const anyRows = await base44.entities.UserSubscription.list('-updated_date', 5);
+      console.log("[SUB_FETCH] anyRows", {
+        count: anyRows?.length ?? 0,
+        emails: (anyRows ?? []).map(r => r.user_email ?? r.userEmail ?? r.email).slice(0, 5),
+        keys: anyRows?.[0] ? Object.keys(anyRows[0]).slice(0, 20) : [],
+        firstRow: anyRows?.[0] ?? null
       });
+      
+      // Then: filtered query with both possible field names
+      const whereClause = { user_email: normalizedEmail };
+      console.log("[SUB_FETCH] attempting filter", { whereClause });
+      
+      const existing = await base44.entities.UserSubscription.filter(whereClause);
       
       const sub = existing.length > 0 ? existing[0] : null;
       
       // Diagnostic logs
-      console.log("[SUB_FETCH]", { email: normalizedEmail, found: !!sub, status: sub?.subscription_status, stripe: sub?.stripe_status });
-      console.log(`[SUB] email=${normalizedEmail} status=${sub?.subscription_status || 'null'} subId=${sub?.stripe_subscription_id || 'none'} updatedAt=${sub?.updated_date || 'none'}`);
+      console.log("[SUB_FETCH] filtered", { 
+        whereClause, 
+        found: !!sub, 
+        rowCount: existing.length,
+        status: sub?.subscription_status, 
+        stripe: sub?.stripe_status,
+        row: sub
+      });
       
       return sub;
     },
