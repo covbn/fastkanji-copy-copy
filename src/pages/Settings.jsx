@@ -44,6 +44,7 @@ export default function Settings() {
       max_new_cards_per_day: 20,
       max_reviews_per_day: 200,
       debug_mode: false,
+      debug_focus_breaths: 20,
     };
   });
 
@@ -61,6 +62,7 @@ export default function Settings() {
         max_new_cards_per_day: settings.max_new_cards_per_day || 20,
         max_reviews_per_day: settings.max_reviews_per_day || 200,
         debug_mode: settings.debug_mode || false,
+        debug_focus_breaths: settings.debug_focus_breaths || 20,
       });
     }
   }, [settings]);
@@ -510,6 +512,25 @@ export default function Settings() {
 
             {formData.debug_mode && (
               <>
+                {/* Focus Exercise Debug */}
+                <div className="p-4 rounded-lg bg-muted border border-border">
+                  <h4 className="font-semibold mb-2 text-foreground">Focus Exercise</h4>
+                  <div className="space-y-2">
+                    <Label className="text-sm">Number of Breaths (for testing)</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="50"
+                      value={formData.debug_focus_breaths || 20}
+                      onChange={(e) => setFormData({ ...formData, debug_focus_breaths: parseInt(e.target.value) || 20 })}
+                      className="w-32"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Set a lower number to quickly test the focus exercise flow
+                    </p>
+                  </div>
+                </div>
+
                 {/* Remove Premium Button */}
                 <div className="p-4 rounded-lg bg-muted border border-border">
                   <h4 className="font-semibold mb-2 text-foreground">Premium Status</h4>

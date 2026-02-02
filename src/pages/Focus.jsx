@@ -23,7 +23,8 @@ export default function Focus() {
   const [breathProgress, setBreathProgress] = useState(0);
   const [breathRemaining, setBreathRemaining] = useState(0);
 
-  const totalBreaths = 20;
+  // Read debug setting for breath count
+  const totalBreaths = settings?.debug_focus_breaths || 20;
   const breathPhases = [
     { key: 'inhale', seconds: 4 },
     { key: 'hold1', seconds: 1 },
@@ -107,13 +108,14 @@ export default function Focus() {
   // Timer for hold phases
   useEffect(() => {
     let interval = null;
-    if (isActive && (phase === "hold_empty" || phase === "inhale_hold")) {
+    if ((phase === "hold_empty" || phase === "inhale_hold")) {
+      // Always run timer for hold phases, regardless of isActive
       interval = setInterval(() => {
         setHoldTimer((prev) => prev + 1);
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [isActive, phase]);
+  }, [phase]);
 
   // Dot stare timer
   useEffect(() => {
