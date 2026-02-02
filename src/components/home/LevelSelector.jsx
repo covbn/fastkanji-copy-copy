@@ -21,7 +21,8 @@ export default function LevelSelector({ selectedLevel, onSelectLevel, vocabulary
   };
 
   const isLocked = (level) => {
-    return !isPremium && level !== "N5";
+    if (isPremium) return false;
+    return level !== "N5";
   };
 
   return (

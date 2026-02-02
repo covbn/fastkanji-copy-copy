@@ -95,6 +95,12 @@ export default function SpacedRepetition() {
   const nightMode = settings?.night_mode || false;
   const isPremium = settings?.subscription_status === 'premium';
   
+  React.useEffect(() => {
+    if (settings) {
+      console.log(`[PREMIUM][UI] loaded isPremium=${isPremium} source=db`);
+    }
+  }, [settings, isPremium]);
+  
   const remainingSeconds = remainingTime !== null ? remainingTime : (7.5 * 60);
 
   // Load persisted timer on mount
