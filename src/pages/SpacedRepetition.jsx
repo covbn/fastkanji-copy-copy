@@ -6,6 +6,7 @@ import { createPageUrl } from "@/utils";
 import { BookOpen, Brain, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { normalizeVocabArray, uiLevelToDatasetLevel, datasetLevelToUiLevel } from "@/components/utils/vocabNormalizer";
+import { useSubscription } from "@/components/utils/useSubscription";
 
 import FlashCard from "../components/flash/FlashCard";
 import GradingButtons from "../components/srs/GradingButtons";
