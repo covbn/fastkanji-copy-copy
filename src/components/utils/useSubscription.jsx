@@ -14,7 +14,8 @@ export function useSubscription(user) {
       
       const sub = existing.length > 0 ? existing[0] : null;
       
-      // Diagnostic log
+      // Diagnostic logs
+      console.log("[SUB_FETCH]", { email: normalizedEmail, found: !!sub, status: sub?.subscription_status, stripe: sub?.stripe_status });
       console.log(`[SUB] email=${normalizedEmail} status=${sub?.subscription_status || 'null'} subId=${sub?.stripe_subscription_id || 'none'} updatedAt=${sub?.updated_date || 'none'}`);
       
       return sub;
