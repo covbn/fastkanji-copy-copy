@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Crown, Check, Zap, Lock, Unlock, Clock, Brain, TrendingUp, Settings as SettingsIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import { useToast } from "@/components/ui/use-toast";
+import { useSubscription } from "@/components/utils/useSubscription";
 
 export default function Subscription() {
   const navigate = useNavigate();
@@ -20,17 +21,7 @@ export default function Subscription() {
     queryFn: () => base44.auth.me(),
   });
 
-  const { data: subscription } = useQuery({
-    queryKey: ['userSubscription', user?.email],
-    queryFn: async () => {
-      if (!user) return null;
-      const existing = await base44.entities.UserSubscription.filter({ user_email: user.email });
-      return existing.length > 0 ? existing[0] : null;
-    },
-    enabled: !!user,
-  });
-
-  const isPremium = subscription?.subscription_status === 'premium';
+  const { isPremium } = useSubscription(user);
 
   const upgradeMutation = useMutation({
     mutationFn: async () => {
@@ -76,8 +67,10 @@ export default function Subscription() {
   React.useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('success') === 'true') {
+      console.log(`[STRIPE_RETURN] success=true invalidating subscription query`);
+      
       // Refetch subscription immediately
-      queryClient.invalidateQueries({ queryKey: ['userSubscription'] });
+      queryClient.invalidateQueries({ queryKey: ['subscription'] });
       
       toast({
         title: "🎉 Welcome to Premium!",
@@ -87,10 +80,8 @@ export default function Subscription() {
       
       // Clean up URL
       window.history.replaceState({}, '', createPageUrl('Subscription'));
-      
-      console.log(`[PREMIUM][UI] loaded isPremium=${subscription?.subscription_status === 'premium'} source=db`);
     }
-  }, [queryClient, toast, subscription]);
+  }, [queryClient, toast]);
 
   const freeFeatures = [
     { name: "N5 Vocabulary Access", included: true },

@@ -3,8 +3,9 @@ import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { Zap, Brain, TrendingUp, Home, BookOpen, User, Crown, MessageSquare } from "lucide-react"; // Added Crown and MessageSquare import
+import { Zap, Brain, TrendingUp, Home, BookOpen, User, Crown, MessageSquare } from "lucide-react";
 import { Settings as SettingsIcon, Wind } from "lucide-react";
+import { useSubscription } from "@/components/utils/useSubscription";
 import {
   Sidebar,
   SidebarContent,
@@ -91,15 +92,7 @@ export default function Layout({ children, currentPageName }) {
     enabled: !!user,
   });
 
-  const { data: subscription } = useQuery({
-    queryKey: ['userSubscription', user?.email],
-    queryFn: async () => {
-      if (!user) return null;
-      const existing = await base44.entities.UserSubscription.filter({ user_email: user.email });
-      return existing.length > 0 ? existing[0] : null;
-    },
-    enabled: !!user,
-  });
+  const { isPremium } = useSubscription(user);
 
   // Apply theme globally on mount and when settings change
   React.useEffect(() => {
@@ -117,7 +110,6 @@ export default function Layout({ children, currentPageName }) {
   }, [settings?.night_mode]);
 
   const nightMode = settings?.night_mode || localStorage.getItem('theme') === 'dark';
-  const isPremium = subscription?.subscription_status === 'premium';
 
   return (
     <ConfirmDialogProvider>

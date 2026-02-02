@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Zap, Brain, Target, TrendingUp, Award, Flame, Wind, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSubscription } from "@/components/utils/useSubscription";
 
 import ModeSelector from "../components/home/ModeSelector";
 import LevelSelector from "../components/home/LevelSelector";
@@ -49,24 +50,9 @@ export default function Home() {
     enabled: !!user,
   });
 
-  const { data: subscription, refetch: refetchSubscription } = useQuery({
-    queryKey: ['userSubscription', user?.email],
-    queryFn: async () => {
-      if (!user) return null;
-      const existing = await base44.entities.UserSubscription.filter({ user_email: user.email });
-      return existing.length > 0 ? existing[0] : null;
-    },
-    enabled: !!user,
-  });
+  const { isPremium } = useSubscription(user);
 
   const nightMode = settings?.night_mode || false;
-  const isPremium = subscription?.subscription_status === 'premium';
-  
-  React.useEffect(() => {
-    if (subscription) {
-      console.log(`[PREMIUM][UI] loaded isPremium=${isPremium} source=db`);
-    }
-  }, [subscription, isPremium]);
   
   // Use shared timer hook for free users
   const { remainingSeconds: remainingTime, isLoading: timerLoading } = useDailyStudyTimer(user?.email, isPremium);

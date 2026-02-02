@@ -89,27 +89,12 @@ export default function SpacedRepetition() {
     enabled: !!user,
   });
 
-  const { data: subscription } = useQuery({
-    queryKey: ['userSubscription', user?.email],
-    queryFn: async () => {
-      if (!user) return null;
-      const existing = await base44.entities.UserSubscription.filter({ user_email: user.email });
-      return existing.length > 0 ? existing[0] : null;
-    },
-    enabled: !!user,
-  });
+  const { isPremium } = useSubscription(user);
 
   const restMinSeconds = settings?.rest_min_seconds || 90;
   const restMaxSeconds = settings?.rest_max_seconds || 150;
   const restDurationSeconds = settings?.rest_duration_seconds || 10;
   const nightMode = settings?.night_mode || false;
-  const isPremium = subscription?.subscription_status === 'premium';
-  
-  React.useEffect(() => {
-    if (subscription) {
-      console.log(`[PREMIUM][UI] loaded isPremium=${isPremium} source=db`);
-    }
-  }, [subscription, isPremium]);
   
   const remainingSeconds = remainingTime !== null ? remainingTime : (7.5 * 60);
 

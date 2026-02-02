@@ -52,26 +52,30 @@ async function getUserEmail(event, stripe) {
  * Update user premium status
  */
 async function updatePremiumStatus(base44, userEmail, isPremium, stripeData = {}) {
+  // Normalize email
+  const normalizedEmail = userEmail.toLowerCase().trim();
+  
   const subscriptions = await base44.asServiceRole.entities.UserSubscription.filter({ 
-    user_email: userEmail 
+    user_email: normalizedEmail 
   });
 
   const updateData = {
     subscription_status: isPremium ? 'premium' : 'free',
+    stripe_status: stripeData.premium_status || stripeData.stripe_status,
     ...stripeData
   };
 
   if (subscriptions.length === 0) {
     // Create new subscription record
     await base44.asServiceRole.entities.UserSubscription.create({
-      user_email: userEmail,
+      user_email: normalizedEmail,
       ...updateData
     });
-    console.log(`[STRIPE][DB] create ok isPremium=${isPremium}`);
+    console.log(`[STRIPE][DB] create ok isPremium=${isPremium} email=${normalizedEmail}`);
   } else {
     // Update existing subscription record
     await base44.asServiceRole.entities.UserSubscription.update(subscriptions[0].id, updateData);
-    console.log(`[STRIPE][DB] update ok isPremium=${isPremium}`);
+    console.log(`[STRIPE][DB] update ok isPremium=${isPremium} email=${normalizedEmail}`);
   }
   
   return true;
@@ -120,7 +124,7 @@ Deno.serve(async (req) => {
           await updatePremiumStatus(base44, userEmail, isPremium, {
             stripe_customer_id: obj.customer,
             stripe_subscription_id: obj.subscription,
-            premium_status: subscription.status,
+            stripe_status: subscription.status,
             current_period_end: new Date(subscription.current_period_end * 1000).toISOString()
           });
         }
@@ -134,7 +138,7 @@ Deno.serve(async (req) => {
         await updatePremiumStatus(base44, userEmail, isPremium, {
           stripe_customer_id: obj.customer,
           stripe_subscription_id: obj.id,
-          premium_status: obj.status,
+          stripe_status: obj.status,
           current_period_end: new Date(obj.current_period_end * 1000).toISOString()
         });
         break;
@@ -144,7 +148,7 @@ Deno.serve(async (req) => {
         await updatePremiumStatus(base44, userEmail, false, {
           stripe_customer_id: obj.customer,
           stripe_subscription_id: obj.id,
-          premium_status: 'canceled',
+          stripe_status: 'canceled',
           current_period_end: null
         });
         break;
@@ -158,7 +162,7 @@ Deno.serve(async (req) => {
           await updatePremiumStatus(base44, userEmail, isPremium, {
             stripe_customer_id: obj.customer,
             stripe_subscription_id: obj.subscription,
-            premium_status: subscription.status,
+            stripe_status: subscription.status,
             current_period_end: new Date(subscription.current_period_end * 1000).toISOString()
           });
         }
@@ -173,7 +177,7 @@ Deno.serve(async (req) => {
           await updatePremiumStatus(base44, userEmail, isPremium, {
             stripe_customer_id: obj.customer,
             stripe_subscription_id: obj.subscription,
-            premium_status: subscription.status,
+            stripe_status: subscription.status,
             current_period_end: new Date(subscription.current_period_end * 1000).toISOString()
           });
         }
