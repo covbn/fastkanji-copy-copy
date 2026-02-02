@@ -58,6 +58,7 @@ import Settings from './pages/Settings';
 import SpacedRepetition from './pages/SpacedRepetition';
 import Subscription from './pages/Subscription';
 import Welcome from './pages/Welcome';
+import DebugSubscription from './pages/DebugSubscription';
 import __Layout from './Layout.jsx';
 
 
@@ -73,6 +74,7 @@ export const PAGES = {
     "SpacedRepetition": SpacedRepetition,
     "Subscription": Subscription,
     "Welcome": Welcome,
+    "DebugSubscription": DebugSubscription,
 }
 
 export const pagesConfig = {
