@@ -52,6 +52,9 @@ async function getUserEmail(event, stripe) {
  * Update user premium status
  */
 async function updatePremiumStatus(base44, userEmail, isPremium, stripeData = {}) {
+  // Log EXACT email being written
+  console.log(`[STRIPE][DB][PRE-WRITE] exact email to write: "${userEmail}" (length=${userEmail.length}, chars=${[...userEmail].map(c => c.charCodeAt(0)).join(',')})`);
+  
   // DON'T normalize - use exact email as-is to match RLS rules
   const subscriptions = await base44.asServiceRole.entities.UserSubscription.filter({ 
     user_email: userEmail 
@@ -60,20 +63,21 @@ async function updatePremiumStatus(base44, userEmail, isPremium, stripeData = {}
   const updateData = {
     subscription_status: isPremium ? 'premium' : 'free',
     stripe_status: stripeData.premium_status || stripeData.stripe_status,
+    debug_email_written: userEmail, // Store exact email for verification
     ...stripeData
   };
 
   if (subscriptions.length === 0) {
     // Create new subscription record
-    await base44.asServiceRole.entities.UserSubscription.create({
+    const created = await base44.asServiceRole.entities.UserSubscription.create({
       user_email: userEmail,
       ...updateData
     });
-    console.log(`[STRIPE][DB] create ok isPremium=${isPremium} email=${userEmail}`);
+    console.log(`[STRIPE][DB] create ok isPremium=${isPremium} email="${userEmail}" id=${created.id}`);
   } else {
     // Update existing subscription record
     await base44.asServiceRole.entities.UserSubscription.update(subscriptions[0].id, updateData);
-    console.log(`[STRIPE][DB] update ok isPremium=${isPremium} email=${userEmail}`);
+    console.log(`[STRIPE][DB] update ok isPremium=${isPremium} email="${userEmail}" id=${subscriptions[0].id}`);
   }
   
   return true;
