@@ -23,8 +23,6 @@ export default function Focus() {
   const [breathProgress, setBreathProgress] = useState(0);
   const [breathRemaining, setBreathRemaining] = useState(0);
 
-  // Read debug setting for breath count
-  const totalBreaths = settings?.debug_focus_breaths || 20;
   const breathPhases = [
     { key: 'inhale', seconds: 4 },
     { key: 'hold1', seconds: 1 },
@@ -48,6 +46,8 @@ export default function Focus() {
     enabled: !!user,
   });
 
+  // Read debug setting for breath count (after settings is defined)
+  const totalBreaths = settings?.debug_focus_breaths || 20;
   const nightMode = settings?.night_mode || false;
 
   const updateFocusCountMutation = useMutation({
