@@ -57,7 +57,7 @@ async function updatePremiumStatus(base44, userEmail, isPremium, stripeData = {}
   });
 
   if (settings.length === 0) {
-    console.error(`[Stripe Webhook] No settings found for ${userEmail}`);
+    console.error(`[STRIPE][ERROR] No settings found for ${userEmail}`);
     return false;
   }
 
@@ -67,6 +67,7 @@ async function updatePremiumStatus(base44, userEmail, isPremium, stripeData = {}
   };
 
   await base44.asServiceRole.entities.UserSettings.update(settings[0].id, updateData);
+  console.log(`[STRIPE][DB] upsert ok isPremium=${isPremium}`);
   return true;
 }
 
@@ -89,15 +90,19 @@ Deno.serve(async (req) => {
       webhookSecret
     );
 
+    console.log(`[STRIPE][WEBHOOK] type=${event.type} id=${event.id}`);
+
     const obj = event.data.object;
     const userEmail = await getUserEmail(event, stripe);
     
     if (!userEmail) {
-      console.error(`[Stripe Webhook] type=${event.type} NO_USER_EMAIL_FOUND subId=${obj.id}`);
+      console.error(`[STRIPE][ERROR] missing user mapping (no userId/email)`);
       return Response.json({ received: true, warning: 'No user email found' });
     }
 
-    console.log(`[STRIPE WEBHOOK] type=${event.type} userId=${userEmail} status=${obj.status} subId=${obj.id || obj.subscription || 'n/a'}`);
+    const subId = obj.id || obj.subscription || 'n/a';
+    const status = obj.status || 'unknown';
+    console.log(`[STRIPE][MAP] userId=${userEmail} email=${userEmail} subId=${subId} status=${status}`);
 
     // Handle subscription lifecycle events
     switch (event.type) {
@@ -112,8 +117,6 @@ Deno.serve(async (req) => {
             premium_status: subscription.status,
             current_period_end: new Date(subscription.current_period_end * 1000).toISOString()
           });
-          
-          console.log(`[STRIPE WEBHOOK] Checkout complete: ${userEmail} premium=${isPremium} status=${subscription.status}`);
         }
         break;
       }
@@ -128,8 +131,6 @@ Deno.serve(async (req) => {
           premium_status: obj.status,
           current_period_end: new Date(obj.current_period_end * 1000).toISOString()
         });
-        
-        console.log(`[STRIPE WEBHOOK] Subscription ${event.type.split('.')[2]}: ${userEmail} premium=${isPremium} status=${obj.status}`);
         break;
       }
 
@@ -140,8 +141,6 @@ Deno.serve(async (req) => {
           premium_status: 'canceled',
           current_period_end: null
         });
-        
-        console.log(`[STRIPE WEBHOOK] Subscription deleted: ${userEmail} premium=false`);
         break;
       }
 
@@ -156,8 +155,6 @@ Deno.serve(async (req) => {
             premium_status: subscription.status,
             current_period_end: new Date(subscription.current_period_end * 1000).toISOString()
           });
-          
-          console.log(`[STRIPE WEBHOOK] Invoice paid: ${userEmail} premium=${isPremium} periodEnd=${subscription.current_period_end}`);
         }
         break;
       }
@@ -173,8 +170,6 @@ Deno.serve(async (req) => {
             premium_status: subscription.status,
             current_period_end: new Date(subscription.current_period_end * 1000).toISOString()
           });
-          
-          console.log(`[STRIPE WEBHOOK] Invoice payment failed: ${userEmail} premium=${isPremium} status=${subscription.status}`);
         }
         break;
       }

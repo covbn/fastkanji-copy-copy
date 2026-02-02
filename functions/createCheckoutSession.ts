@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
       },
     });
 
-    console.log(`[STRIPE CHECKOUT] userId=${user.email} email=${user.email} priceId=${priceId} mode=subscription sessionId=${session.id}`);
+    console.log(`[STRIPE][CHECKOUT] start userId=${user.email} email=${user.email} priceId=${priceId}`);
 
     return Response.json({ url: session.url });
   } catch (error) {

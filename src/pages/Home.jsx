@@ -52,6 +52,12 @@ export default function Home() {
   const nightMode = settings?.night_mode || false;
   const isPremium = settings?.subscription_status === 'premium';
   
+  React.useEffect(() => {
+    if (settings) {
+      console.log(`[PREMIUM][UI] loaded isPremium=${isPremium} source=db`);
+    }
+  }, [settings, isPremium]);
+  
   // Use shared timer hook for free users
   const { remainingSeconds: remainingTime, isLoading: timerLoading } = useDailyStudyTimer(user?.email, isPremium);
   const hasReachedLimit = !isPremium && remainingTime !== null && remainingTime <= 0;

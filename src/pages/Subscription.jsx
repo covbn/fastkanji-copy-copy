@@ -77,17 +77,21 @@ export default function Subscription() {
   React.useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('success') === 'true') {
+      // Refetch settings immediately
+      queryClient.invalidateQueries({ queryKey: ['userSettings'] });
+      
       toast({
         title: "🎉 Welcome to Premium!",
         description: "Your subscription is now active. Enjoy unlimited access!",
         duration: 5000,
       });
+      
       // Clean up URL
       window.history.replaceState({}, '', createPageUrl('Subscription'));
-      // Refetch settings
-      queryClient.invalidateQueries({ queryKey: ['userSettings'] });
+      
+      console.log(`[PREMIUM][UI] loaded isPremium=${settings?.subscription_status === 'premium'} source=db`);
     }
-  }, [queryClient, toast]);
+  }, [queryClient, toast, settings]);
 
   const freeFeatures = [
     { name: "N5 Vocabulary Access", included: true },

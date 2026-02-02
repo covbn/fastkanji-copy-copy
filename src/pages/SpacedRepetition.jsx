@@ -93,7 +93,7 @@ export default function SpacedRepetition() {
   const restMaxSeconds = settings?.rest_max_seconds || 150;
   const restDurationSeconds = settings?.rest_duration_seconds || 10;
   const nightMode = settings?.night_mode || false;
-  const isPremium = settings?.subscription_status === 'premium' || localStorage.getItem('premium_status') === 'premium';
+  const isPremium = settings?.subscription_status === 'premium';
   
   const remainingSeconds = remainingTime !== null ? remainingTime : (7.5 * 60);
 
