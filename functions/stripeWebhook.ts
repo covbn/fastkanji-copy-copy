@@ -52,11 +52,9 @@ async function getUserEmail(event, stripe) {
  * Update user premium status
  */
 async function updatePremiumStatus(base44, userEmail, isPremium, stripeData = {}) {
-  // Normalize email
-  const normalizedEmail = userEmail.toLowerCase().trim();
-  
+  // DON'T normalize - use exact email as-is to match RLS rules
   const subscriptions = await base44.asServiceRole.entities.UserSubscription.filter({ 
-    user_email: normalizedEmail 
+    user_email: userEmail 
   });
 
   const updateData = {
@@ -68,14 +66,14 @@ async function updatePremiumStatus(base44, userEmail, isPremium, stripeData = {}
   if (subscriptions.length === 0) {
     // Create new subscription record
     await base44.asServiceRole.entities.UserSubscription.create({
-      user_email: normalizedEmail,
+      user_email: userEmail,
       ...updateData
     });
-    console.log(`[STRIPE][DB] create ok isPremium=${isPremium} email=${normalizedEmail}`);
+    console.log(`[STRIPE][DB] create ok isPremium=${isPremium} email=${userEmail}`);
   } else {
     // Update existing subscription record
     await base44.asServiceRole.entities.UserSubscription.update(subscriptions[0].id, updateData);
-    console.log(`[STRIPE][DB] update ok isPremium=${isPremium} email=${normalizedEmail}`);
+    console.log(`[STRIPE][DB] update ok isPremium=${isPremium} email=${userEmail}`);
   }
   
   return true;

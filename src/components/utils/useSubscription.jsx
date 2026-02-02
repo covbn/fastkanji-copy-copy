@@ -2,14 +2,15 @@ import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 
 export function useSubscription(user) {
-  const normalizedEmail = user?.email?.toLowerCase().trim();
+  // DON'T normalize - use exact email to match what's stored and RLS rules
+  const email = user?.email;
   
   const { data: subscription, isLoading, refetch } = useQuery({
-    queryKey: ['subscription', normalizedEmail],
+    queryKey: ['subscription', email],
     queryFn: async () => {
-      if (!normalizedEmail) return null;
+      if (!email) return null;
       
-      console.log("[SUB_FETCH] start", { email: normalizedEmail, hasModel: !!base44.entities.UserSubscription });
+      console.log("[SUB_FETCH] start", { email, hasModel: !!base44.entities.UserSubscription });
       
       // First: check if ANY rows exist (no filter)
       const anyRows = await base44.entities.UserSubscription.list('-updated_date', 5);
@@ -20,8 +21,8 @@ export function useSubscription(user) {
         firstRow: anyRows?.[0] ?? null
       });
       
-      // Then: filtered query with both possible field names
-      const whereClause = { user_email: normalizedEmail };
+      // Then: filtered query
+      const whereClause = { user_email: email };
       console.log("[SUB_FETCH] attempting filter", { whereClause });
       
       const existing = await base44.entities.UserSubscription.filter(whereClause);
@@ -40,7 +41,7 @@ export function useSubscription(user) {
       
       return sub;
     },
-    enabled: !!normalizedEmail,
+    enabled: !!email,
   });
 
   const isPremium = subscription?.subscription_status === 'premium' && 
@@ -48,7 +49,7 @@ export function useSubscription(user) {
   
   // Diagnostic log (only when subscription changes)
   if (subscription) {
-    console.log(`[PREMIUM] isPremium=${isPremium} sourceStatus=${subscription?.stripe_status} email=${normalizedEmail}`);
+    console.log(`[PREMIUM] isPremium=${isPremium} sourceStatus=${subscription?.stripe_status} email=${email}`);
   }
 
   return {
