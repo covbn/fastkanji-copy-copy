@@ -10,33 +10,21 @@ export function useSubscription(user) {
     queryFn: async () => {
       if (!email) return null;
       
-      console.log("[SUB_FETCH] start", { email, hasModel: !!base44.entities.UserSubscription });
+      console.log("[SUB_FETCH] start", { email });
       
-      // First: check if ANY rows exist (no filter)
-      const anyRows = await base44.entities.UserSubscription.list('-updated_date', 5);
-      console.log("[SUB_FETCH] anyRows", {
-        count: anyRows?.length ?? 0,
-        emails: (anyRows ?? []).map(r => r.user_email ?? r.userEmail ?? r.email).slice(0, 5),
-        keys: anyRows?.[0] ? Object.keys(anyRows[0]).slice(0, 20) : [],
-        firstRow: anyRows?.[0] ?? null
-      });
-      
-      // Then: filtered query
-      const whereClause = { user_email: email };
-      console.log("[SUB_FETCH] attempting filter", { whereClause });
-      
-      const existing = await base44.entities.UserSubscription.filter(whereClause);
+      // RLS now filters by user reference automatically
+      // Just list all subscriptions - RLS will return only the current user's
+      const existing = await base44.entities.UserSubscription.list('-updated_date', 1);
       
       const sub = existing.length > 0 ? existing[0] : null;
       
       // Diagnostic logs
-      console.log("[SUB_FETCH] filtered", { 
-        whereClause, 
+      console.log("[SUB_FETCH] result", { 
         found: !!sub, 
         rowCount: existing.length,
         status: sub?.subscription_status, 
         stripe: sub?.stripe_status,
-        row: sub
+        userEmail: sub?.user_email
       });
       
       return sub;
