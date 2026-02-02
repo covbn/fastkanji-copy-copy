@@ -91,6 +91,16 @@ export default function Layout({ children, currentPageName }) {
     enabled: !!user,
   });
 
+  const { data: subscription } = useQuery({
+    queryKey: ['userSubscription', user?.email],
+    queryFn: async () => {
+      if (!user) return null;
+      const existing = await base44.entities.UserSubscription.filter({ user_email: user.email });
+      return existing.length > 0 ? existing[0] : null;
+    },
+    enabled: !!user,
+  });
+
   // Apply theme globally on mount and when settings change
   React.useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
@@ -107,7 +117,7 @@ export default function Layout({ children, currentPageName }) {
   }, [settings?.night_mode]);
 
   const nightMode = settings?.night_mode || localStorage.getItem('theme') === 'dark';
-  const isPremium = settings?.subscription_status === 'premium';
+  const isPremium = subscription?.subscription_status === 'premium';
 
   return (
     <ConfirmDialogProvider>
