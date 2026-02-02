@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
 
     const session = await stripe.checkout.sessions.create({
       customer_email: user.email,
-      client_reference_id: user.email,
+      client_reference_id: user.id, // Use user.id for stable RLS matching
       line_items: [
         {
           price: priceId,
@@ -35,19 +35,19 @@ Deno.serve(async (req) => {
       cancel_url: `${appUrl}/Subscription?canceled=true`,
       subscription_data: {
         metadata: {
-          userId: user.email,
+          base44UserId: user.id,
           userEmail: user.email,
           base44_app_id: Deno.env.get("BASE44_APP_ID")
         }
       },
       metadata: {
-        userId: user.email,
+        base44UserId: user.id,
         userEmail: user.email,
         base44_app_id: Deno.env.get("BASE44_APP_ID")
       },
     });
 
-    console.log(`[STRIPE][CHECKOUT] start userId=${user.email} email=${user.email} priceId=${priceId}`);
+    console.log(`[STRIPE][CHECKOUT] start userId=${user.id} email=${user.email} priceId=${priceId}`);
 
     return Response.json({ url: session.url });
   } catch (error) {

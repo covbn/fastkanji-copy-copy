@@ -3,27 +3,24 @@ import { base44 } from "@/api/base44Client";
 
 /*
  * RLS_READ_JSON (from Base44 UI):
- * {"user_email": "{{user.email}}"}
+ * {"user_id": "{{user.id}}"}
  * 
- * This means: reads are allowed only when row.user_email === authenticated_user.email
+ * This means: reads are allowed only when row.user_id === authenticated_user.id
  */
 
 export function useSubscription(user) {
-  // DON'T normalize - use exact email to match what's stored and RLS rules
-  const email = user?.email;
+  const userId = user?.id;
   
   // Log RLS rule for verification
-  console.log("[RLS_RULE] read", JSON.stringify({ user_email: "{{user.email}}" }));
+  console.log("[RLS_RULE] read", JSON.stringify({ user_id: "{{user.id}}" }));
   
   const { data: subscription, isLoading, refetch } = useQuery({
-    queryKey: ['subscription', email],
+    queryKey: ['subscription', userId],
     queryFn: async () => {
-      if (!email) return null;
+      if (!userId) return null;
       
       console.log("[SUB_FETCH] start", { 
-        email, 
-        emailLength: email.length,
-        emailChars: [...email].map(c => c.charCodeAt(0)).join(','),
+        userId,
         hasModel: !!base44.entities.UserSubscription 
       });
       
@@ -31,14 +28,14 @@ export function useSubscription(user) {
       const anyRows = await base44.entities.UserSubscription.list('-updated_date', 5);
       console.log("[SUB_FETCH] anyRows", {
         count: anyRows?.length ?? 0,
-        emails: (anyRows ?? []).map(r => r.user_email ?? r.userEmail ?? r.email).slice(0, 5),
-        debugEmails: (anyRows ?? []).map(r => r.debug_email_written).slice(0, 5),
+        userIds: (anyRows ?? []).map(r => r.user_id).slice(0, 5),
+        emails: (anyRows ?? []).map(r => r.user_email).slice(0, 5),
         keys: anyRows?.[0] ? Object.keys(anyRows[0]).slice(0, 20) : [],
         firstRow: anyRows?.[0] ?? null
       });
       
-      // Then: filtered query
-      const whereClause = { user_email: email };
+      // Then: filtered query by user_id
+      const whereClause = { user_id: userId };
       console.log("[SUB_FETCH] attempting filter", { whereClause });
       
       const existing = await base44.entities.UserSubscription.filter(whereClause);
@@ -57,7 +54,7 @@ export function useSubscription(user) {
       
       return sub;
     },
-    enabled: !!email,
+    enabled: !!userId,
   });
 
   const isPremium = subscription?.subscription_status === 'premium' && 
@@ -65,7 +62,7 @@ export function useSubscription(user) {
   
   // Diagnostic log (only when subscription changes)
   if (subscription) {
-    console.log(`[PREMIUM] isPremium=${isPremium} sourceStatus=${subscription?.stripe_status} email=${email}`);
+    console.log(`[PREMIUM] isPremium=${isPremium} sourceStatus=${subscription?.stripe_status} userId=${userId}`);
   }
 
   return {

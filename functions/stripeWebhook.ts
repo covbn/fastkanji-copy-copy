@@ -51,33 +51,38 @@ async function getUserEmail(event, stripe) {
 /**
  * Update user premium status
  */
-async function updatePremiumStatus(base44, userEmail, isPremium, stripeData = {}) {
-  // Log EXACT email being written
-  console.log(`[STRIPE][DB][PRE-WRITE] exact email to write: "${userEmail}" (length=${userEmail.length}, chars=${[...userEmail].map(c => c.charCodeAt(0)).join(',')})`);
+async function updatePremiumStatus(base44, userId, userEmail, isPremium, stripeData = {}) {
+  if (!userId) {
+    console.error(`[STRIPE][DB] ERROR: no userId provided`);
+    return false;
+  }
   
-  // DON'T normalize - use exact email as-is to match RLS rules
+  console.log(`[STRIPE][DB][PRE-WRITE] userId="${userId}" email="${userEmail || 'null'}"`);
+  
+  // Filter by user_id (stable join key)
   const subscriptions = await base44.asServiceRole.entities.UserSubscription.filter({ 
-    user_email: userEmail 
+    user_id: userId 
   });
 
   const updateData = {
     subscription_status: isPremium ? 'premium' : 'free',
     stripe_status: stripeData.premium_status || stripeData.stripe_status,
-    debug_email_written: userEmail, // Store exact email for verification
+    user_email: userEmail || null,
+    debug_email_written: userEmail || null,
     ...stripeData
   };
 
   if (subscriptions.length === 0) {
     // Create new subscription record
     const created = await base44.asServiceRole.entities.UserSubscription.create({
-      user_email: userEmail,
+      user_id: userId,
       ...updateData
     });
-    console.log(`[STRIPE][DB] create ok isPremium=${isPremium} email="${userEmail}" id=${created.id}`);
+    console.log(`[STRIPE][DB] create ok isPremium=${isPremium} userId="${userId}" id=${created.id}`);
   } else {
     // Update existing subscription record
     await base44.asServiceRole.entities.UserSubscription.update(subscriptions[0].id, updateData);
-    console.log(`[STRIPE][DB] update ok isPremium=${isPremium} email="${userEmail}" id=${subscriptions[0].id}`);
+    console.log(`[STRIPE][DB] update ok isPremium=${isPremium} userId="${userId}" id=${subscriptions[0].id}`);
   }
   
   return true;
