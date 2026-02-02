@@ -16,17 +16,18 @@ Deno.serve(async (req) => {
     let subscriptionData = null;
     try {
       const subs = await base44.entities.UserSubscription.list('-updated_date', 5);
-      const filtered = await base44.entities.UserSubscription.filter({ user_id: user.id });
+      const filtered = await base44.entities.UserSubscription.filter({ owner: user.id });
       
       subscriptionData = {
         listCount: subs.length,
         filteredCount: filtered.length,
         firstRow: subs[0] ? {
+          owner: subs[0].owner,
           user_id: subs[0].user_id,
           user_email: subs[0].user_email,
           subscription_status: subs[0].subscription_status
         } : null,
-        allUserIds: subs.map(s => s.user_id).slice(0, 5)
+        allOwners: subs.map(s => s.owner).slice(0, 5)
       };
     } catch (error) {
       subscriptionData = { error: error.message };

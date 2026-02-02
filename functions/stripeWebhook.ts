@@ -68,9 +68,9 @@ async function updatePremiumStatus(base44, userId, userEmail, isPremium, stripeD
   
   console.log(`[STRIPE][DB][PRE-WRITE] userId="${userId}" email="${userEmail || 'null'}"`);
   
-  // Filter by user_id (stable join key)
+  // Filter by owner (RLS field)
   const subscriptions = await base44.asServiceRole.entities.UserSubscription.filter({ 
-    user_id: userId 
+    owner: userId 
   });
 
   const updateData = {
@@ -84,6 +84,7 @@ async function updatePremiumStatus(base44, userId, userEmail, isPremium, stripeD
   if (subscriptions.length === 0) {
     // Create new subscription record
     const created = await base44.asServiceRole.entities.UserSubscription.create({
+      owner: userId,  // CRITICAL: set owner for RLS
       user_id: userId,
       ...updateData
     });

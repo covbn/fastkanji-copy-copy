@@ -38,6 +38,7 @@ export default function DebugSubscription() {
       setListResult({
         count: subs.length,
         rows: subs.map(s => ({
+          owner: s.owner,
           user_id: s.user_id,
           user_email: s.user_email,
           stripe_status: s.stripe_status,
@@ -130,12 +131,15 @@ export default function DebugSubscription() {
             <div className="text-sm space-y-2">
               <p><strong>Expected RLS Rule:</strong></p>
               <code className="bg-muted p-2 rounded block">
-                Read: user_id == {`{{user.id}}`}
+                Read: owner == {`{{user.id}}`}
               </code>
               <p className="text-muted-foreground mt-4">
                 If "List UserSubscription" returns count: 0 after creating a row,
-                then RLS is blocking reads. This means the stored user_id does not
+                then RLS is blocking reads. This means the stored owner field does not
                 match what Base44 considers {`{{user.id}}`}.
+              </p>
+              <p className="text-xs text-muted-foreground mt-2">
+                <strong>Current User ID:</strong> {user?.id || 'null'}
               </p>
             </div>
           </CardContent>

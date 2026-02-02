@@ -15,6 +15,7 @@ Deno.serve(async (req) => {
 
     // Create using USER CONTEXT (not service role) to test RLS
     const testRow = {
+      owner: user.id,  // CRITICAL: owner field for RLS
       user_id: user.id,
       user_email: user.email,
       subscription_status: "premium",
@@ -37,9 +38,9 @@ Deno.serve(async (req) => {
       userIds: allRows.map(r => r.user_id),
     });
 
-    // Filtered read
+    // Filtered read by owner
     const filtered = await base44.entities.UserSubscription.filter({ 
-      user_id: user.id 
+      owner: user.id 
     });
     console.log("[DEBUG_CREATE_AS_USER] filter result", { 
       count: filtered.length,
@@ -54,6 +55,7 @@ Deno.serve(async (req) => {
       },
       created: {
         id: created.id,
+        owner: created.owner,
         user_id: created.user_id,
         user_email: created.user_email
       },
@@ -61,6 +63,7 @@ Deno.serve(async (req) => {
         listCount: allRows.length,
         filteredCount: filtered.length,
         firstRow: allRows[0] ? {
+          owner: allRows[0].owner,
           user_id: allRows[0].user_id,
           user_email: allRows[0].user_email,
           subscription_status: allRows[0].subscription_status

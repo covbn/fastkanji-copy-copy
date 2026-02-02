@@ -3,16 +3,16 @@ import { base44 } from "@/api/base44Client";
 
 /*
  * RLS_READ_JSON (from Base44 UI):
- * {"user_id": "{{user.id}}"}
+ * {"owner": "{{user.id}}"}
  * 
- * This means: reads are allowed only when row.user_id === authenticated_user.id
+ * This means: reads are allowed only when row.owner === authenticated_user.id
  */
 
 export function useSubscription(user) {
   const userId = user?.id;
   
   // Log RLS rule for verification
-  console.log("[RLS_RULE] read", JSON.stringify({ user_id: "{{user.id}}" }));
+  console.log("[RLS_RULE] read", JSON.stringify({ owner: "{{user.id}}" }));
   
   const { data: subscription, isLoading, refetch } = useQuery({
     queryKey: ['subscription', userId],
@@ -28,14 +28,15 @@ export function useSubscription(user) {
       const anyRows = await base44.entities.UserSubscription.list('-updated_date', 5);
       console.log("[SUB_FETCH] anyRows", {
         count: anyRows?.length ?? 0,
+        owners: (anyRows ?? []).map(r => r.owner).slice(0, 5),
         userIds: (anyRows ?? []).map(r => r.user_id).slice(0, 5),
         emails: (anyRows ?? []).map(r => r.user_email).slice(0, 5),
         keys: anyRows?.[0] ? Object.keys(anyRows[0]).slice(0, 20) : [],
         firstRow: anyRows?.[0] ?? null
       });
       
-      // Then: filtered query by user_id
-      const whereClause = { user_id: userId };
+      // Then: filtered query by owner
+      const whereClause = { owner: userId };
       console.log("[SUB_FETCH] attempting filter", { whereClause });
       
       const existing = await base44.entities.UserSubscription.filter(whereClause);
