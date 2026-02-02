@@ -5,47 +5,56 @@ const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY"));
 const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
 
 /**
- * Get user email from Stripe event (multiple fallback strategies)
+ * Get user ID and email from Stripe event (multiple fallback strategies)
  */
-async function getUserEmail(event, stripe) {
+async function getUserId(event, stripe) {
   const obj = event.data.object;
+  let userId = null;
+  let userEmail = null;
   
-  // Priority 1: metadata.userEmail or metadata.userId
-  if (obj.metadata?.userEmail) return obj.metadata.userEmail;
-  if (obj.metadata?.userId) return obj.metadata.userId;
-  
-  // Priority 2: subscription_data.metadata (for checkout.session.completed)
-  if (obj.subscription_data?.metadata?.userEmail) return obj.subscription_data.metadata.userEmail;
-  if (obj.subscription_data?.metadata?.userId) return obj.subscription_data.metadata.userId;
-  
-  // Priority 3: client_reference_id (for sessions)
-  if (obj.client_reference_id) return obj.client_reference_id;
-  
-  // Priority 4: customer_email (for sessions)
-  if (obj.customer_email) return obj.customer_email;
-  
-  // Priority 5: Fetch customer and get email
-  if (obj.customer) {
-    try {
-      const customer = await stripe.customers.retrieve(obj.customer);
-      if (customer.email) return customer.email;
-    } catch (err) {
-      console.error('[Stripe Webhook] Failed to fetch customer:', err.message);
-    }
+  // Priority 1: metadata.base44UserId
+  if (obj.metadata?.base44UserId) {
+    userId = obj.metadata.base44UserId;
+    userEmail = obj.metadata?.userEmail || null;
   }
   
-  // Priority 6: For subscription events, fetch subscription metadata
-  if (event.type.startsWith('customer.subscription.') && obj.id) {
+  // Priority 2: subscription_data.metadata (for checkout.session.completed)
+  if (!userId && obj.subscription_data?.metadata?.base44UserId) {
+    userId = obj.subscription_data.metadata.base44UserId;
+    userEmail = obj.subscription_data.metadata?.userEmail || null;
+  }
+  
+  // Priority 3: client_reference_id (for sessions)
+  if (!userId && obj.client_reference_id) {
+    userId = obj.client_reference_id;
+    userEmail = obj.customer_email || null;
+  }
+  
+  // Priority 4: For subscription events, fetch subscription metadata
+  if (!userId && event.type.startsWith('customer.subscription.') && obj.id) {
     try {
       const subscription = await stripe.subscriptions.retrieve(obj.id);
-      if (subscription.metadata?.userEmail) return subscription.metadata.userEmail;
-      if (subscription.metadata?.userId) return subscription.metadata.userId;
+      if (subscription.metadata?.base44UserId) {
+        userId = subscription.metadata.base44UserId;
+        userEmail = subscription.metadata?.userEmail || null;
+      }
     } catch (err) {
       console.error('[Stripe Webhook] Failed to fetch subscription:', err.message);
     }
   }
   
-  return null;
+  // Priority 5: Fetch customer email if not yet found
+  if (!userEmail && obj.customer) {
+    try {
+      const customer = await stripe.customers.retrieve(obj.customer);
+      if (customer.email) userEmail = customer.email;
+    } catch (err) {
+      console.error('[Stripe Webhook] Failed to fetch customer:', err.message);
+    }
+  }
+  
+  console.log(`[STRIPE][GET_USER] userId=${userId} email=${userEmail}`);
+  return { userId, userEmail };
 }
 
 /**
@@ -110,16 +119,16 @@ Deno.serve(async (req) => {
     console.log(`[STRIPE][WEBHOOK] type=${event.type} id=${event.id}`);
 
     const obj = event.data.object;
-    const userEmail = await getUserEmail(event, stripe);
+    const { userId, userEmail } = await getUserId(event, stripe);
     
-    if (!userEmail) {
-      console.error(`[STRIPE][ERROR] missing user mapping (no userId/email)`);
-      return Response.json({ received: true, warning: 'No user email found' });
+    if (!userId) {
+      console.error(`[STRIPE][ERROR] missing user mapping (no userId found)`);
+      return Response.json({ received: true, warning: 'No user ID found' });
     }
 
     const subId = obj.id || obj.subscription || 'n/a';
     const status = obj.status || 'unknown';
-    console.log(`[STRIPE][MAP] userId=${userEmail} email=${userEmail} subId=${subId} status=${status}`);
+    console.log(`[STRIPE][MAP] userId=${userId} email=${userEmail} subId=${subId} status=${status}`);
 
     // Handle subscription lifecycle events
     switch (event.type) {
@@ -128,7 +137,7 @@ Deno.serve(async (req) => {
           const subscription = await stripe.subscriptions.retrieve(obj.subscription);
           const isPremium = ['active', 'trialing'].includes(subscription.status);
           
-          await updatePremiumStatus(base44, userEmail, isPremium, {
+          await updatePremiumStatus(base44, userId, userEmail, isPremium, {
             stripe_customer_id: obj.customer,
             stripe_subscription_id: obj.subscription,
             stripe_status: subscription.status,
@@ -142,7 +151,7 @@ Deno.serve(async (req) => {
       case 'customer.subscription.updated': {
         const isPremium = ['active', 'trialing'].includes(obj.status);
         
-        await updatePremiumStatus(base44, userEmail, isPremium, {
+        await updatePremiumStatus(base44, userId, userEmail, isPremium, {
           stripe_customer_id: obj.customer,
           stripe_subscription_id: obj.id,
           stripe_status: obj.status,
@@ -152,7 +161,7 @@ Deno.serve(async (req) => {
       }
 
       case 'customer.subscription.deleted': {
-        await updatePremiumStatus(base44, userEmail, false, {
+        await updatePremiumStatus(base44, userId, userEmail, false, {
           stripe_customer_id: obj.customer,
           stripe_subscription_id: obj.id,
           stripe_status: 'canceled',
@@ -166,7 +175,7 @@ Deno.serve(async (req) => {
           const subscription = await stripe.subscriptions.retrieve(obj.subscription);
           const isPremium = ['active', 'trialing'].includes(subscription.status);
           
-          await updatePremiumStatus(base44, userEmail, isPremium, {
+          await updatePremiumStatus(base44, userId, userEmail, isPremium, {
             stripe_customer_id: obj.customer,
             stripe_subscription_id: obj.subscription,
             stripe_status: subscription.status,
@@ -181,7 +190,7 @@ Deno.serve(async (req) => {
           const subscription = await stripe.subscriptions.retrieve(obj.subscription);
           const isPremium = subscription.status === 'active'; // Keep active briefly during past_due
           
-          await updatePremiumStatus(base44, userEmail, isPremium, {
+          await updatePremiumStatus(base44, userId, userEmail, isPremium, {
             stripe_customer_id: obj.customer,
             stripe_subscription_id: obj.subscription,
             stripe_status: subscription.status,
