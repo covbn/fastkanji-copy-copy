@@ -52,20 +52,9 @@ async function getUserEmail(event, stripe) {
  * Update user premium status
  */
 async function updatePremiumStatus(base44, userEmail, isPremium, stripeData = {}) {
-  // Find the User entity record by email
-  const users = await base44.asServiceRole.entities.User.filter({ email: userEmail });
-  
-  if (users.length === 0) {
-    console.error(`[STRIPE][DB] ERROR: No User found for email=${userEmail}`);
-    return false;
-  }
-  
-  const userRef = users[0].id;
-  console.log(`[STRIPE][DB] Found user reference: ${userRef} for email: ${userEmail}`);
-  
-  // Check if subscription already exists for this user
+  // DON'T normalize - use exact email as-is to match RLS rules
   const subscriptions = await base44.asServiceRole.entities.UserSubscription.filter({ 
-    user: userRef
+    user_email: userEmail 
   });
 
   const updateData = {
@@ -77,18 +66,14 @@ async function updatePremiumStatus(base44, userEmail, isPremium, stripeData = {}
   if (subscriptions.length === 0) {
     // Create new subscription record
     await base44.asServiceRole.entities.UserSubscription.create({
-      user: userRef,
       user_email: userEmail,
       ...updateData
     });
-    console.log(`[STRIPE][DB] create ok isPremium=${isPremium} userRef=${userRef} email=${userEmail}`);
+    console.log(`[STRIPE][DB] create ok isPremium=${isPremium} email=${userEmail}`);
   } else {
     // Update existing subscription record
-    await base44.asServiceRole.entities.UserSubscription.update(subscriptions[0].id, {
-      user_email: userEmail, // Update email in case it changed
-      ...updateData
-    });
-    console.log(`[STRIPE][DB] update ok isPremium=${isPremium} userRef=${userRef} email=${userEmail}`);
+    await base44.asServiceRole.entities.UserSubscription.update(subscriptions[0].id, updateData);
+    console.log(`[STRIPE][DB] update ok isPremium=${isPremium} email=${userEmail}`);
   }
   
   return true;
