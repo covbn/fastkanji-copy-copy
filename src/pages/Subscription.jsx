@@ -20,18 +20,17 @@ export default function Subscription() {
     queryFn: () => base44.auth.me(),
   });
 
-  const { data: settings } = useQuery({
-    queryKey: ['userSettings', user?.email],
+  const { data: subscription } = useQuery({
+    queryKey: ['userSubscription', user?.email],
     queryFn: async () => {
       if (!user) return null;
-      const existing = await base44.entities.UserSettings.filter({ user_email: user.email });
+      const existing = await base44.entities.UserSubscription.filter({ user_email: user.email });
       return existing.length > 0 ? existing[0] : null;
     },
     enabled: !!user,
   });
 
-  const nightMode = settings?.night_mode || false;
-  const isPremium = settings?.subscription_status === 'premium';
+  const isPremium = subscription?.subscription_status === 'premium';
 
   const upgradeMutation = useMutation({
     mutationFn: async () => {
@@ -77,8 +76,8 @@ export default function Subscription() {
   React.useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('success') === 'true') {
-      // Refetch settings immediately
-      queryClient.invalidateQueries({ queryKey: ['userSettings'] });
+      // Refetch subscription immediately
+      queryClient.invalidateQueries({ queryKey: ['userSubscription'] });
       
       toast({
         title: "🎉 Welcome to Premium!",
@@ -89,9 +88,9 @@ export default function Subscription() {
       // Clean up URL
       window.history.replaceState({}, '', createPageUrl('Subscription'));
       
-      console.log(`[PREMIUM][UI] loaded isPremium=${settings?.subscription_status === 'premium'} source=db`);
+      console.log(`[PREMIUM][UI] loaded isPremium=${subscription?.subscription_status === 'premium'} source=db`);
     }
-  }, [queryClient, toast, settings]);
+  }, [queryClient, toast, subscription]);
 
   const freeFeatures = [
     { name: "N5 Vocabulary Access", included: true },

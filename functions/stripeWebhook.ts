@@ -52,22 +52,28 @@ async function getUserEmail(event, stripe) {
  * Update user premium status
  */
 async function updatePremiumStatus(base44, userEmail, isPremium, stripeData = {}) {
-  const settings = await base44.asServiceRole.entities.UserSettings.filter({ 
+  const subscriptions = await base44.asServiceRole.entities.UserSubscription.filter({ 
     user_email: userEmail 
   });
-
-  if (settings.length === 0) {
-    console.error(`[STRIPE][ERROR] No settings found for ${userEmail}`);
-    return false;
-  }
 
   const updateData = {
     subscription_status: isPremium ? 'premium' : 'free',
     ...stripeData
   };
 
-  await base44.asServiceRole.entities.UserSettings.update(settings[0].id, updateData);
-  console.log(`[STRIPE][DB] upsert ok isPremium=${isPremium}`);
+  if (subscriptions.length === 0) {
+    // Create new subscription record
+    await base44.asServiceRole.entities.UserSubscription.create({
+      user_email: userEmail,
+      ...updateData
+    });
+    console.log(`[STRIPE][DB] create ok isPremium=${isPremium}`);
+  } else {
+    // Update existing subscription record
+    await base44.asServiceRole.entities.UserSubscription.update(subscriptions[0].id, updateData);
+    console.log(`[STRIPE][DB] update ok isPremium=${isPremium}`);
+  }
+  
   return true;
 }
 

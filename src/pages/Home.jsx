@@ -39,7 +39,7 @@ export default function Home() {
     queryFn: () => base44.auth.me(),
   });
 
-  const { data: settings, refetch: refetchSettings } = useQuery({
+  const { data: settings } = useQuery({
     queryKey: ['userSettings', user?.email],
     queryFn: async () => {
       if (!user) return null;
@@ -49,14 +49,24 @@ export default function Home() {
     enabled: !!user,
   });
 
+  const { data: subscription, refetch: refetchSubscription } = useQuery({
+    queryKey: ['userSubscription', user?.email],
+    queryFn: async () => {
+      if (!user) return null;
+      const existing = await base44.entities.UserSubscription.filter({ user_email: user.email });
+      return existing.length > 0 ? existing[0] : null;
+    },
+    enabled: !!user,
+  });
+
   const nightMode = settings?.night_mode || false;
-  const isPremium = settings?.subscription_status === 'premium';
+  const isPremium = subscription?.subscription_status === 'premium';
   
   React.useEffect(() => {
-    if (settings) {
+    if (subscription) {
       console.log(`[PREMIUM][UI] loaded isPremium=${isPremium} source=db`);
     }
-  }, [settings, isPremium]);
+  }, [subscription, isPremium]);
   
   // Use shared timer hook for free users
   const { remainingSeconds: remainingTime, isLoading: timerLoading } = useDailyStudyTimer(user?.email, isPremium);
