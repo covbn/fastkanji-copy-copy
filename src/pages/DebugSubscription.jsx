@@ -125,22 +125,57 @@ export default function DebugSubscription() {
         {/* RLS Status */}
         <Card>
           <CardHeader>
-            <CardTitle>RLS Configuration</CardTitle>
+            <CardTitle>RLS Configuration & Diagnosis</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-sm space-y-2">
-              <p><strong>Expected RLS Rule:</strong></p>
-              <code className="bg-muted p-2 rounded block">
-                Read: owner == {`{{user.id}}`}
-              </code>
-              <p className="text-muted-foreground mt-4">
-                If "List UserSubscription" returns count: 0 after creating a row,
-                then RLS is blocking reads. This means the stored owner field does not
-                match what Base44 considers {`{{user.id}}`}.
-              </p>
-              <p className="text-xs text-muted-foreground mt-2">
-                <strong>Current User ID:</strong> {user?.id || 'null'}
-              </p>
+            <div className="text-sm space-y-4">
+              <div>
+                <p><strong>Current User ID:</strong></p>
+                <code className="bg-muted p-2 rounded block text-xs">
+                  {user?.id || 'null'}
+                </code>
+              </div>
+
+              <div>
+                <p><strong>TEMPORARY: Read Access Set To:</strong></p>
+                <code className="bg-green-100 dark:bg-green-900 p-2 rounded block">
+                  No Restrictions (Authenticated Users)
+                </code>
+                <p className="text-xs text-muted-foreground mt-1">
+                  This temporarily disables creator gating. If counts are now &gt; 0,
+                  it proves implicit creator restrictions were blocking reads.
+                </p>
+              </div>
+
+              <div>
+                <p><strong>Target RLS Rule (once creator gating is removed):</strong></p>
+                <code className="bg-muted p-2 rounded block text-xs">
+                  {`{ "owner": "{{user.id}}" }`}
+                </code>
+              </div>
+
+              <div className="border-l-4 border-amber-500 pl-3 py-2 bg-amber-50 dark:bg-amber-950">
+                <p className="font-semibold text-amber-800 dark:text-amber-200">Action Required:</p>
+                <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                  In Base44 Dashboard → Data → UserSubscription → Security Rules:
+                </p>
+                <ol className="list-decimal list-inside text-xs text-amber-700 dark:text-amber-300 mt-2 space-y-1">
+                  <li>Confirm Read is set to "No Restrictions" or "Authenticated Users"</li>
+                  <li>Look for any "Creator only" or "Ownership model" toggles and DISABLE them</li>
+                  <li>After disabling creator gating, set Read to: Entity-User Field Comparison</li>
+                  <li>Entity field: <strong>owner</strong> | User field: <strong>User ID</strong></li>
+                  <li>Copy the generated JSON rules and verify they match: {`{ "owner": "{{user.id}}" }`}</li>
+                </ol>
+              </div>
+
+              <div>
+                <p className="text-xs text-muted-foreground">
+                  <strong>Expected Results After Fix:</strong><br/>
+                  • listCount &gt;= 1 (with restricted read)<br/>
+                  • filteredCount &gt;= 1<br/>
+                  • firstRow.owner === {user?.id || 'null'}
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>

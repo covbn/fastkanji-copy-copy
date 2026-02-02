@@ -48,6 +48,7 @@
  * The mainPage value must match a key in the PAGES object exactly.
  */
 import CardBrowser from './pages/CardBrowser';
+import DebugSubscription from './pages/DebugSubscription';
 import Feedback from './pages/Feedback';
 import FlashStudy from './pages/FlashStudy';
 import Focus from './pages/Focus';
@@ -58,12 +59,12 @@ import Settings from './pages/Settings';
 import SpacedRepetition from './pages/SpacedRepetition';
 import Subscription from './pages/Subscription';
 import Welcome from './pages/Welcome';
-import DebugSubscription from './pages/DebugSubscription';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
     "CardBrowser": CardBrowser,
+    "DebugSubscription": DebugSubscription,
     "Feedback": Feedback,
     "FlashStudy": FlashStudy,
     "Focus": Focus,
@@ -74,7 +75,6 @@ export const PAGES = {
     "SpacedRepetition": SpacedRepetition,
     "Subscription": Subscription,
     "Welcome": Welcome,
-    "DebugSubscription": DebugSubscription,
 }
 
 export const pagesConfig = {
