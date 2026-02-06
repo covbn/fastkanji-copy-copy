@@ -191,7 +191,7 @@ export default function CardBrowser() {
   }
 
   return (
-    <div className="min-h-dvh appPage bg-background">
+    <div className="min-h-dvh px-3 py-2 pb-16 bg-background">
       {/* Pull to refresh indicator */}
       {pullDistance > 0 && (
         <div 
@@ -210,7 +210,7 @@ export default function CardBrowser() {
         </div>
       )}
       
-      <div className="max-w-md md:max-w-7xl mx-auto appSectionGap">
+      <div className="max-w-md md:max-w-7xl mx-auto space-y-3">
         {/* Header */}
         <div className="text-center space-y-1">
           <h1 className="appH1" style={{fontFamily: "'Crimson Pro', serif"}}>
@@ -220,58 +220,58 @@ export default function CardBrowser() {
         </div>
 
         {/* Summary Stats */}
-        <div className="appTileGrid md:grid-cols-4">
-          <Card className="appCard shadow-sm">
-            <CardContent className="appCardPad">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          <Card className="border rounded-lg shadow-sm">
+            <CardContent className="p-2">
               <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-lg bg-cyan-500 flex items-center justify-center">
-                  <BookOpen className="w-4 h-4 text-white" />
+                <div className="w-7 h-7 rounded-lg bg-cyan-500 flex items-center justify-center">
+                  <BookOpen className="w-3.5 h-3.5 text-white" />
                 </div>
                 <div>
-                  <p className="text-xl font-bold text-foreground">{stats.new}</p>
-                  <p className="text-xs text-muted-foreground">New</p>
+                  <p className="text-lg font-bold text-foreground">{stats.new}</p>
+                  <p className="text-[10px] text-muted-foreground">New</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="appCard shadow-sm">
-            <CardContent className="appCardPad">
+          <Card className="border rounded-lg shadow-sm">
+            <CardContent className="p-2">
               <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-lg bg-amber-500 flex items-center justify-center">
-                  <Brain className="w-4 h-4 text-white" />
+                <div className="w-7 h-7 rounded-lg bg-amber-500 flex items-center justify-center">
+                  <Brain className="w-3.5 h-3.5 text-white" />
                 </div>
                 <div>
-                  <p className="text-xl font-bold text-foreground">{stats.learning}</p>
-                  <p className="text-xs text-muted-foreground">Learning</p>
+                  <p className="text-lg font-bold text-foreground">{stats.learning}</p>
+                  <p className="text-[10px] text-muted-foreground">Learning</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="appCard shadow-sm">
-            <CardContent className="appCardPad">
+          <Card className="border rounded-lg shadow-sm">
+            <CardContent className="p-2">
               <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-lg bg-emerald-500 flex items-center justify-center">
-                  <Clock className="w-4 h-4 text-white" />
+                <div className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center">
+                  <Clock className="w-3.5 h-3.5 text-white" />
                 </div>
                 <div>
-                  <p className="text-xl font-bold text-foreground">{stats.due}</p>
-                  <p className="text-xs text-muted-foreground">Due</p>
+                  <p className="text-lg font-bold text-foreground">{stats.due}</p>
+                  <p className="text-[10px] text-muted-foreground">Due</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="appCard shadow-sm">
-            <CardContent className="appCardPad">
+          <Card className="border rounded-lg shadow-sm">
+            <CardContent className="p-2">
               <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-lg bg-slate-500 flex items-center justify-center">
-                  <CheckCircle className="w-4 h-4 text-white" />
+                <div className="w-7 h-7 rounded-lg bg-slate-500 flex items-center justify-center">
+                  <CheckCircle className="w-3.5 h-3.5 text-white" />
                 </div>
                 <div>
-                  <p className="text-xl font-bold text-foreground">{stats.reviewed}</p>
-                  <p className="text-xs text-muted-foreground">Done</p>
+                  <p className="text-lg font-bold text-foreground">{stats.reviewed}</p>
+                  <p className="text-[10px] text-muted-foreground">Done</p>
                 </div>
               </div>
             </CardContent>
@@ -279,8 +279,8 @@ export default function CardBrowser() {
         </div>
 
         {/* Filters */}
-        <Card className="appCard">
-          <CardContent className="appCardPad">
+        <Card className="border rounded-lg">
+          <CardContent className="p-2.5">
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -319,9 +319,9 @@ export default function CardBrowser() {
         </Card>
 
         {/* Cards List - Virtualized */}
-        <Card className="appCard">
-          <CardHeader className="border-b border-border appCardPad">
-            <CardTitle className="text-sm text-card-foreground">
+        <Card className="border rounded-lg">
+          <CardHeader className="border-b border-border p-2.5">
+            <CardTitle className="text-xs text-card-foreground">
               {filteredCards.length} Cards
             </CardTitle>
           </CardHeader>

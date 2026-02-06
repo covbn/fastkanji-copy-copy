@@ -98,67 +98,67 @@ export default function Progress() {
         </div>
 
         {/* Stats Grid */}
-        <div className="appTileGrid md:grid-cols-4">
-          <Card className="appCard shadow-sm">
-            <CardContent className="appCardPad">
-              <div className="flex items-start justify-between mb-2">
-                <div className={`w-9 h-9 rounded-lg bg-teal-500 flex items-center justify-center shadow-sm`}>
-                  <Zap className="w-5 h-5 text-white" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          <Card className="border rounded-lg shadow-sm">
+            <CardContent className="p-2">
+              <div className="flex items-start justify-between mb-1.5">
+                <div className={`w-7 h-7 rounded-lg bg-teal-500 flex items-center justify-center`}>
+                  <Zap className="w-4 h-4 text-white" />
                 </div>
               </div>
-              <p className="text-xl font-semibold text-foreground">{sessions.length}</p>
-              <p className="text-xs mt-0.5 text-muted-foreground">Sessions</p>
+              <p className="text-lg font-semibold text-foreground">{sessions.length}</p>
+              <p className="text-[10px] mt-0.5 text-muted-foreground">Sessions</p>
             </CardContent>
           </Card>
 
-          <Card className="appCard shadow-sm">
-            <CardContent className="appCardPad">
-              <div className="flex items-start justify-between mb-2">
-                <div className={`w-9 h-9 rounded-lg bg-emerald-500 flex items-center justify-center shadow-sm`}>
-                  <Target className="w-5 h-5 text-white" />
+          <Card className="border rounded-lg shadow-sm">
+            <CardContent className="p-2">
+              <div className="flex items-start justify-between mb-1.5">
+                <div className={`w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center`}>
+                  <Target className="w-4 h-4 text-white" />
                 </div>
               </div>
-              <p className="text-xl font-semibold text-foreground">{totalCards}</p>
-              <p className="text-xs mt-0.5 text-muted-foreground">Cards</p>
+              <p className="text-lg font-semibold text-foreground">{totalCards}</p>
+              <p className="text-[10px] mt-0.5 text-muted-foreground">Cards</p>
             </CardContent>
           </Card>
 
-          <Card className="appCard shadow-sm">
-            <CardContent className="appCardPad">
-              <div className="flex items-start justify-between mb-2">
-                <div className={`w-9 h-9 rounded-lg bg-cyan-500 flex items-center justify-center shadow-sm`}>
-                  <Award className="w-5 h-5 text-white" />
+          <Card className="border rounded-lg shadow-sm">
+            <CardContent className="p-2">
+              <div className="flex items-start justify-between mb-1.5">
+                <div className={`w-7 h-7 rounded-lg bg-cyan-500 flex items-center justify-center`}>
+                  <Award className="w-4 h-4 text-white" />
                 </div>
               </div>
-              <p className="text-xl font-semibold text-foreground">{avgAccuracy.toFixed(0)}%</p>
-              <p className="text-xs mt-0.5 text-muted-foreground">Accuracy</p>
+              <p className="text-lg font-semibold text-foreground">{avgAccuracy.toFixed(0)}%</p>
+              <p className="text-[10px] mt-0.5 text-muted-foreground">Accuracy</p>
             </CardContent>
           </Card>
 
-          <Card className="appCard shadow-sm">
-            <CardContent className="appCardPad">
-              <div className="flex items-start justify-between mb-2">
-                <div className={`w-9 h-9 rounded-lg bg-amber-500 flex items-center justify-center shadow-sm`}>
-                  <Brain className="w-5 h-5 text-white" />
+          <Card className="border rounded-lg shadow-sm">
+            <CardContent className="p-2">
+              <div className="flex items-start justify-between mb-1.5">
+                <div className={`w-7 h-7 rounded-lg bg-amber-500 flex items-center justify-center`}>
+                  <Brain className="w-4 h-4 text-white" />
                 </div>
               </div>
-              <p className="text-xl font-semibold text-foreground">{progress.length}</p>
-              <p className="text-xs mt-0.5 text-muted-foreground">Learned</p>
+              <p className="text-lg font-semibold text-foreground">{progress.length}</p>
+              <p className="text-[10px] mt-0.5 text-muted-foreground">Learned</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Charts */}
-        <div className="grid lg:grid-cols-2 gap-3">
+        <div className="grid lg:grid-cols-2 gap-2">
           {/* Accuracy Over Time */}
-          <Card className="appCard shadow-sm">
-            <CardHeader className="border-b border-border appCardPad">
-              <CardTitle className="flex items-center gap-2 text-sm text-card-foreground">
-                <TrendingUp className="w-4 h-4 text-teal-600" />
+          <Card className="border rounded-lg shadow-sm">
+            <CardHeader className="border-b border-border p-2.5">
+              <CardTitle className="flex items-center gap-1.5 text-xs text-card-foreground">
+                <TrendingUp className="w-3.5 h-3.5 text-teal-600" />
                 Accuracy Trend
               </CardTitle>
             </CardHeader>
-            <CardContent className="appCardPad">
+            <CardContent className="p-2.5">
               {chartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={300}>
                   <LineChart data={chartData}>
@@ -192,14 +192,14 @@ export default function Progress() {
           </Card>
 
           {/* Performance by Mode */}
-          <Card className="appCard shadow-sm">
-            <CardHeader className="border-b border-border appCardPad">
-              <CardTitle className="flex items-center gap-2 text-sm text-card-foreground">
-                <Calendar className="w-4 h-4 text-cyan-600" />
+          <Card className="border rounded-lg shadow-sm">
+            <CardHeader className="border-b border-border p-2.5">
+              <CardTitle className="flex items-center gap-1.5 text-xs text-card-foreground">
+                <Calendar className="w-3.5 h-3.5 text-cyan-600" />
                 By Mode
               </CardTitle>
             </CardHeader>
-            <CardContent className="appCardPad">
+            <CardContent className="p-2.5">
               {modeChartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={modeChartData}>
@@ -228,37 +228,37 @@ export default function Progress() {
 
         {/* Recent Sessions Detail */}
         {sessions.length > 0 && (
-          <Card className="appCard shadow-sm">
-            <CardHeader className="border-b border-border appCardPad">
-              <CardTitle className="text-sm text-card-foreground">Recent Sessions</CardTitle>
+          <Card className="border rounded-lg shadow-sm">
+            <CardHeader className="border-b border-border p-2.5">
+              <CardTitle className="text-xs text-card-foreground">Recent Sessions</CardTitle>
             </CardHeader>
-            <CardContent className="appCardPad">
-              <div className="space-y-2">
+            <CardContent className="p-2.5">
+              <div className="space-y-1.5">
                 {sessions.slice(0, 10).map((session) => (
                   <div
                     key={session.id}
-                    className="flex items-center justify-between p-3 rounded-lg border bg-muted hover:bg-accent border-border transition-colors"
+                    className="flex items-center justify-between p-2 rounded-lg border bg-muted hover:bg-accent border-border transition-colors"
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                       {session.session_type === 'flash' ? (
-                        <Zap className="w-4 h-4 text-teal-600" />
+                        <Zap className="w-3 h-3 text-teal-600" />
                       ) : (
-                        <Brain className="w-4 h-4 text-cyan-600" />
+                        <Brain className="w-3 h-3 text-cyan-600" />
                       )}
                       <div>
-                        <p className="font-medium text-sm text-foreground">
+                        <p className="font-medium text-xs text-foreground leading-tight">
                           {formatModeName(session.mode).toUpperCase()}
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-[10px] text-muted-foreground leading-tight">
                           {format(new Date(session.created_date), 'MMM d')} • {session.level}
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-lg font-bold text-foreground">
+                      <p className="text-base font-bold text-foreground">
                         {session.accuracy.toFixed(0)}%
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-[10px] text-muted-foreground">
                         {session.correct_answers}/{session.total_cards}
                       </p>
                     </div>
