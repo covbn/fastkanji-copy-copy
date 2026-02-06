@@ -158,7 +158,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-dvh appPage bg-background">
+    <div className="min-h-dvh px-3 py-2 pb-16 bg-background">
       {/* Pull to refresh indicator */}
       {pullDistance > 0 && (
         <div 
@@ -177,23 +177,23 @@ export default function Home() {
         </div>
       )}
       
-      <div className="max-w-md md:max-w-6xl mx-auto appSectionGap">
+      <div className="max-w-md md:max-w-6xl mx-auto space-y-3">
         {/* Compact Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between"
+          className="flex items-center justify-between mb-2"
         >
-          <h1 className="appH1" style={{fontFamily: "'Crimson Pro', serif"}}>
+          <h1 className="text-xl font-semibold" style={{fontFamily: "'Crimson Pro', serif"}}>
             FastKanji
           </h1>
-          <div className="flex items-center gap-2">
-            <div className="inline-flex items-center gap-1.5 h-7 px-3 bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 rounded-full text-xs font-medium border border-amber-200 dark:border-amber-800">
-              <Flame className="w-3.5 h-3.5" />
+          <div className="flex items-center gap-1.5">
+            <div className="inline-flex items-center gap-1 h-6 px-2 bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 rounded-full text-xs font-medium border border-amber-200 dark:border-amber-800">
+              <Flame className="w-3 h-3" />
               {getStreak()}d
             </div>
             {!isPremium && (
-              <div className="inline-flex items-center gap-1.5 h-7 px-3 bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 rounded-full text-xs font-medium border border-teal-200 dark:border-teal-800">
+              <div className="inline-flex items-center gap-1 h-6 px-2 bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 rounded-full text-xs font-medium border border-teal-200 dark:border-teal-800">
                 ⏱️ {formatTime(remainingTime)}
               </div>
             )}
@@ -235,15 +235,15 @@ export default function Home() {
         />
 
         {/* Study Setup */}
-        <Card className={`appCard shadow-sm ${hasReachedLimit ? 'opacity-50' : ''}`}>
-          <CardHeader className="border-b border-border appCardPad">
-            <CardTitle className="text-lg font-semibold flex items-center gap-2 text-card-foreground">
-              <Target className="w-5 h-5 text-teal-600" />
+        <Card className={`border rounded-lg shadow-sm ${hasReachedLimit ? 'opacity-50' : ''}`}>
+          <CardHeader className="border-b border-border p-2.5">
+            <CardTitle className="text-sm font-semibold flex items-center gap-1.5 text-card-foreground">
+              <Target className="w-4 h-4 text-teal-600" />
               Start Studying
             </CardTitle>
           </CardHeader>
-          <CardContent className="appCardPad space-y-4">
-            <div className="grid md:grid-cols-2 gap-6">
+          <CardContent className="p-2.5 space-y-3">
+            <div className="grid md:grid-cols-2 gap-3">
               <LevelSelector 
                 selectedLevel={selectedLevel}
                 onSelectLevel={setSelectedLevel}
@@ -258,27 +258,27 @@ export default function Home() {
             </div>
 
             {/* Session Size - Only for Flash Study */}
-            <div className="p-3 rounded-lg border border-border bg-muted">
-              <h3 className="text-xs font-semibold mb-2 text-foreground">
+            <div className="p-2 rounded-lg border border-border bg-muted">
+              <h3 className="text-[11px] font-semibold mb-1.5 text-foreground">
                 Flash Study Size
               </h3>
               <SessionSizeSelector
                 sessionSize={sessionSize}
                 onSelectSize={setSessionSize}
               />
-              <p className="text-[11px] mt-2 text-muted-foreground">
+              <p className="text-[10px] mt-1.5 text-muted-foreground leading-tight">
                 SRS continues until all due cards reviewed
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2">
               <Button
                 onClick={startFlashStudy}
                 size="sm"
                 disabled={hasReachedLimit}
-                className="h-11 text-sm font-medium bg-teal-500 hover:bg-teal-600 text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                className="h-9 text-xs font-medium bg-teal-500 hover:bg-teal-600 text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Zap className="w-4 h-4 mr-1.5" />
+                <Zap className="w-3.5 h-3.5 mr-1" />
                 Flash
               </Button>
 
@@ -287,9 +287,9 @@ export default function Home() {
                 size="sm"
                 variant="outline"
                 disabled={hasReachedLimit}
-                className="h-11 text-sm font-medium border-2 border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-950 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="h-9 text-xs font-medium border-2 border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-950 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Brain className="w-4 h-4 mr-1.5" />
+                <Brain className="w-3.5 h-3.5 mr-1" />
                 SRS
               </Button>
             </div>
@@ -298,46 +298,46 @@ export default function Home() {
 
         {/* Recent Activity */}
         {recentSessions.length > 0 && (
-          <Card className="appCard shadow-sm">
-            <CardHeader className="border-b border-border appCardPad">
-              <CardTitle className="flex items-center gap-2 text-base font-semibold text-card-foreground">
-                <TrendingUp className="w-4 h-4 text-teal-600" />
+          <Card className="border rounded-lg shadow-sm">
+            <CardHeader className="border-b border-border p-2.5">
+              <CardTitle className="flex items-center gap-1.5 text-xs font-semibold text-card-foreground">
+                <TrendingUp className="w-3.5 h-3.5 text-teal-600" />
                 Recent Sessions
               </CardTitle>
             </CardHeader>
-            <CardContent className="appCardPad">
-              <div className="space-y-2">
+            <CardContent className="p-2.5">
+              <div className="space-y-1.5">
                 {recentSessions.slice(0, 5).map((session) => (
                   <motion.div
                     key={session.id}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className="flex items-center justify-between p-3 rounded-lg bg-muted hover:bg-accent transition-colors border border-border"
+                    className="flex items-center justify-between p-2 rounded-lg bg-muted hover:bg-accent transition-colors border border-border"
                   >
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2.5">
                       {session.session_type === 'flash' ? (
-                        <Zap className="w-5 h-5 text-teal-600" />
+                        <Zap className="w-3.5 h-3.5 text-teal-600" />
                       ) : (
-                        <Brain className="w-5 h-5 text-cyan-600" />
+                        <Brain className="w-3.5 h-3.5 text-cyan-600" />
                       )}
                       <div>
-                        <p className="font-medium text-foreground">
+                        <p className="font-medium text-xs text-foreground leading-tight">
                           {session.mode.replace(/_/g, ' ').replace('to', '→').toUpperCase()}
                         </p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-[10px] text-muted-foreground leading-tight">
                           {session.level} • {session.total_cards} cards
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
                       <Badge 
                         variant={session.accuracy >= 85 ? "default" : "secondary"}
-                        className={session.accuracy >= 85 ? "bg-emerald-500 text-white" : "bg-amber-500 text-white"}
+                        className={`text-[10px] h-5 px-1.5 ${session.accuracy >= 85 ? "bg-emerald-500 text-white" : "bg-amber-500 text-white"}`}
                       >
                         {session.accuracy.toFixed(0)}%
                       </Badge>
                       {session.accuracy >= 85 && (
-                        <Award className="w-5 h-5 text-amber-500" />
+                        <Award className="w-3.5 h-3.5 text-amber-500" />
                       )}
                     </div>
                   </motion.div>

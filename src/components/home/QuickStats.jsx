@@ -41,25 +41,27 @@ export default function QuickStats({ sessions = [], totalWords = 0, streak = 0 }
   ];
 
   return (
-    <div className="appTileGrid md:grid-cols-4">
+    <div className="grid grid-cols-2 gap-2">
       {stats.map((stat, index) => (
         <motion.div
           key={stat.label}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: index * 0.1 }}
+          transition={{ duration: 0.3, delay: index * 0.05 }}
         >
-          <Card className="appCard hover:shadow-md transition-shadow">
-            <CardContent className="p-3">
-              <div className="flex items-start justify-between mb-2">
-                <div className={`w-9 h-9 rounded-lg ${stat.color} flex items-center justify-center shadow-sm`}>
-                  <stat.icon className="w-5 h-5 text-white" />
+          <Card className="border rounded-lg shadow-sm">
+            <CardContent className="p-2.5">
+              <div className="flex items-center gap-2 mb-1.5">
+                <div className={`w-7 h-7 rounded-lg ${stat.color} flex items-center justify-center`}>
+                  <stat.icon className="w-4 h-4 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-lg font-bold text-foreground leading-none">
+                    {stat.value}{stat.suffix}
+                  </p>
                 </div>
               </div>
-              <p className="text-xl font-semibold text-foreground">
-                {stat.value}{stat.suffix}
-              </p>
-              <p className="text-xs text-muted-foreground mt-0.5">{stat.label}</p>
+              <p className="text-[11px] text-muted-foreground leading-tight">{stat.label}</p>
             </CardContent>
           </Card>
         </motion.div>
