@@ -191,7 +191,7 @@ export default function CardBrowser() {
   }
 
   return (
-    <div className="min-h-screen p-4 md:p-8 bg-background">
+    <div className="min-h-dvh appPage bg-background">
       {/* Pull to refresh indicator */}
       {pullDistance > 0 && (
         <div 
@@ -210,68 +210,68 @@ export default function CardBrowser() {
         </div>
       )}
       
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="max-w-md md:max-w-7xl mx-auto appSectionGap">
         {/* Header */}
-        <div className="text-center space-y-2">
-          <h1 className="text-4xl font-semibold text-foreground" style={{fontFamily: "'Crimson Pro', serif"}}>
+        <div className="text-center space-y-1">
+          <h1 className="appH1" style={{fontFamily: "'Crimson Pro', serif"}}>
             Card Browser
           </h1>
-          <p className="text-muted-foreground">View and track all your vocabulary cards</p>
+          <p className="text-xs text-muted-foreground">Track all vocabulary</p>
         </div>
 
         {/* Summary Stats */}
-        <div className="grid md:grid-cols-4 gap-4">
-          <Card className="border shadow-sm border-border bg-card">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-cyan-500 flex items-center justify-center">
-                  <BookOpen className="w-5 h-5 text-white" />
+        <div className="appTileGrid md:grid-cols-4">
+          <Card className="appCard shadow-sm">
+            <CardContent className="appCardPad">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-lg bg-cyan-500 flex items-center justify-center">
+                  <BookOpen className="w-4 h-4 text-white" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">{stats.new}</p>
-                  <p className="text-sm text-muted-foreground">New</p>
+                  <p className="text-xl font-bold text-foreground">{stats.new}</p>
+                  <p className="text-xs text-muted-foreground">New</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border shadow-sm border-border bg-card">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-amber-500 flex items-center justify-center">
-                  <Brain className="w-5 h-5 text-white" />
+          <Card className="appCard shadow-sm">
+            <CardContent className="appCardPad">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-lg bg-amber-500 flex items-center justify-center">
+                  <Brain className="w-4 h-4 text-white" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">{stats.learning}</p>
-                  <p className="text-sm text-muted-foreground">Learning</p>
+                  <p className="text-xl font-bold text-foreground">{stats.learning}</p>
+                  <p className="text-xs text-muted-foreground">Learning</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border shadow-sm border-border bg-card">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-emerald-500 flex items-center justify-center">
-                  <Clock className="w-5 h-5 text-white" />
+          <Card className="appCard shadow-sm">
+            <CardContent className="appCardPad">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-lg bg-emerald-500 flex items-center justify-center">
+                  <Clock className="w-4 h-4 text-white" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">{stats.due}</p>
-                  <p className="text-sm text-muted-foreground">Due Now</p>
+                  <p className="text-xl font-bold text-foreground">{stats.due}</p>
+                  <p className="text-xs text-muted-foreground">Due</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border shadow-sm border-border bg-card">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-slate-500 flex items-center justify-center">
-                  <CheckCircle className="w-5 h-5 text-white" />
+          <Card className="appCard shadow-sm">
+            <CardContent className="appCardPad">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-lg bg-slate-500 flex items-center justify-center">
+                  <CheckCircle className="w-4 h-4 text-white" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">{stats.reviewed}</p>
-                  <p className="text-sm text-muted-foreground">Reviewed</p>
+                  <p className="text-xl font-bold text-foreground">{stats.reviewed}</p>
+                  <p className="text-xs text-muted-foreground">Done</p>
                 </div>
               </div>
             </CardContent>
@@ -279,8 +279,8 @@ export default function CardBrowser() {
         </div>
 
         {/* Filters */}
-        <Card>
-          <CardContent className="p-4">
+        <Card className="appCard">
+          <CardContent className="appCardPad">
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -319,9 +319,9 @@ export default function CardBrowser() {
         </Card>
 
         {/* Cards List - Virtualized */}
-        <Card>
-          <CardHeader className="border-b border-border">
-            <CardTitle className="text-card-foreground">
+        <Card className="appCard">
+          <CardHeader className="border-b border-border appCardPad">
+            <CardTitle className="text-sm text-card-foreground">
               {filteredCards.length} Cards
             </CardTitle>
           </CardHeader>

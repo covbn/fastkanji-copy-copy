@@ -31,49 +31,45 @@ export default function GradingButtons({ onGrade, disabled = false, nightMode = 
   if (!revealed) return null;
 
   return (
-    <div className="grid grid-cols-4 gap-2 w-full max-w-3xl">
+    <div className="grid grid-cols-2 gap-2 w-full max-w-3xl">
       {/* Again (1) - Red */}
       <Button
         onClick={() => onGrade(1)}
         disabled={disabled}
-        className="flex flex-col items-center gap-1 h-auto py-4 bg-red-600 hover:bg-red-700 text-white shadow-md transition-all"
+        className="flex flex-col items-center gap-0.5 h-auto py-2.5 bg-red-600 hover:bg-red-700 text-white shadow-md transition-all"
       >
-        <XCircle className="w-5 h-5" />
-        <span className="text-sm font-semibold">Again</span>
-        <span className="text-xs opacity-80">1</span>
+        <XCircle className="w-4 h-4" />
+        <span className="text-xs font-semibold">Again</span>
       </Button>
 
       {/* Hard (2) - Amber */}
       <Button
         onClick={() => onGrade(2)}
         disabled={disabled}
-        className="flex flex-col items-center gap-1 h-auto py-4 bg-amber-600 hover:bg-amber-700 text-white shadow-md transition-all"
+        className="flex flex-col items-center gap-0.5 h-auto py-2.5 bg-amber-600 hover:bg-amber-700 text-white shadow-md transition-all"
       >
-        <Zap className="w-5 h-5" />
-        <span className="text-sm font-semibold">Hard</span>
-        <span className="text-xs opacity-80">2</span>
+        <Zap className="w-4 h-4" />
+        <span className="text-xs font-semibold">Hard</span>
       </Button>
 
       {/* Good (3) - Green */}
       <Button
         onClick={() => onGrade(3)}
         disabled={disabled}
-        className="flex flex-col items-center gap-1 h-auto py-4 bg-emerald-600 hover:bg-emerald-700 text-white shadow-md transition-all"
+        className="flex flex-col items-center gap-0.5 h-auto py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-md transition-all"
       >
-        <CheckCircle className="w-5 h-5" />
-        <span className="text-sm font-semibold">Good</span>
-        <span className="text-xs opacity-80">3</span>
+        <CheckCircle className="w-4 h-4" />
+        <span className="text-xs font-semibold">Good</span>
       </Button>
 
       {/* Easy (4) - Cyan */}
       <Button
         onClick={() => onGrade(4)}
         disabled={disabled}
-        className="flex flex-col items-center gap-1 h-auto py-4 bg-cyan-600 hover:bg-cyan-700 text-white shadow-md transition-all"
+        className="flex flex-col items-center gap-0.5 h-auto py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white shadow-md transition-all"
       >
-        <TrendingUp className="w-5 h-5" />
-        <span className="text-sm font-semibold">Easy</span>
-        <span className="text-xs opacity-80">4</span>
+        <TrendingUp className="w-4 h-4" />
+        <span className="text-xs font-semibold">Easy</span>
       </Button>
     </div>
   );

@@ -335,7 +335,7 @@ export default function FlashStudy() {
   const remainingCount = sessionSize - graduated.size;
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-dvh flex flex-col bg-background">
       <div className="border-b border-border px-3 md:px-6 py-2 md:py-3 bg-card/80 backdrop-blur-sm">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
           <Button
