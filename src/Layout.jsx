@@ -124,6 +124,12 @@ export default function Layout({ children, currentPageName }) {
             padding-top: env(safe-area-inset-top);
             padding-bottom: env(safe-area-inset-bottom);
           }
+          
+          @supports (height: 100dvh) {
+            html {
+              height: 100dvh;
+            }
+          }
 
           :root {
             --background: 0 0% 100%;

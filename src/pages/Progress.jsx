@@ -87,78 +87,78 @@ export default function Progress() {
   }
 
   return (
-    <div className="min-h-screen p-4 md:p-8 bg-background">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="min-h-dvh appPage bg-background">
+      <div className="max-w-md md:max-w-7xl mx-auto appSectionGap">
         {/* Header */}
-        <div className="text-center space-y-2">
-          <h1 className="text-4xl font-semibold text-foreground" style={{fontFamily: "'Crimson Pro', serif"}}>
-            Your Progress
+        <div className="text-center space-y-1">
+          <h1 className="appH1" style={{fontFamily: "'Crimson Pro', serif"}}>
+            Progress
           </h1>
-          <p className="text-muted-foreground">Track your learning journey</p>
+          <p className="text-xs text-muted-foreground">Your learning journey</p>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid md:grid-cols-4 gap-4">
-          <Card className="border shadow-sm border-border bg-card">
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between mb-3">
-                <div className={`w-12 h-12 rounded-lg bg-teal-500 flex items-center justify-center shadow-sm`}>
-                  <Zap className="w-6 h-6 text-white" />
+        <div className="appTileGrid md:grid-cols-4">
+          <Card className="appCard shadow-sm">
+            <CardContent className="appCardPad">
+              <div className="flex items-start justify-between mb-2">
+                <div className={`w-9 h-9 rounded-lg bg-teal-500 flex items-center justify-center shadow-sm`}>
+                  <Zap className="w-5 h-5 text-white" />
                 </div>
               </div>
-              <p className="text-2xl font-semibold text-foreground">{sessions.length}</p>
-              <p className="text-sm mt-1 text-muted-foreground">Total Sessions</p>
+              <p className="text-xl font-semibold text-foreground">{sessions.length}</p>
+              <p className="text-xs mt-0.5 text-muted-foreground">Sessions</p>
             </CardContent>
           </Card>
 
-          <Card className="border shadow-sm border-border bg-card">
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between mb-3">
-                <div className={`w-12 h-12 rounded-lg bg-emerald-500 flex items-center justify-center shadow-sm`}>
-                  <Target className="w-6 h-6 text-white" />
+          <Card className="appCard shadow-sm">
+            <CardContent className="appCardPad">
+              <div className="flex items-start justify-between mb-2">
+                <div className={`w-9 h-9 rounded-lg bg-emerald-500 flex items-center justify-center shadow-sm`}>
+                  <Target className="w-5 h-5 text-white" />
                 </div>
               </div>
-              <p className="text-2xl font-semibold text-foreground">{totalCards}</p>
-              <p className="text-sm mt-1 text-muted-foreground">Cards Studied</p>
+              <p className="text-xl font-semibold text-foreground">{totalCards}</p>
+              <p className="text-xs mt-0.5 text-muted-foreground">Cards</p>
             </CardContent>
           </Card>
 
-          <Card className="border shadow-sm border-border bg-card">
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between mb-3">
-                <div className={`w-12 h-12 rounded-lg bg-cyan-500 flex items-center justify-center shadow-sm`}>
-                  <Award className="w-6 h-6 text-white" />
+          <Card className="appCard shadow-sm">
+            <CardContent className="appCardPad">
+              <div className="flex items-start justify-between mb-2">
+                <div className={`w-9 h-9 rounded-lg bg-cyan-500 flex items-center justify-center shadow-sm`}>
+                  <Award className="w-5 h-5 text-white" />
                 </div>
               </div>
-              <p className="text-2xl font-semibold text-foreground">{avgAccuracy.toFixed(0)}%</p>
-              <p className="text-sm mt-1 text-muted-foreground">Avg Accuracy</p>
+              <p className="text-xl font-semibold text-foreground">{avgAccuracy.toFixed(0)}%</p>
+              <p className="text-xs mt-0.5 text-muted-foreground">Accuracy</p>
             </CardContent>
           </Card>
 
-          <Card className="border shadow-sm border-border bg-card">
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between mb-3">
-                <div className={`w-12 h-12 rounded-lg bg-amber-500 flex items-center justify-center shadow-sm`}>
-                  <Brain className="w-6 h-6 text-white" />
+          <Card className="appCard shadow-sm">
+            <CardContent className="appCardPad">
+              <div className="flex items-start justify-between mb-2">
+                <div className={`w-9 h-9 rounded-lg bg-amber-500 flex items-center justify-center shadow-sm`}>
+                  <Brain className="w-5 h-5 text-white" />
                 </div>
               </div>
-              <p className="text-2xl font-semibold text-foreground">{progress.length}</p>
-              <p className="text-sm mt-1 text-muted-foreground">Words Learned</p>
+              <p className="text-xl font-semibold text-foreground">{progress.length}</p>
+              <p className="text-xs mt-0.5 text-muted-foreground">Learned</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Charts */}
-        <div className="grid lg:grid-cols-2 gap-6">
+        <div className="grid lg:grid-cols-2 gap-3">
           {/* Accuracy Over Time */}
-          <Card className="border shadow-sm border-border bg-card">
-            <CardHeader className="border-b border-border">
-              <CardTitle className="flex items-center gap-2 text-card-foreground">
-                <TrendingUp className="w-5 h-5 text-teal-600" />
+          <Card className="appCard shadow-sm">
+            <CardHeader className="border-b border-border appCardPad">
+              <CardTitle className="flex items-center gap-2 text-sm text-card-foreground">
+                <TrendingUp className="w-4 h-4 text-teal-600" />
                 Accuracy Trend
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-6">
+            <CardContent className="appCardPad">
               {chartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={300}>
                   <LineChart data={chartData}>
@@ -192,14 +192,14 @@ export default function Progress() {
           </Card>
 
           {/* Performance by Mode */}
-          <Card className="border shadow-sm border-border bg-card">
-            <CardHeader className="border-b border-border">
-              <CardTitle className="flex items-center gap-2 text-card-foreground">
-                <Calendar className="w-5 h-5 text-cyan-600" />
-                Performance by Mode
+          <Card className="appCard shadow-sm">
+            <CardHeader className="border-b border-border appCardPad">
+              <CardTitle className="flex items-center gap-2 text-sm text-card-foreground">
+                <Calendar className="w-4 h-4 text-cyan-600" />
+                By Mode
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-6">
+            <CardContent className="appCardPad">
               {modeChartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={modeChartData}>
@@ -228,38 +228,38 @@ export default function Progress() {
 
         {/* Recent Sessions Detail */}
         {sessions.length > 0 && (
-          <Card className="border shadow-sm border-border bg-card">
-            <CardHeader className={`border-b ${nightMode ? 'border-slate-700' : 'border-stone-200'}`}>
-              <CardTitle className={nightMode ? 'text-slate-100' : 'text-slate-800'}>Recent Study Sessions</CardTitle>
+          <Card className="appCard shadow-sm">
+            <CardHeader className="border-b border-border appCardPad">
+              <CardTitle className="text-sm text-card-foreground">Recent Sessions</CardTitle>
             </CardHeader>
-            <CardContent className="p-6">
-              <div className="space-y-3">
+            <CardContent className="appCardPad">
+              <div className="space-y-2">
                 {sessions.slice(0, 10).map((session) => (
                   <div
                     key={session.id}
-                    className="flex items-center justify-between p-4 rounded-lg border bg-muted hover:bg-accent border-border transition-colors"
+                    className="flex items-center justify-between p-3 rounded-lg border bg-muted hover:bg-accent border-border transition-colors"
                   >
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3">
                       {session.session_type === 'flash' ? (
-                        <Zap className="w-5 h-5 text-teal-600" />
+                        <Zap className="w-4 h-4 text-teal-600" />
                       ) : (
-                        <Brain className="w-5 h-5 text-cyan-600" />
+                        <Brain className="w-4 h-4 text-cyan-600" />
                       )}
                       <div>
-                        <p className="font-medium text-foreground">
+                        <p className="font-medium text-sm text-foreground">
                           {formatModeName(session.mode).toUpperCase()}
                         </p>
-                        <p className="text-sm text-muted-foreground">
-                          {format(new Date(session.created_date), 'MMM d, yyyy h:mm a')} • {session.level}
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(session.created_date), 'MMM d')} • {session.level}
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-2xl font-bold text-foreground">
+                      <p className="text-lg font-bold text-foreground">
                         {session.accuracy.toFixed(0)}%
                       </p>
-                      <p className="text-sm text-muted-foreground">
-                        {session.correct_answers}/{session.total_cards} correct
+                      <p className="text-xs text-muted-foreground">
+                        {session.correct_answers}/{session.total_cards}
                       </p>
                     </div>
                   </div>
