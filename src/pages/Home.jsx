@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Zap, Brain, Target, TrendingUp, Award, Flame, Wind, X } from "lucide-react";
+import { Zap, Brain, Target, TrendingUp, Award, Flame, Wind, X, RefreshCw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSubscription } from "@/components/utils/useSubscription";
+import { usePullToRefresh } from "@/components/utils/usePullToRefresh";
 
 import ModeSelector from "../components/home/ModeSelector";
 import LevelSelector from "../components/home/LevelSelector";
@@ -19,11 +20,21 @@ import { confirmDialog } from "../components/utils/ConfirmDialog";
 
 export default function Home() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [selectedMode, setSelectedMode] = useState("kanji_to_meaning");
   const [selectedLevel, setSelectedLevel] = useState("N5");
   const [sessionSize, setSessionSize] = useState(20);
   const [showFocusPrompt, setShowFocusPrompt] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState(null);
+
+  // Pull to refresh
+  const handleRefresh = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['recentSessions'] });
+    await queryClient.invalidateQueries({ queryKey: ['vocabularyCount'] });
+    await queryClient.invalidateQueries({ queryKey: ['userSettings'] });
+  };
+
+  const { isPulling, pullDistance } = usePullToRefresh(handleRefresh);
 
   const { data: recentSessions = [] } = useQuery({
     queryKey: ['recentSessions'],
@@ -148,6 +159,24 @@ export default function Home() {
 
   return (
     <div className="min-h-screen p-4 md:p-8 bg-background">
+      {/* Pull to refresh indicator */}
+      {pullDistance > 0 && (
+        <div 
+          className="fixed top-0 left-0 right-0 flex justify-center z-50 transition-opacity"
+          style={{ 
+            paddingTop: 'env(safe-area-inset-top)',
+            opacity: Math.min(pullDistance / 60, 1) 
+          }}
+        >
+          <div className="bg-teal-500 text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
+            <RefreshCw className={`w-4 h-4 ${isPulling ? 'animate-spin' : ''}`} />
+            <span className="text-sm font-medium">
+              {isPulling ? 'Release to refresh' : 'Pull to refresh'}
+            </span>
+          </div>
+        </div>
+      )}
+      
       <div className="max-w-6xl mx-auto space-y-8">
         {/* Hero Section */}
         <motion.div

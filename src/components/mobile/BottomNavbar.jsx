@@ -3,6 +3,9 @@ import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Home, Zap, TrendingUp, User } from "lucide-react";
 
+// Preserve scroll position for each tab
+const tabScrollPositions = {};
+
 export default function BottomNavbar() {
   const location = useLocation();
 
@@ -12,6 +15,28 @@ export default function BottomNavbar() {
     { name: "Progress", icon: TrendingUp, path: createPageUrl("Progress") },
     { name: "Profile", icon: User, path: createPageUrl("Profile") },
   ];
+
+  // Save scroll position when leaving a tab
+  React.useEffect(() => {
+    const saveScroll = () => {
+      const mainContent = document.querySelector('main > div');
+      if (mainContent) {
+        tabScrollPositions[location.pathname] = mainContent.scrollTop;
+      }
+    };
+
+    return saveScroll;
+  }, [location.pathname]);
+
+  // Restore scroll position when entering a tab
+  React.useEffect(() => {
+    const mainContent = document.querySelector('main > div');
+    if (mainContent && tabScrollPositions[location.pathname] !== undefined) {
+      requestAnimationFrame(() => {
+        mainContent.scrollTop = tabScrollPositions[location.pathname];
+      });
+    }
+  }, [location.pathname]);
 
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-lg border-t border-border z-50" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>

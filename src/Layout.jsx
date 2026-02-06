@@ -7,6 +7,7 @@ import { Zap, Brain, TrendingUp, Home, BookOpen, User, Crown, MessageSquare } fr
 import { Settings as SettingsIcon, Wind } from "lucide-react";
 import { useSubscription } from "@/components/utils/useSubscription";
 import BottomNavbar from "@/components/mobile/BottomNavbar";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   Sidebar,
   SidebarContent,
@@ -370,7 +371,17 @@ export default function Layout({ children, currentPageName }) {
           </header>
 
           <div className="flex-1 overflow-auto pb-16 md:pb-0">
-            {children}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={location.pathname}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
+              >
+                {children}
+              </motion.div>
+            </AnimatePresence>
           </div>
           </main>
 

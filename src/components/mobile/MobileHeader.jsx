@@ -13,7 +13,7 @@ export default function MobileHeader({ title }) {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => navigate(createPageUrl('Home'))}
+          onClick={() => navigate(-1)}
           className="select-none"
         >
           <ChevronLeft className="w-5 h-5" />

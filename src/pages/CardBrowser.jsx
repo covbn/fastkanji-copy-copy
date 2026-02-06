@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Brain, Clock, CheckCircle, Search } from "lucide-react";
+import { BookOpen, Brain, Clock, CheckCircle, Search, RefreshCw } from "lucide-react";
+import { usePullToRefresh } from "@/components/utils/usePullToRefresh";
 import { FixedSizeList as List } from 'react-window';
 import { normalizeVocabArray, getUiLevels } from "@/components/utils/vocabNormalizer";
 import { getCardState } from "@/components/scheduler/sm2Anki";
@@ -28,12 +29,21 @@ function deriveCardState(vocab, progress, now) {
 }
 
 export default function CardBrowser() {
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [stateFilter, setStateFilter] = useState("all");
   const [levelFilter, setLevelFilter] = useState("all");
   
   // Debounce search to avoid filtering on every keystroke
   const debouncedSearch = useDebounce(searchQuery, 200);
+
+  // Pull to refresh
+  const handleRefresh = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['allVocabulary'] });
+    await queryClient.invalidateQueries({ queryKey: ['userProgress'] });
+  };
+
+  const { isPulling, pullDistance } = usePullToRefresh(handleRefresh);
 
   const { data: rawVocabulary = [], isLoading: isLoadingVocab } = useQuery({
     queryKey: ['allVocabulary'],
@@ -182,6 +192,24 @@ export default function CardBrowser() {
 
   return (
     <div className="min-h-screen p-4 md:p-8 bg-background">
+      {/* Pull to refresh indicator */}
+      {pullDistance > 0 && (
+        <div 
+          className="fixed top-0 left-0 right-0 flex justify-center z-50 transition-opacity"
+          style={{ 
+            paddingTop: 'env(safe-area-inset-top)',
+            opacity: Math.min(pullDistance / 60, 1) 
+          }}
+        >
+          <div className="bg-teal-500 text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
+            <RefreshCw className={`w-4 h-4 ${isPulling ? 'animate-spin' : ''}`} />
+            <span className="text-sm font-medium">
+              {isPulling ? 'Release to refresh' : 'Pull to refresh'}
+            </span>
+          </div>
+        </div>
+      )}
+      
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="text-center space-y-2">
