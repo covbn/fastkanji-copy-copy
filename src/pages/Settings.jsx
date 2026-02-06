@@ -726,7 +726,84 @@ export default function Settings() {
           </Button>
         </div>
 
+        {/* Delete Account Section */}
+        <Card className="border-2 border-red-200 dark:border-red-900">
+          <CardHeader className="border-b border-red-200 dark:border-red-900">
+            <CardTitle className="text-red-600 dark:text-red-400">Danger Zone</CardTitle>
+          </CardHeader>
+          <CardContent className="p-6 space-y-4">
+            <div>
+              <h4 className="font-semibold mb-2 text-foreground">Delete Account</h4>
+              <p className="text-sm text-muted-foreground mb-4">
+                Permanently delete your account and all associated data. This action cannot be undone.
+              </p>
+              <Button
+                onClick={async () => {
+                  const confirmed = await confirmDialog.show({
+                    title: "Delete Account",
+                    description: "Are you absolutely sure? This will permanently delete your account, all your progress, and settings. This action cannot be undone.",
+                    confirmText: "Delete Account",
+                    cancelText: "Cancel"
+                  });
+                  
+                  if (confirmed) {
+                    try {
+                      // Delete user's settings
+                      if (settings?.id) {
+                        await base44.entities.UserSettings.delete(settings.id);
+                      }
+                      
+                      // Delete all user progress
+                      const progress = await base44.entities.UserProgress.filter({ user_email: user.email });
+                      for (const p of progress) {
+                        await base44.entities.UserProgress.delete(p.id);
+                      }
+                      
+                      // Delete all study sessions
+                      const sessions = await base44.entities.StudySession.filter({ created_by: user.email });
+                      for (const s of sessions) {
+                        await base44.entities.StudySession.delete(s.id);
+                      }
+                      
+                      // Logout
+                      toast({
+                        title: "Account Deleted",
+                        description: "Your account has been permanently deleted.",
+                        duration: 3000,
+                      });
+                      
+                      setTimeout(() => {
+                        base44.auth.logout();
+                      }, 1000);
+                    } catch (error) {
+                      toast({
+                        title: "Error",
+                        description: "Failed to delete account. Please try again.",
+                        variant: "destructive",
+                      });
+                    }
+                  }
+                }}
+                variant="destructive"
+              >
+                Delete My Account
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
+        {/* Back Button */}
+        <div className="text-center hidden md:block">
+          <Button
+            onClick={() => navigate(createPageUrl('Home'))}
+            variant="outline"
+            size="lg"
+          >
+            Back to Home
+          </Button>
+        </div>
+
+      </div>
       </div>
     </div>
   );
