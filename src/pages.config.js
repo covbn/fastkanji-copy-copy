@@ -59,6 +59,7 @@ import Settings from './pages/Settings';
 import SpacedRepetition from './pages/SpacedRepetition';
 import Subscription from './pages/Subscription';
 import Welcome from './pages/Welcome';
+import ImportVocabulary from './pages/ImportVocabulary';
 import __Layout from './Layout.jsx';
 
 
@@ -75,6 +76,7 @@ export const PAGES = {
     "SpacedRepetition": SpacedRepetition,
     "Subscription": Subscription,
     "Welcome": Welcome,
+    "ImportVocabulary": ImportVocabulary,
 }
 
 export const pagesConfig = {
