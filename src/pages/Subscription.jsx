@@ -10,6 +10,7 @@ import { Crown, Check, Zap, Lock, Unlock, Clock, Brain, TrendingUp, Settings as 
 import { motion } from "framer-motion";
 import { useToast } from "@/components/ui/use-toast";
 import { useSubscription } from "@/components/utils/useSubscription";
+import MobileHeader from "@/components/mobile/MobileHeader";
 
 export default function Subscription() {
   const navigate = useNavigate();
@@ -101,8 +102,10 @@ export default function Subscription() {
   ];
 
   return (
-    <div className="min-h-screen p-4 md:p-8 bg-background">
-      <div className="max-w-6xl mx-auto space-y-8">
+    <div className="min-h-screen bg-background">
+      <MobileHeader title="Subscription" />
+      <div className="p-4 md:p-8">
+        <div className="max-w-6xl mx-auto space-y-8">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -270,7 +273,7 @@ export default function Subscription() {
         </Card>
 
         {/* Back Button */}
-        <div className="text-center">
+        <div className="text-center hidden md:block">
           <Button
             onClick={() => navigate(createPageUrl('Home'))}
             variant="outline"
@@ -279,7 +282,8 @@ export default function Subscription() {
             Back to Home
           </Button>
         </div>
-      </div>
-    </div>
+          </div>
+        </div>
+        </div>
   );
 }

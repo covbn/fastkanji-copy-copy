@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Zap, Brain, TrendingUp, Home, BookOpen, User, Crown, MessageSquare } from "lucide-react";
 import { Settings as SettingsIcon, Wind } from "lucide-react";
 import { useSubscription } from "@/components/utils/useSubscription";
+import BottomNavbar from "@/components/mobile/BottomNavbar";
 import {
   Sidebar,
   SidebarContent,
@@ -117,7 +118,12 @@ export default function Layout({ children, currentPageName }) {
       <style>
         {`
           @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Crimson+Pro:wght@400;600&display=swap');
-          
+
+          html {
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+          }
+
           :root {
             --background: 0 0% 100%;
             --foreground: 222.2 84% 4.9%;
@@ -171,15 +177,24 @@ export default function Layout({ children, currentPageName }) {
             background-color: hsl(var(--background));
             color: hsl(var(--foreground));
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            overscroll-behavior-y: none;
           }
           
           h1, h2, h3, h4, h5, h6 {
             font-family: 'Crimson Pro', serif;
           }
-          
+
           b, strong {
             font-weight: 700;
             color: inherit;
+          }
+
+          /* Prevent text selection on buttons and navigation */
+          button, a, nav, .select-none {
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
           }
 
           /* Custom Scrollbar Styles */
@@ -354,13 +369,15 @@ export default function Layout({ children, currentPageName }) {
             </div>
           </header>
 
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-auto pb-16 md:pb-0">
             {children}
           </div>
-        </main>
-      </div>
-      <Toaster />
-    </SidebarProvider>
+          </main>
+
+          <BottomNavbar />
+          </div>
+          <Toaster />
+          </SidebarProvider>
     </ConfirmDialogProvider>
   );
 }

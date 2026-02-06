@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MessageSquare, Bug, Lightbulb, Send, CheckCircle } from "lucide-react";
 import { motion } from "framer-motion";
+import MobileHeader from "@/components/mobile/MobileHeader";
 
 export default function Feedback() {
   const navigate = useNavigate();
@@ -85,8 +86,10 @@ export default function Feedback() {
   }
 
   return (
-    <div className="min-h-screen p-4 md:p-8 bg-background">
-      <div className="max-w-3xl mx-auto space-y-8">
+    <div className="min-h-screen bg-background">
+      <MobileHeader title="Feedback" />
+      <div className="p-4 md:p-8">
+        <div className="max-w-3xl mx-auto space-y-8">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -232,6 +235,7 @@ export default function Feedback() {
             </ul>
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   );
