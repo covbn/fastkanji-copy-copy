@@ -104,8 +104,8 @@ export default function Subscription() {
   return (
     <div className="min-h-dvh bg-background">
       <MobileHeader title="Subscription" />
-      <div className="appPage">
-        <div className="max-w-md md:max-w-6xl mx-auto appSectionGap">
+      <div className="px-3 py-2 pb-16">
+        <div className="max-w-md md:max-w-6xl mx-auto space-y-3">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

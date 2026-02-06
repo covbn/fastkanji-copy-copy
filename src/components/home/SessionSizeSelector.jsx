@@ -12,32 +12,26 @@ const sizes = [
 
 export default function SessionSizeSelector({ sessionSize, onSelectSize }) {
   return (
-    <div className="space-y-3">
-      <Label className="text-base font-semibold text-foreground">Session Size</Label>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {sizes.map((size) => (
-          <motion.div
-            key={size.value}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5">
+      {sizes.map((size) => (
+        <motion.div
+          key={size.value}
+          whileTap={{ scale: 0.95 }}
+        >
+          <div
+            onClick={() => onSelectSize(size.value)}
+            className={`cursor-pointer transition-all p-1.5 rounded border text-center ${
+              sessionSize === size.value
+                ? 'border-teal-500 bg-teal-50 dark:bg-teal-950'
+                : 'border-border hover:border-teal-300'
+            }`}
           >
-            <Card
-              onClick={() => onSelectSize(size.value)}
-              className={`cursor-pointer transition-all duration-300 border ${
-                sessionSize === size.value
-                  ? 'border-2 border-teal-500 bg-teal-50 dark:bg-teal-950 shadow-md'
-                  : 'border-border hover:border-teal-300 hover:shadow-sm'
-              }`}
-            >
-              <CardContent className="p-4 text-center">
-                <p className="text-3xl font-bold text-teal-700 dark:text-teal-400 mb-1">{size.value}</p>
-                <p className="font-semibold text-foreground text-sm">{size.label}</p>
-                <p className="text-xs text-muted-foreground mt-1">{size.description}</p>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
-      </div>
+            <p className="text-lg font-bold text-teal-700 dark:text-teal-400">{size.value}</p>
+            <p className="font-semibold text-foreground text-[10px] leading-tight">{size.label}</p>
+            <p className="text-[9px] text-muted-foreground leading-tight">{size.description}</p>
+          </div>
+        </motion.div>
+      ))}
     </div>
   );
 }
