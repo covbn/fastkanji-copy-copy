@@ -158,7 +158,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen p-4 md:p-8 bg-background">
+    <div className="min-h-screen appPage bg-background">
       {/* Pull to refresh indicator */}
       {pullDistance > 0 && (
         <div 
@@ -168,40 +168,36 @@ export default function Home() {
             opacity: Math.min(pullDistance / 60, 1) 
           }}
         >
-          <div className="bg-teal-500 text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
+          <div className="bg-teal-500 text-white px-3 py-1.5 rounded-full shadow-lg flex items-center gap-2">
             <RefreshCw className={`w-4 h-4 ${isPulling ? 'animate-spin' : ''}`} />
-            <span className="text-sm font-medium">
+            <span className="text-xs font-medium">
               {isPulling ? 'Release to refresh' : 'Pull to refresh'}
             </span>
           </div>
         </div>
       )}
       
-      <div className="max-w-6xl mx-auto space-y-8">
-        {/* Hero Section */}
+      <div className="max-w-6xl mx-auto appSectionGap">
+        {/* Compact Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="text-center space-y-4 py-8"
+          className="flex items-center justify-between"
         >
-          <div className="flex items-center justify-center gap-3 flex-wrap">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 rounded-full text-sm font-medium border border-amber-200 dark:border-amber-800">
-              <Flame className="w-4 h-4" />
-              {getStreak()} Day Streak
+          <h1 className="appH1" style={{fontFamily: "'Crimson Pro', serif"}}>
+            FastKanji
+          </h1>
+          <div className="flex items-center gap-2">
+            <div className="inline-flex items-center gap-1.5 h-7 px-3 bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 rounded-full text-xs font-medium border border-amber-200 dark:border-amber-800">
+              <Flame className="w-3.5 h-3.5" />
+              {getStreak()}d
             </div>
             {!isPremium && (
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 rounded-full text-sm font-medium border border-teal-200 dark:border-teal-800">
-                ⏱️ {formatTime(remainingTime)} remaining today
+              <div className="inline-flex items-center gap-1.5 h-7 px-3 bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 rounded-full text-xs font-medium border border-teal-200 dark:border-teal-800">
+                ⏱️ {formatTime(remainingTime)}
               </div>
             )}
           </div>
-          <h1 className="text-4xl md:text-6xl font-semibold text-foreground" style={{fontFamily: "'Crimson Pro', serif"}}>
-            Master Japanese Vocabulary
-          </h1>
-          <p className="text-lg max-w-2xl mx-auto font-light text-muted-foreground">
-            Lightning-fast flashcards with spaced repetition
-          </p>
         </motion.div>
 
         {/* Free user limit warning */}
@@ -239,14 +235,14 @@ export default function Home() {
         />
 
         {/* Study Setup */}
-        <Card className={`border border-border bg-card shadow-sm ${hasReachedLimit ? 'opacity-50' : ''}`}>
-          <CardHeader className="border-b border-border">
-            <CardTitle className="text-2xl font-semibold flex items-center gap-2 text-card-foreground" style={{fontFamily: "'Crimson Pro', serif"}}>
-              <Target className="w-6 h-6 text-teal-600" />
-              Start Your Study Session
+        <Card className={`appCard shadow-sm ${hasReachedLimit ? 'opacity-50' : ''}`}>
+          <CardHeader className="border-b border-border appCardPad">
+            <CardTitle className="text-lg font-semibold flex items-center gap-2 text-card-foreground">
+              <Target className="w-5 h-5 text-teal-600" />
+              Start Studying
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-6 space-y-6">
+          <CardContent className="appCardPad space-y-4">
             <div className="grid md:grid-cols-2 gap-6">
               <LevelSelector 
                 selectedLevel={selectedLevel}
@@ -262,39 +258,39 @@ export default function Home() {
             </div>
 
             {/* Session Size - Only for Flash Study */}
-            <div className="p-4 rounded-lg border border-border bg-muted">
-              <h3 className="text-sm font-semibold mb-3 text-foreground">
-                Flash Study Session Size
+            <div className="p-3 rounded-lg border border-border bg-muted">
+              <h3 className="text-xs font-semibold mb-2 text-foreground">
+                Flash Study Size
               </h3>
               <SessionSizeSelector
                 sessionSize={sessionSize}
                 onSelectSize={setSessionSize}
               />
-              <p className="text-xs mt-2 text-muted-foreground">
-                Note: Spaced Repetition continues until all due cards are reviewed
+              <p className="text-[11px] mt-2 text-muted-foreground">
+                SRS continues until all due cards reviewed
               </p>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4 pt-4">
+            <div className="grid grid-cols-2 gap-3">
               <Button
                 onClick={startFlashStudy}
-                size="lg"
+                size="sm"
                 disabled={hasReachedLimit}
-                className="h-14 text-base font-medium bg-teal-500 hover:bg-teal-600 text-white shadow-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="h-11 text-sm font-medium bg-teal-500 hover:bg-teal-600 text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Zap className="w-5 h-5 mr-2" />
-                Flash Study Mode
+                <Zap className="w-4 h-4 mr-1.5" />
+                Flash
               </Button>
 
               <Button
                 onClick={startSpacedRepetition}
-                size="lg"
+                size="sm"
                 variant="outline"
                 disabled={hasReachedLimit}
-                className="h-14 text-base font-medium border-2 border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-950 hover:border-teal-300 dark:hover:border-teal-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="h-11 text-sm font-medium border-2 border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-950 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Brain className="w-5 h-5 mr-2" />
-                Spaced Repetition
+                <Brain className="w-4 h-4 mr-1.5" />
+                SRS
               </Button>
             </div>
           </CardContent>
@@ -302,21 +298,21 @@ export default function Home() {
 
         {/* Recent Activity */}
         {recentSessions.length > 0 && (
-          <Card className="border border-border bg-card shadow-sm">
-            <CardHeader className="border-b border-border">
-              <CardTitle className="flex items-center gap-2 font-semibold text-card-foreground" style={{fontFamily: "'Crimson Pro', serif"}}>
-                <TrendingUp className="w-5 h-5 text-teal-600" />
+          <Card className="appCard shadow-sm">
+            <CardHeader className="border-b border-border appCardPad">
+              <CardTitle className="flex items-center gap-2 text-base font-semibold text-card-foreground">
+                <TrendingUp className="w-4 h-4 text-teal-600" />
                 Recent Sessions
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-6">
-              <div className="space-y-3">
+            <CardContent className="appCardPad">
+              <div className="space-y-2">
                 {recentSessions.slice(0, 5).map((session) => (
                   <motion.div
                     key={session.id}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className="flex items-center justify-between p-4 rounded-lg bg-muted hover:bg-accent transition-colors border border-border"
+                    className="flex items-center justify-between p-3 rounded-lg bg-muted hover:bg-accent transition-colors border border-border"
                   >
                     <div className="flex items-center gap-4">
                       {session.session_type === 'flash' ? (

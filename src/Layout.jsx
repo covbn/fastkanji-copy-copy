@@ -181,6 +181,52 @@ export default function Layout({ children, currentPageName }) {
             overscroll-behavior-y: none;
           }
           
+          /* Mobile density utilities */
+          .appPage {
+            padding: 0.75rem;
+            padding-bottom: 4rem;
+          }
+          
+          @media (min-width: 640px) {
+            .appPage {
+              padding: 1rem;
+              padding-bottom: 1rem;
+            }
+          }
+          
+          .appCard {
+            border-radius: 0.75rem;
+            border: 1px solid hsl(var(--border));
+            background: hsl(var(--card));
+          }
+          
+          .appCardPad {
+            padding: 0.75rem;
+          }
+          
+          @media (min-width: 640px) {
+            .appCardPad {
+              padding: 1rem;
+            }
+          }
+          
+          .appH1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+          }
+          
+          @media (min-width: 640px) {
+            .appH1 {
+              font-size: 1.875rem;
+            }
+          }
+          
+          .appSectionGap {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+          }
+          
           h1, h2, h3, h4, h5, h6 {
             font-family: 'Crimson Pro', serif;
           }
