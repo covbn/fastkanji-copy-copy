@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { BookOpen, Brain, Clock } from "lucide-react";
+import { BookOpen, Brain, Clock, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { normalizeVocabArray, uiLevelToDatasetLevel, datasetLevelToUiLevel } from "@/components/utils/vocabNormalizer";
 import { useSubscription } from "@/components/utils/useSubscription";
@@ -709,7 +709,15 @@ export default function SpacedRepetition() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <div className="border-b border-border px-3 md:px-6 py-2 md:py-3 bg-card/80 backdrop-blur-sm">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
+        <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
+          <Button
+            onClick={handleEndSession}
+            variant="ghost"
+            size="icon"
+            className="md:hidden flex-shrink-0"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </Button>
           <div className="flex items-center gap-3 md:gap-6">
             <div className="flex items-center gap-1.5 md:gap-2">
               <BookOpen className="w-3 h-3 md:w-4 md:h-4 text-cyan-600" />
@@ -764,7 +772,7 @@ export default function SpacedRepetition() {
             onClick={handleEndSession}
             variant="ghost"
             size="sm"
-            className="text-xs"
+            className="text-xs hidden md:inline-flex"
           >
             End Session
           </Button>

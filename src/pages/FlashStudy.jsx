@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
+import { ChevronLeft } from "lucide-react";
 import { normalizeVocabArray } from "@/components/utils/vocabNormalizer";
 import { confirmDialog } from "@/components/utils/ConfirmDialog";
 import { useSubscription } from "@/components/utils/useSubscription";
@@ -336,7 +337,15 @@ export default function FlashStudy() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <div className="border-b border-border px-3 md:px-6 py-2 md:py-3 bg-card/80 backdrop-blur-sm">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
+        <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
+          <Button
+            onClick={handleEndSession}
+            variant="ghost"
+            size="icon"
+            className="md:hidden flex-shrink-0"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </Button>
           <div className="flex items-center gap-3 md:gap-6">
             <div className="flex items-center gap-2">
               <span className="text-xs md:text-sm text-muted-foreground">Remaining:</span>
@@ -374,7 +383,7 @@ export default function FlashStudy() {
             onClick={handleEndSession}
             variant="ghost"
             size="sm"
-            className="text-xs"
+            className="text-xs hidden md:inline-flex"
           >
             End Session
           </Button>
