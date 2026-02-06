@@ -183,14 +183,12 @@ export default function Layout({ children, currentPageName }) {
           
           /* Mobile density utilities */
           .appPage {
-            padding: 0.75rem;
-            padding-bottom: 4rem;
+            padding: 0.75rem 0.75rem 4rem;
           }
           
-          @media (min-width: 640px) {
+          @media (min-width: 768px) {
             .appPage {
               padding: 1rem;
-              padding-bottom: 1rem;
             }
           }
           
@@ -211,11 +209,17 @@ export default function Layout({ children, currentPageName }) {
           }
           
           .appH1 {
-            font-size: 1.5rem;
+            font-size: 1.25rem;
             font-weight: 600;
           }
           
           @media (min-width: 640px) {
+            .appH1 {
+              font-size: 1.5rem;
+            }
+          }
+          
+          @media (min-width: 768px) {
             .appH1 {
               font-size: 1.875rem;
             }
@@ -225,6 +229,18 @@ export default function Layout({ children, currentPageName }) {
             display: flex;
             flex-direction: column;
             gap: 0.75rem;
+          }
+          
+          .appTileGrid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+          }
+          
+          @media (min-width: 640px) {
+            .appTileGrid {
+              grid-template-columns: repeat(3, 1fr);
+            }
           }
           
           h1, h2, h3, h4, h5, h6 {
@@ -406,17 +422,17 @@ export default function Layout({ children, currentPageName }) {
           </SidebarFooter>
         </Sidebar>
 
-        <main className="flex-1 flex flex-col">
-          <header className="bg-card/95 border-b border-border backdrop-blur-sm px-6 py-4 md:hidden">
-            <div className="flex items-center gap-4">
+        <main className="flex-1 flex flex-col h-dvh md:h-auto">
+          <header className="bg-card/95 border-b border-border backdrop-blur-sm px-4 py-3 md:hidden flex-shrink-0">
+            <div className="flex items-center gap-3">
               <SidebarTrigger className="hover:bg-accent p-2 rounded-lg transition-colors duration-200" />
-              <h1 className="text-xl font-semibold text-foreground" style={{fontFamily: "'Crimson Pro', serif"}}>
+              <h1 className="text-lg font-semibold text-foreground" style={{fontFamily: "'Crimson Pro', serif"}}>
                 FastKanji
               </h1>
             </div>
           </header>
 
-          <div className="flex-1 overflow-auto pb-16 md:pb-0">
+          <div className="flex-1 overflow-y-auto pb-16 md:pb-0 md:overflow-auto">
             <AnimatePresence mode="wait">
               <motion.div
                 key={location.pathname}

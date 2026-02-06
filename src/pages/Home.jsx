@@ -158,7 +158,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen appPage bg-background">
+    <div className="min-h-dvh appPage bg-background">
       {/* Pull to refresh indicator */}
       {pullDistance > 0 && (
         <div 
@@ -177,7 +177,7 @@ export default function Home() {
         </div>
       )}
       
-      <div className="max-w-6xl mx-auto appSectionGap">
+      <div className="max-w-md md:max-w-6xl mx-auto appSectionGap">
         {/* Compact Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

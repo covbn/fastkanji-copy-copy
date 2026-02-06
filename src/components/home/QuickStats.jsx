@@ -41,7 +41,7 @@ export default function QuickStats({ sessions = [], totalWords = 0, streak = 0 }
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <div className="appTileGrid md:grid-cols-4">
       {stats.map((stat, index) => (
         <motion.div
           key={stat.label}
