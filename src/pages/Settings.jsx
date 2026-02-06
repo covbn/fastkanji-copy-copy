@@ -12,8 +12,12 @@ import { motion } from "framer-motion";
 import { useToast } from "@/components/ui/use-toast";
 import { loadRemainingTime, saveRemainingTime } from "@/components/utils/timerPersistence";
 import { confirmDialog } from "@/components/utils/ConfirmDialog";
+import MobileHeader from "@/components/mobile/MobileHeader";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 
 export default function Settings() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   
