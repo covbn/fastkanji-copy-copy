@@ -236,28 +236,28 @@ export default function Profile() {
   }
 
   return (
-    <div className="min-h-dvh appPage bg-background">
-      <div className="max-w-md md:max-w-6xl mx-auto appSectionGap">
+    <div className="min-h-dvh px-3 py-2 pb-16 bg-background">
+      <div className="max-w-md md:max-w-6xl mx-auto space-y-3">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center space-y-3"
+          className="text-center space-y-2"
         >
-          <div className="w-16 h-16 mx-auto rounded-full flex items-center justify-center bg-gradient-to-br from-teal-500 to-cyan-500 shadow-lg">
-            <span className="text-3xl">学</span>
+          <div className="w-12 h-12 mx-auto rounded-full flex items-center justify-center bg-gradient-to-br from-teal-500 to-cyan-500 shadow-lg">
+            <span className="text-2xl">学</span>
           </div>
           <div>
-            <h1 className="text-2xl sm:text-3xl font-semibold text-foreground" style={{fontFamily: "'Crimson Pro', serif"}}>
+            <h1 className="text-xl sm:text-2xl font-semibold text-foreground" style={{fontFamily: "'Crimson Pro', serif"}}>
               {user.full_name || "Learner"}
             </h1>
-            <p className="text-xs text-muted-foreground">{user.email}</p>
-            <div className="flex items-center justify-center gap-2 mt-2">
-              <Badge className="bg-teal-500 text-white h-6 text-xs">
-                <Flame className="w-3 h-3 mr-1" />
+            <p className="text-[10px] text-muted-foreground">{user.email}</p>
+            <div className="flex items-center justify-center gap-1.5 mt-1.5">
+              <Badge className="bg-teal-500 text-white h-5 text-[10px]">
+                <Flame className="w-2.5 h-2.5 mr-0.5" />
                 {getStreak()}d
               </Badge>
-              <Badge variant="outline" className="h-6 text-xs">
+              <Badge variant="outline" className="h-5 text-[10px]">
                 Level {Math.floor(progress.length / 50) + 1}
               </Badge>
             </div>
@@ -265,162 +265,162 @@ export default function Profile() {
         </motion.div>
 
         {/* Stats Overview */}
-        <div className="appTileGrid md:grid-cols-5">
-          <Card className="appCard">
-            <CardContent className="appCardPad text-center">
-              <div className="w-9 h-9 mx-auto rounded-full bg-teal-500 flex items-center justify-center mb-2">
-                <Zap className="w-5 h-5 text-white" />
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+          <Card className="border rounded-lg">
+            <CardContent className="p-2 text-center">
+              <div className="w-7 h-7 mx-auto rounded-full bg-teal-500 flex items-center justify-center mb-1.5">
+                <Zap className="w-4 h-4 text-white" />
               </div>
-              <p className="text-xl font-bold text-foreground">{sessions.length}</p>
-              <p className="text-xs mt-0.5 text-muted-foreground">Sessions</p>
+              <p className="text-lg font-bold text-foreground">{sessions.length}</p>
+              <p className="text-[10px] mt-0.5 text-muted-foreground">Sessions</p>
             </CardContent>
           </Card>
 
-          <Card className="appCard">
-            <CardContent className="appCardPad text-center">
-              <div className="w-9 h-9 mx-auto rounded-full bg-emerald-500 flex items-center justify-center mb-2">
-                <Target className="w-5 h-5 text-white" />
+          <Card className="border rounded-lg">
+            <CardContent className="p-2 text-center">
+              <div className="w-7 h-7 mx-auto rounded-full bg-emerald-500 flex items-center justify-center mb-1.5">
+                <Target className="w-4 h-4 text-white" />
               </div>
-              <p className="text-xl font-bold text-foreground">{totalCards}</p>
-              <p className="text-xs mt-0.5 text-muted-foreground">Cards</p>
+              <p className="text-lg font-bold text-foreground">{totalCards}</p>
+              <p className="text-[10px] mt-0.5 text-muted-foreground">Cards</p>
             </CardContent>
           </Card>
 
-          <Card className="appCard">
-            <CardContent className="appCardPad text-center">
-              <div className="w-9 h-9 mx-auto rounded-full bg-cyan-500 flex items-center justify-center mb-2">
-                <Award className="w-5 h-5 text-white" />
+          <Card className="border rounded-lg">
+            <CardContent className="p-2 text-center">
+              <div className="w-7 h-7 mx-auto rounded-full bg-cyan-500 flex items-center justify-center mb-1.5">
+                <Award className="w-4 h-4 text-white" />
               </div>
-              <p className="text-xl font-bold text-foreground">{avgAccuracy.toFixed(0)}%</p>
-              <p className="text-xs mt-0.5 text-muted-foreground">Accuracy</p>
+              <p className="text-lg font-bold text-foreground">{avgAccuracy.toFixed(0)}%</p>
+              <p className="text-[10px] mt-0.5 text-muted-foreground">Accuracy</p>
             </CardContent>
           </Card>
 
-          <Card className="appCard">
-            <CardContent className="appCardPad text-center">
-              <div className="w-9 h-9 mx-auto rounded-full bg-amber-500 flex items-center justify-center mb-2">
-                <Clock className="w-5 h-5 text-white" />
+          <Card className="border rounded-lg">
+            <CardContent className="p-2 text-center">
+              <div className="w-7 h-7 mx-auto rounded-full bg-amber-500 flex items-center justify-center mb-1.5">
+                <Clock className="w-4 h-4 text-white" />
               </div>
-              <p className="text-xl font-bold text-foreground">{totalHours}h {totalMinutes}m</p>
-              <p className="text-xs mt-0.5 text-muted-foreground">Time</p>
+              <p className="text-lg font-bold text-foreground">{totalHours}h {totalMinutes}m</p>
+              <p className="text-[10px] mt-0.5 text-muted-foreground">Time</p>
             </CardContent>
           </Card>
 
-          <Card className="appCard">
-            <CardContent className="appCardPad text-center">
-              <div className="w-9 h-9 mx-auto rounded-full bg-indigo-500 flex items-center justify-center mb-2">
-                <Wind className="w-5 h-5 text-white" />
+          <Card className="border rounded-lg">
+            <CardContent className="p-2 text-center">
+              <div className="w-7 h-7 mx-auto rounded-full bg-indigo-500 flex items-center justify-center mb-1.5">
+                <Wind className="w-4 h-4 text-white" />
               </div>
-              <p className="text-xl font-bold text-foreground">{focusCount}</p>
-              <p className="text-xs mt-0.5 text-muted-foreground">Focus</p>
+              <p className="text-lg font-bold text-foreground">{focusCount}</p>
+              <p className="text-[10px] mt-0.5 text-muted-foreground">Focus</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Spaced Repetition Progress */}
-        <Card className="appCard">
-          <CardHeader className="border-b border-border appCardPad">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Brain className="w-4 h-4 text-teal-600" />
+        <Card className="border rounded-lg">
+          <CardHeader className="border-b border-border p-2.5">
+            <CardTitle className="flex items-center gap-1.5 text-sm">
+              <Brain className="w-3.5 h-3.5 text-teal-600" />
               SRS Progress
             </CardTitle>
           </CardHeader>
-          <CardContent className="appCardPad">
-            <div className="appTileGrid md:grid-cols-4 mb-3">
-              <div className="p-3 rounded-lg border bg-cyan-50 dark:bg-cyan-950 border-cyan-200 dark:border-cyan-800">
-                <div className="flex items-center gap-2 mb-1.5">
-                  <BookOpen className="w-4 h-4 text-cyan-600" />
-                  <p className="font-semibold text-xs text-foreground">New</p>
+          <CardContent className="p-2.5">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2">
+              <div className="p-2 rounded-lg border bg-cyan-50 dark:bg-cyan-950 border-cyan-200 dark:border-cyan-800">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <BookOpen className="w-3 h-3 text-cyan-600" />
+                  <p className="font-semibold text-[10px] text-foreground">New</p>
                 </div>
-                <p className="text-xl font-bold text-cyan-700 dark:text-cyan-400">{newIntroducedToday}</p>
-                <p className="text-[11px] mt-0.5 text-muted-foreground">Today</p>
+                <p className="text-base font-bold text-cyan-700 dark:text-cyan-400">{newIntroducedToday}</p>
+                <p className="text-[9px] mt-0.5 text-muted-foreground">Today</p>
               </div>
 
-              <div className="p-3 rounded-lg border bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
-                <div className="flex items-center gap-2 mb-1.5">
-                  <Trophy className="w-4 h-4 text-blue-600" />
-                  <p className="font-semibold text-xs text-foreground">Learned</p>
+              <div className="p-2 rounded-lg border bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Trophy className="w-3 h-3 text-blue-600" />
+                  <p className="font-semibold text-[10px] text-foreground">Learned</p>
                 </div>
-                <p className="text-xl font-bold text-blue-700 dark:text-blue-400">{newLearnedToday}</p>
-                <p className="text-[11px] mt-0.5 text-muted-foreground">Today</p>
+                <p className="text-base font-bold text-blue-700 dark:text-blue-400">{newLearnedToday}</p>
+                <p className="text-[9px] mt-0.5 text-muted-foreground">Today</p>
               </div>
 
-              <div className="p-3 rounded-lg border bg-emerald-50 dark:bg-emerald-950 border-emerald-200 dark:border-emerald-800">
-                <div className="flex items-center gap-2 mb-1.5">
-                  <Zap className="w-4 h-4 text-emerald-600" />
-                  <p className="font-semibold text-xs text-foreground">Reviews</p>
+              <div className="p-2 rounded-lg border bg-emerald-50 dark:bg-emerald-950 border-emerald-200 dark:border-emerald-800">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Zap className="w-3 h-3 text-emerald-600" />
+                  <p className="font-semibold text-[10px] text-foreground">Reviews</p>
                 </div>
-                <p className="text-xl font-bold text-emerald-700 dark:text-emerald-400">{reviewsCompletedToday}</p>
-                <p className="text-[11px] mt-0.5 text-muted-foreground">Today</p>
+                <p className="text-base font-bold text-emerald-700 dark:text-emerald-400">{reviewsCompletedToday}</p>
+                <p className="text-[9px] mt-0.5 text-muted-foreground">Today</p>
               </div>
 
-              <div className="p-3 rounded-lg border bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800">
-                <div className="flex items-center gap-2 mb-1.5">
-                  <Target className="w-4 h-4 text-amber-600" />
-                  <p className="font-semibold text-xs text-foreground">Learning</p>
+              <div className="p-2 rounded-lg border bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Target className="w-3 h-3 text-amber-600" />
+                  <p className="font-semibold text-[10px] text-foreground">Learning</p>
                 </div>
-                <p className="text-xl font-bold text-amber-700 dark:text-amber-400">{learningInProgress}</p>
-                <p className="text-[11px] mt-0.5 text-muted-foreground">Active</p>
+                <p className="text-base font-bold text-amber-700 dark:text-amber-400">{learningInProgress}</p>
+                <p className="text-[9px] mt-0.5 text-muted-foreground">Active</p>
               </div>
             </div>
 
-            <div className="appTileGrid">
-              <div className="p-3 rounded-lg border bg-muted">
-                <div className="flex items-center gap-2 mb-1.5">
-                  <BookOpen className="w-4 h-4 text-muted-foreground" />
-                  <p className="font-semibold text-xs text-foreground">Unseen</p>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="p-2 rounded-lg border bg-muted">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <BookOpen className="w-3 h-3 text-muted-foreground" />
+                  <p className="font-semibold text-[10px] text-foreground">Unseen</p>
                 </div>
-                <p className="text-xl font-bold text-foreground">{newCards}</p>
-                <p className="text-[11px] mt-0.5 text-muted-foreground">Not started</p>
+                <p className="text-base font-bold text-foreground">{newCards}</p>
+                <p className="text-[9px] mt-0.5 text-muted-foreground">Not started</p>
               </div>
 
-              <div className="p-3 rounded-lg border bg-muted">
-                <div className="flex items-center gap-2 mb-1.5">
-                  <Trophy className="w-4 h-4 text-muted-foreground" />
-                  <p className="font-semibold text-xs text-foreground">Review</p>
+              <div className="p-2 rounded-lg border bg-muted">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Trophy className="w-3 h-3 text-muted-foreground" />
+                  <p className="font-semibold text-[10px] text-foreground">Review</p>
                 </div>
-                <p className="text-xl font-bold text-foreground">{reviewCards}</p>
-                <p className="text-[11px] mt-0.5 text-muted-foreground">In rotation</p>
+                <p className="text-base font-bold text-foreground">{reviewCards}</p>
+                <p className="text-[9px] mt-0.5 text-muted-foreground">In rotation</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Achievements */}
-        <Card className="appCard">
-          <CardHeader className="border-b border-border appCardPad">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Trophy className="w-4 h-4 text-amber-500" />
+        <Card className="border rounded-lg">
+          <CardHeader className="border-b border-border p-2.5">
+            <CardTitle className="flex items-center gap-1.5 text-sm">
+              <Trophy className="w-3.5 h-3.5 text-amber-500" />
               Achievements ({unlockedCount}/{achievements.length})
             </CardTitle>
           </CardHeader>
-          <CardContent className="appCardPad">
-            <div className="appTileGrid md:grid-cols-3">
+          <CardContent className="p-2.5">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
               {achievements.map((achievement, idx) => (
                 <motion.div
                   key={achievement.name}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.02 }}
-                  className={`p-3 rounded-lg border ${
+                  className={`p-2 rounded-lg border ${
                     achievement.unlocked 
                       ? 'bg-card border-teal-200 dark:border-teal-800' 
                       : 'bg-muted border-border opacity-50'
                   }`}
                 >
-                  <div className="flex flex-col items-center text-center gap-2">
-                    <div className={`w-8 h-8 rounded-lg ${achievement.color} flex items-center justify-center ${!achievement.unlocked && 'opacity-50'}`}>
-                      <achievement.icon className="w-4 h-4 text-white" />
+                  <div className="flex flex-col items-center text-center gap-1.5">
+                    <div className={`w-6 h-6 rounded-lg ${achievement.color} flex items-center justify-center ${!achievement.unlocked && 'opacity-50'}`}>
+                      <achievement.icon className="w-3 h-3 text-white" />
                     </div>
                     <div>
-                      <p className={`font-semibold text-xs text-foreground ${!achievement.unlocked && 'opacity-50'}`}>
+                      <p className={`font-semibold text-[10px] text-foreground leading-tight ${!achievement.unlocked && 'opacity-50'}`}>
                         {achievement.name}
                       </p>
-                      <p className={`text-[11px] mt-0.5 text-muted-foreground ${!achievement.unlocked && 'opacity-50'}`}>
+                      <p className={`text-[9px] mt-0.5 text-muted-foreground leading-tight ${!achievement.unlocked && 'opacity-50'}`}>
                         {achievement.description}
                       </p>
                       {achievement.unlocked && (
-                        <Badge className="bg-emerald-500 text-white mt-1.5 h-5 text-[10px]">✓</Badge>
+                        <Badge className="bg-emerald-500 text-white mt-1 h-4 text-[9px]">✓</Badge>
                       )}
                     </div>
                   </div>
@@ -431,9 +431,9 @@ export default function Profile() {
         </Card>
 
         {/* Member Since */}
-        <Card className="appCard">
-          <CardContent className="appCardPad text-center">
-            <p className="text-xs text-muted-foreground">
+        <Card className="border rounded-lg">
+          <CardContent className="p-2 text-center">
+            <p className="text-[10px] text-muted-foreground">
               Member since {format(new Date(user.created_date), 'MMMM yyyy')}
             </p>
           </CardContent>

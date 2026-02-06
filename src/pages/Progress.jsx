@@ -87,8 +87,8 @@ export default function Progress() {
   }
 
   return (
-    <div className="min-h-dvh appPage bg-background">
-      <div className="max-w-md md:max-w-7xl mx-auto appSectionGap">
+    <div className="min-h-dvh px-3 py-2 pb-16 bg-background">
+      <div className="max-w-md md:max-w-7xl mx-auto space-y-3">
         {/* Header */}
         <div className="text-center space-y-1">
           <h1 className="appH1" style={{fontFamily: "'Crimson Pro', serif"}}>
