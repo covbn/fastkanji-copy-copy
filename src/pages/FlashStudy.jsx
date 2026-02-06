@@ -335,8 +335,8 @@ export default function FlashStudy() {
   const remainingCount = sessionSize - graduated.size;
 
   return (
-    <div className="min-h-dvh flex flex-col bg-background">
-      <div className="border-b border-border px-3 md:px-6 py-2 md:py-3 bg-card/80 backdrop-blur-sm">
+    <div className="h-dvh flex flex-col bg-background overflow-hidden">
+      <div className="border-b border-border px-3 md:px-6 py-2 bg-card/80 backdrop-blur-sm flex-shrink-0">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
           <Button
             onClick={handleEndSession}
@@ -390,7 +390,7 @@ export default function FlashStudy() {
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center p-4 overflow-y-auto gap-6">
+      <div className="flex-1 flex flex-col items-center justify-center p-3 gap-4 overflow-hidden">
         <FlashCard
           vocabulary={currentCard}
           mode={mode}
