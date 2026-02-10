@@ -41,7 +41,7 @@ export default function QuickStats({ sessions = [], totalWords = 0, streak = 0 }
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-3">
+    <div className="grid grid-cols-2 gap-2">
       {stats.map((stat, index) => (
         <motion.div
           key={stat.label}
@@ -49,15 +49,17 @@ export default function QuickStats({ sessions = [], totalWords = 0, streak = 0 }
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: index * 0.05 }}
         >
-          <Card className="border rounded-2xl shadow-sm">
-            <CardContent className="p-4">
-              <div className={`w-12 h-12 rounded-xl ${stat.color} flex items-center justify-center mb-3`}>
-                <stat.icon className="w-6 h-6 text-white" />
+          <Card className="border rounded-xl shadow-sm">
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <div className={`w-8 h-8 rounded-lg ${stat.color} flex items-center justify-center flex-shrink-0`}>
+                  <stat.icon className="w-4 h-4 text-white" />
+                </div>
+                <p className="text-xl font-bold text-foreground leading-none">
+                  {stat.value}{stat.suffix}
+                </p>
               </div>
-              <p className="text-2xl font-bold text-foreground leading-none mb-1">
-                {stat.value}{stat.suffix}
-              </p>
-              <p className="text-sm text-muted-foreground leading-tight">{stat.label}</p>
+              <p className="text-xs text-muted-foreground leading-tight">{stat.label}</p>
             </CardContent>
           </Card>
         </motion.div>
