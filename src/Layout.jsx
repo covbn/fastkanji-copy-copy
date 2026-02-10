@@ -78,6 +78,11 @@ const bottomNavigationItems = [
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
+  
+  // Debug log to verify currentPageName
+  React.useEffect(() => {
+    console.log('[LAYOUT] currentPageName:', currentPageName);
+  }, [currentPageName]);
 
   const { data: user } = useQuery({
     queryKey: ['user'],
