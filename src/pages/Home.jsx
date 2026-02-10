@@ -6,26 +6,46 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Zap, Brain, Target, TrendingUp, Award, Flame, Wind, X, RefreshCw } from "lucide-react";
+import { Zap, Brain, Target, TrendingUp, Award, Flame, Wind, X, RefreshCw, ChevronRight, Play } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSubscription } from "@/components/utils/useSubscription";
 import { usePullToRefresh } from "@/components/utils/usePullToRefresh";
 
-import ModeSelector from "../components/home/ModeSelector";
-import LevelSelector from "../components/home/LevelSelector";
 import QuickStats from "../components/home/QuickStats";
-import SessionSizeSelector from "../components/home/SessionSizeSelector";
+import StudySettingsSheet from "../components/home/StudySettingsSheet";
 import { useDailyStudyTimer } from "../components/utils/useDailyStudyTimer";
 import { confirmDialog } from "../components/utils/ConfirmDialog";
 
 export default function Home() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [selectedMode, setSelectedMode] = useState("kanji_to_meaning");
-  const [selectedLevel, setSelectedLevel] = useState("N5");
-  const [sessionSize, setSessionSize] = useState(20);
+  
+  // Load persisted settings
+  const [selectedMode, setSelectedMode] = useState(() => {
+    return localStorage.getItem('lastStudyMode') || 'kanji_to_meaning';
+  });
+  const [selectedLevel, setSelectedLevel] = useState(() => {
+    return localStorage.getItem('lastStudyLevel') || 'N5';
+  });
+  const [sessionSize, setSessionSize] = useState(() => {
+    return parseInt(localStorage.getItem('lastSessionSize') || '20');
+  });
+  
   const [showFocusPrompt, setShowFocusPrompt] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState(null);
+
+  // Persist settings on change
+  useEffect(() => {
+    localStorage.setItem('lastStudyMode', selectedMode);
+  }, [selectedMode]);
+
+  useEffect(() => {
+    localStorage.setItem('lastStudyLevel', selectedLevel);
+  }, [selectedLevel]);
+
+  useEffect(() => {
+    localStorage.setItem('lastSessionSize', sessionSize.toString());
+  }, [sessionSize]);
 
   // Pull to refresh
   const handleRefresh = async () => {
@@ -126,11 +146,33 @@ export default function Home() {
   };
 
   const startFlashStudy = () => {
+    localStorage.setItem('lastStudyType', 'flash');
     handleStartStudy(createPageUrl(`FlashStudy?mode=${selectedMode}&level=${selectedLevel}&size=${sessionSize}`));
   };
 
   const startSpacedRepetition = () => {
+    localStorage.setItem('lastStudyType', 'srs');
     handleStartStudy(createPageUrl(`SpacedRepetition?mode=${selectedMode}&level=${selectedLevel}`));
+  };
+
+  const getModeName = (mode) => {
+    const names = {
+      'kanji_to_meaning': 'Kanji → Meaning',
+      'kanji_to_reading': 'Kanji → Reading',
+      'reading_to_meaning': 'Reading → Meaning'
+    };
+    return names[mode] || mode;
+  };
+
+  const getLevelName = (level) => {
+    const names = {
+      'N5': 'N5 - Beginner',
+      'N4': 'N4 - Elementary',
+      'N3': 'N3 - Intermediate',
+      'N2': 'N2 - Advanced',
+      'N1': 'N1 - Expert'
+    };
+    return names[level] || level;
   };
 
   const getStreak = () => {
@@ -158,7 +200,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-dvh px-3 py-2 pb-16 bg-background">
+    <div className="min-h-dvh bg-background" style={{paddingBottom: 'max(4rem, env(safe-area-inset-bottom, 4rem))'}}>
       {/* Pull to refresh indicator */}
       {pullDistance > 0 && (
         <div 
@@ -177,25 +219,26 @@ export default function Home() {
         </div>
       )}
       
-      <div className="max-w-md md:max-w-6xl mx-auto space-y-3">
+      <div className="w-full px-4 py-3 space-y-4">
         {/* Compact Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between mb-2"
+          className="flex items-center justify-between"
         >
-          <h1 className="text-xl font-semibold" style={{fontFamily: "'Crimson Pro', serif"}}>
+          <h1 className="text-2xl font-semibold" style={{fontFamily: "'Crimson Pro', serif"}}>
             FastKanji
           </h1>
-          <div className="flex items-center gap-1.5">
-            <div className="inline-flex items-center gap-1 h-6 px-2 bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 rounded-full text-xs font-medium border border-amber-200 dark:border-amber-800">
-              <Flame className="w-3 h-3" />
-              {getStreak()}d
+          <div className="inline-flex items-center gap-2 h-9 px-3 bg-gradient-to-r from-amber-50 to-teal-50 dark:from-amber-950 dark:to-teal-950 rounded-full border border-amber-200 dark:border-amber-800">
+            <div className="flex items-center gap-1">
+              <Flame className="w-4 h-4 text-amber-600" />
+              <span className="text-sm font-semibold text-amber-700 dark:text-amber-300">{getStreak()}d</span>
             </div>
             {!isPremium && (
-              <div className="inline-flex items-center gap-1 h-6 px-2 bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 rounded-full text-xs font-medium border border-teal-200 dark:border-teal-800">
-                ⏱️ {formatTime(remainingTime)}
-              </div>
+              <>
+                <div className="w-px h-4 bg-border" />
+                <span className="text-sm font-medium text-teal-700 dark:text-teal-300">⏱️ {formatTime(remainingTime)}</span>
+              </>
             )}
           </div>
         </motion.div>
@@ -227,74 +270,68 @@ export default function Home() {
           </motion.div>
         )}
 
-        {/* Quick Stats */}
-        <QuickStats 
-          sessions={recentSessions}
-          totalWords={vocabularyCount.length}
-          streak={getStreak()}
-        />
+        {/* Continue Studying Hero Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <Card className="border-2 border-teal-500 rounded-3xl shadow-lg overflow-hidden bg-gradient-to-br from-teal-50 to-cyan-50 dark:from-teal-950 dark:to-cyan-950">
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Continue Studying</p>
+                  <h2 className="text-xl font-bold text-foreground mb-2" style={{fontFamily: "'Crimson Pro', serif"}}>
+                    {getLevelName(selectedLevel)}
+                  </h2>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <span>{getModeName(selectedMode)}</span>
+                    <span>•</span>
+                    <span>{sessionSize} cards</span>
+                  </div>
+                </div>
+                <StudySettingsSheet
+                  selectedLevel={selectedLevel}
+                  selectedMode={selectedMode}
+                  sessionSize={sessionSize}
+                  onSelectLevel={setSelectedLevel}
+                  onSelectMode={setSelectedMode}
+                  onSelectSize={setSessionSize}
+                  vocabularyCount={vocabularyCount}
+                  isPremium={isPremium}
+                  onConfirm={() => {}}
+                />
+              </div>
 
-        {/* Study Setup */}
-        <Card className={`border rounded-2xl shadow-sm ${hasReachedLimit ? 'opacity-50' : ''}`}>
-          <CardHeader className="border-b border-border p-4">
-            <CardTitle className="text-lg font-semibold flex items-center gap-2 text-card-foreground">
-              <Target className="w-5 h-5 text-teal-600" />
-              Start Studying
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 space-y-4">
-            <div className="space-y-4">
-              <LevelSelector 
-                selectedLevel={selectedLevel}
-                onSelectLevel={setSelectedLevel}
-                vocabularyCount={vocabularyCount}
-                isPremium={isPremium}
-              />
-              
-              <ModeSelector 
-                selectedMode={selectedMode}
-                onSelectMode={setSelectedMode}
-              />
-            </div>
-
-            {/* Session Size - Only for Flash Study */}
-            <div className="p-4 rounded-xl border border-border bg-muted/50">
-              <h3 className="text-sm font-semibold mb-3 text-foreground">
-                Flash Study Size
-              </h3>
-              <SessionSizeSelector
-                sessionSize={sessionSize}
-                onSelectSize={setSessionSize}
-              />
-              <p className="text-xs mt-2 text-muted-foreground">
-                SRS continues until all due cards reviewed
-              </p>
-            </div>
-
-            {selectedLevel && (
-              <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
                 <Button
                   onClick={startFlashStudy}
                   disabled={hasReachedLimit}
-                  className="w-full h-14 text-base font-semibold bg-teal-500 hover:bg-teal-600 text-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed rounded-xl"
+                  className="h-14 text-base font-semibold bg-teal-500 hover:bg-teal-600 text-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed rounded-xl"
                 >
-                  <Zap className="w-5 h-5 mr-2" />
-                  Start Flash Study
+                  <Play className="w-5 h-5 mr-2" />
+                  Flash
                 </Button>
 
                 <Button
                   onClick={startSpacedRepetition}
                   variant="outline"
                   disabled={hasReachedLimit}
-                  className="w-full h-14 text-base font-semibold border-2 border-teal-500 text-teal-700 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-950 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl"
+                  className="h-14 text-base font-semibold border-2 border-teal-500 text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl"
                 >
                   <Brain className="w-5 h-5 mr-2" />
-                  Start Spaced Repetition
+                  SRS
                 </Button>
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Quick Stats */}
+        <QuickStats 
+          sessions={recentSessions}
+          totalWords={vocabularyCount.length}
+          streak={getStreak()}
+        />
 
         {/* Recent Activity */}
         {recentSessions.length > 0 && (
