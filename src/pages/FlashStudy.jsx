@@ -401,8 +401,14 @@ export default function FlashStudy() {
       </div>
 
       {/* Study Area */}
-      <div className="flex-1 flex flex-col items-center overflow-hidden" style={{minHeight: 0}}>
-        <div className="flex-1 flex items-center w-full" style={{minHeight: 0}}>
+      <div className="flex-1 flex flex-col overflow-hidden" style={{minHeight: 0}}>
+        <div 
+          className="flex-1 flex items-start justify-center w-full pt-4" 
+          style={{
+            minHeight: 0,
+            maxHeight: currentCard?._revealed ? 'calc(100% - 68px)' : '100%'
+          }}
+        >
           <FlashCard
             vocabulary={currentCard}
             mode={mode}

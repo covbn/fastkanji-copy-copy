@@ -87,16 +87,17 @@ export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSente
       animate={{ scale: 1, opacity: 1 }}
       exit={{ scale: 0.97, opacity: 0 }}
       transition={{ duration: 0.15 }}
-      className="w-full px-4 flex items-center"
-      style={{height: '100%', minHeight: 0}}
+      className="w-full px-4"
+      style={{height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column'}}
     >
       <Card 
         className="w-full cursor-pointer active:scale-[0.99] transition-transform rounded-3xl shadow-lg flex flex-col"
         onClick={() => !revealed && setRevealed(true)}
-        style={{maxHeight: '100%'}}
+        style={{height: '100%', minHeight: 0, maxHeight: '100%', display: 'flex', flexDirection: 'column'}}
       >
-        <CardContent className="p-4 md:p-5 flex flex-col justify-center overflow-y-auto">
-          <div className="space-y-2 md:space-y-2.5">
+        <CardContent className="p-4 md:p-5 flex flex-col flex-1 overflow-hidden" style={{minHeight: 0}}>
+          <div className="flex-1 flex flex-col justify-center overflow-y-auto" style={{minHeight: 0}}>
+            <div className="space-y-2 md:space-y-2.5">
             {/* Question */}
             <div className="text-center space-y-2">
               <p className="text-[10px] md:text-xs font-medium text-muted-foreground uppercase tracking-wider">
@@ -121,7 +122,7 @@ export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSente
               )}
 
               <motion.div
-                className="text-5xl sm:text-6xl md:text-7xl font-light text-foreground min-h-[80px] flex items-center justify-center px-2 break-all"
+                className="text-4xl sm:text-5xl md:text-6xl font-light text-foreground min-h-[60px] flex items-center justify-center px-2 break-all"
                 style={{fontFamily: "'Crimson Pro', serif"}}
                 initial={{ y: 10 }}
                 animate={{ y: 0 }}
@@ -167,19 +168,20 @@ export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSente
                   className="space-y-2.5"
                 >
                   <div className="text-center">
-                    <p className="text-2xl sm:text-3xl md:text-4xl font-normal text-teal-700 min-h-[40px] md:min-h-[50px] flex items-center justify-center px-2 break-all" style={{fontFamily: "'Crimson Pro', serif"}}>
+                    <p className="text-xl sm:text-2xl md:text-3xl font-normal text-teal-700 min-h-[32px] md:min-h-[40px] flex items-center justify-center px-2 break-all" style={{fontFamily: "'Crimson Pro', serif"}}>
                       {getAnswer()}
                     </p>
                   </div>
 
                   {/* Example - at bottom (for all modes after reveal, or reading_to_meaning with translation) */}
                   {shouldShowExample && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="text-xs text-muted-foreground p-2 md:p-2.5 bg-muted rounded-lg border border-border max-h-24 md:max-h-32 overflow-y-auto custom-scrollbar"
-                    >
-                      <p className="font-medium mb-1 text-teal-700 dark:text-teal-400 text-[10px] md:text-xs">Example</p>
+                   <motion.div
+                     initial={{ opacity: 0 }}
+                     animate={{ opacity: 1 }}
+                     className="text-xs text-muted-foreground p-2 md:p-2.5 bg-muted rounded-lg border border-border flex-1 overflow-y-auto custom-scrollbar"
+                     style={{minHeight: '60px', maxHeight: '140px'}}
+                   >
+                     <p className="font-medium mb-1 text-teal-700 dark:text-teal-400 text-[10px] md:text-xs">Example</p>
                       {!isReadingToMeaning && (
                         <p 
                           className="text-foreground text-[10px] md:text-xs mb-1 break-words" 
@@ -227,12 +229,13 @@ export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSente
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="text-center py-8 md:py-8"
+                  className="text-center py-6 md:py-8"
                 >
                   <p className="text-muted-foreground text-sm hidden md:block">Press Space/Enter to reveal</p>
                 </motion.div>
               )}
             </AnimatePresence>
+            </div>
           </div>
         </CardContent>
       </Card>

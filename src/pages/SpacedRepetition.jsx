@@ -779,16 +779,22 @@ export default function SpacedRepetition() {
       </div>
 
       {/* Study Area */}
-      <div className="flex-1 flex flex-col items-center overflow-hidden relative" style={{minHeight: 0}}>
+      <div className="flex-1 flex flex-col overflow-hidden relative" style={{minHeight: 0}}>
         {studyMode === 'ADVANCING' && (
-          <div className="absolute top-4 px-3 py-1.5 rounded-full text-xs bg-muted text-foreground z-10">
+          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 px-3 py-1.5 rounded-full text-xs bg-muted text-foreground z-10">
             Loading next card...
           </div>
         )}
         
         {currentCard && (
           <>
-            <div className="flex-1 flex items-center w-full" style={{minHeight: 0}}>
+            <div 
+              className="flex-1 flex items-start justify-center w-full pt-4" 
+              style={{
+                minHeight: 0,
+                maxHeight: currentCard?._revealed ? 'calc(100% - 68px)' : '100%'
+              }}
+            >
               <FlashCard
                 key={currentCard.id}
                 vocabulary={currentCard}
