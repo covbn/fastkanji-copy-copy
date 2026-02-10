@@ -401,7 +401,7 @@ export default function FlashStudy() {
       </div>
 
       {/* Study Area */}
-      <div className="flex-1 flex flex-col items-center justify-between py-2 overflow-hidden">
+      <div className="flex-1 flex flex-col items-center justify-between overflow-hidden">
         <FlashCard
           vocabulary={currentCard}
           mode={mode}

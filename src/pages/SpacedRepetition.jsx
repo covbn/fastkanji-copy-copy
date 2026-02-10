@@ -779,7 +779,7 @@ export default function SpacedRepetition() {
       </div>
 
       {/* Study Area */}
-      <div className="flex-1 flex flex-col items-center justify-between py-2 overflow-hidden">
+      <div className="flex-1 flex flex-col items-center justify-between overflow-hidden">
         {studyMode === 'ADVANCING' && (
           <div className="absolute top-20 px-3 py-1.5 rounded-full text-xs bg-muted text-foreground">
             Loading next card...

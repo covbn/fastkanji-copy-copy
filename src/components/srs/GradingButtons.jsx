@@ -29,46 +29,42 @@ export default function GradingButtons({ onGrade, disabled = false, nightMode = 
   }, [revealed, disabled, onGrade]);
 
   return (
-    <div className="grid grid-cols-2 gap-3 w-full max-w-3xl px-4" style={{paddingBottom: 'max(1rem, env(safe-area-inset-bottom, 1rem))'}}>
-      {/* Again (1) - Red */}
-      <Button
-        onClick={() => onGrade(1)}
-        disabled={!revealed || disabled}
-        className="flex flex-col items-center gap-1 h-16 py-3 bg-red-600 hover:bg-red-700 text-white shadow-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed rounded-xl"
-      >
-        <XCircle className="w-5 h-5" />
-        <span className="text-sm font-semibold">Again</span>
-      </Button>
+    <div className="w-full max-w-3xl px-4" style={{paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0.75rem))', minHeight: '56px'}}>
+      {revealed ? (
+        <div className="flex gap-2 w-full">
+          <Button
+            onClick={() => onGrade(1)}
+            disabled={disabled}
+            className="flex-1 h-12 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white text-sm font-medium shadow-sm transition-all rounded-lg"
+          >
+            Again
+          </Button>
 
-      {/* Hard (2) - Amber */}
-      <Button
-        onClick={() => onGrade(2)}
-        disabled={!revealed || disabled}
-        className="flex flex-col items-center gap-1 h-16 py-3 bg-amber-600 hover:bg-amber-700 text-white shadow-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed rounded-xl"
-      >
-        <Zap className="w-5 h-5" />
-        <span className="text-sm font-semibold">Hard</span>
-      </Button>
+          <Button
+            onClick={() => onGrade(2)}
+            disabled={disabled}
+            className="flex-1 h-12 bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white text-sm font-medium shadow-sm transition-all rounded-lg"
+          >
+            Hard
+          </Button>
 
-      {/* Good (3) - Green */}
-      <Button
-        onClick={() => onGrade(3)}
-        disabled={!revealed || disabled}
-        className="flex flex-col items-center gap-1 h-16 py-3 bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed rounded-xl"
-      >
-        <CheckCircle className="w-5 h-5" />
-        <span className="text-sm font-semibold">Good</span>
-      </Button>
+          <Button
+            onClick={() => onGrade(3)}
+            disabled={disabled}
+            className="flex-1 h-12 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-sm font-medium shadow-sm transition-all rounded-lg"
+          >
+            Good
+          </Button>
 
-      {/* Easy (4) - Cyan */}
-      <Button
-        onClick={() => onGrade(4)}
-        disabled={!revealed || disabled}
-        className="flex flex-col items-center gap-1 h-16 py-3 bg-cyan-600 hover:bg-cyan-700 text-white shadow-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed rounded-xl"
-      >
-        <TrendingUp className="w-5 h-5" />
-        <span className="text-sm font-semibold">Easy</span>
-      </Button>
+          <Button
+            onClick={() => onGrade(4)}
+            disabled={disabled}
+            className="flex-1 h-12 bg-cyan-600 hover:bg-cyan-700 active:bg-cyan-800 text-white text-sm font-medium shadow-sm transition-all rounded-lg"
+          >
+            Easy
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 }
