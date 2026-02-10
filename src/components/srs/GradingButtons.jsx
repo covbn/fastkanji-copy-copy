@@ -29,7 +29,7 @@ export default function GradingButtons({ onGrade, disabled = false, nightMode = 
   }, [revealed, disabled, onGrade]);
 
   return (
-    <div className="w-full max-w-3xl px-4 py-2" style={{paddingBottom: 'max(0.5rem, calc(env(safe-area-inset-bottom) + 0.5rem))', minHeight: '56px'}}>
+    <div className="w-full max-w-3xl px-4" style={{paddingBottom: 'max(0.5rem, calc(env(safe-area-inset-bottom) + 0.5rem))', minHeight: '56px'}}>
       {revealed ? (
         <div className="flex gap-2 w-full">
           <Button

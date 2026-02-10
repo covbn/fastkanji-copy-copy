@@ -95,8 +95,8 @@ export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSente
         onClick={() => !revealed && setRevealed(true)}
         style={{maxHeight: '100%'}}
       >
-        <CardContent className="p-4 md:p-5 flex flex-col justify-center overflow-y-auto">
-          <div className="space-y-2 md:space-y-2.5">
+        <CardContent className="p-3 md:p-4 flex flex-col justify-center overflow-y-auto">
+          <div className="space-y-1.5 md:space-y-2">
             {/* Question */}
             <div className="text-center space-y-2">
               <p className="text-[10px] md:text-xs font-medium text-muted-foreground uppercase tracking-wider">
@@ -121,7 +121,7 @@ export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSente
               )}
 
               <motion.div
-                className="text-5xl sm:text-6xl md:text-7xl font-light text-foreground min-h-[80px] flex items-center justify-center px-2 break-all"
+                className="text-5xl sm:text-6xl md:text-7xl font-light text-foreground min-h-[70px] flex items-center justify-center px-2 break-all"
                 style={{fontFamily: "'Crimson Pro', serif"}}
                 initial={{ y: 10 }}
                 animate={{ y: 0 }}
@@ -227,7 +227,7 @@ export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSente
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="text-center py-8 md:py-8"
+                  className="text-center py-6 md:py-8"
                 >
                   <p className="text-muted-foreground text-sm hidden md:block">Press Space/Enter to reveal</p>
                 </motion.div>
