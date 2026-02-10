@@ -189,12 +189,15 @@ export default function Layout({ children, currentPageName }) {
           
           /* Mobile density utilities */
           .appPage {
-            padding: 0.75rem 0.75rem 4rem;
+            padding: 1rem;
+            padding-bottom: max(4rem, env(safe-area-inset-bottom, 4rem));
+            width: 100%;
+            max-width: 100%;
           }
-          
+
           @media (min-width: 768px) {
             .appPage {
-              padding: 1rem;
+              padding: 1.5rem;
             }
           }
           
@@ -292,28 +295,40 @@ export default function Layout({ children, currentPageName }) {
             scrollbar-color: hsl(var(--muted-foreground)) hsl(var(--muted));
           }
 
-          /* Default scrollbar improvements */
-          ::-webkit-scrollbar {
-            width: 10px;
-            height: 10px;
+          /* Hide scrollbars on mobile, keep desktop subtle */
+          @media (max-width: 768px) {
+            * {
+              scrollbar-width: none;
+              -ms-overflow-style: none;
+            }
+            *::-webkit-scrollbar {
+              display: none;
+            }
           }
 
-          ::-webkit-scrollbar-track {
-            background: hsl(var(--background));
-          }
+          @media (min-width: 769px) {
+            ::-webkit-scrollbar {
+              width: 8px;
+              height: 8px;
+            }
 
-          ::-webkit-scrollbar-thumb {
-            background: hsl(var(--muted-foreground) / 0.5);
-            border-radius: 5px;
-          }
+            ::-webkit-scrollbar-track {
+              background: transparent;
+            }
 
-          ::-webkit-scrollbar-thumb:hover {
-            background: hsl(var(--muted-foreground));
-          }
+            ::-webkit-scrollbar-thumb {
+              background: hsl(var(--muted-foreground) / 0.3);
+              border-radius: 4px;
+            }
 
-          * {
-            scrollbar-width: thin;
-            scrollbar-color: hsl(var(--muted-foreground) / 0.5) hsl(var(--background));
+            ::-webkit-scrollbar-thumb:hover {
+              background: hsl(var(--muted-foreground) / 0.5);
+            }
+
+            * {
+              scrollbar-width: thin;
+              scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
+            }
           }
         `}
       </style>
@@ -438,7 +453,7 @@ export default function Layout({ children, currentPageName }) {
             </div>
           </header>
 
-          <div className="flex-1 overflow-y-auto pb-16 md:pb-0 md:overflow-auto">
+          <div className="flex-1 overflow-y-auto md:overflow-auto" style={{paddingBottom: 'max(4rem, env(safe-area-inset-bottom, 4rem))'}}>
             <AnimatePresence mode="wait">
               <motion.div
                 key={location.pathname}
@@ -446,6 +461,7 @@ export default function Layout({ children, currentPageName }) {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.2, ease: "easeInOut" }}
+                className="w-full max-w-full"
               >
                 {children}
               </motion.div>

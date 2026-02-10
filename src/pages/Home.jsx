@@ -235,15 +235,15 @@ export default function Home() {
         />
 
         {/* Study Setup */}
-        <Card className={`border rounded-lg shadow-sm ${hasReachedLimit ? 'opacity-50' : ''}`}>
-          <CardHeader className="border-b border-border p-2.5">
-            <CardTitle className="text-sm font-semibold flex items-center gap-1.5 text-card-foreground">
-              <Target className="w-4 h-4 text-teal-600" />
+        <Card className={`border rounded-2xl shadow-sm ${hasReachedLimit ? 'opacity-50' : ''}`}>
+          <CardHeader className="border-b border-border p-4">
+            <CardTitle className="text-lg font-semibold flex items-center gap-2 text-card-foreground">
+              <Target className="w-5 h-5 text-teal-600" />
               Start Studying
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-2.5 space-y-3">
-            <div className="grid md:grid-cols-2 gap-3">
+          <CardContent className="p-4 space-y-4">
+            <div className="space-y-4">
               <LevelSelector 
                 selectedLevel={selectedLevel}
                 onSelectLevel={setSelectedLevel}
@@ -258,41 +258,41 @@ export default function Home() {
             </div>
 
             {/* Session Size - Only for Flash Study */}
-            <div className="p-2 rounded-lg border border-border bg-muted">
-              <h3 className="text-[11px] font-semibold mb-1.5 text-foreground">
+            <div className="p-4 rounded-xl border border-border bg-muted/50">
+              <h3 className="text-sm font-semibold mb-3 text-foreground">
                 Flash Study Size
               </h3>
               <SessionSizeSelector
                 sessionSize={sessionSize}
                 onSelectSize={setSessionSize}
               />
-              <p className="text-[10px] mt-1.5 text-muted-foreground leading-tight">
+              <p className="text-xs mt-2 text-muted-foreground">
                 SRS continues until all due cards reviewed
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                onClick={startFlashStudy}
-                size="sm"
-                disabled={hasReachedLimit}
-                className="h-9 text-xs font-medium bg-teal-500 hover:bg-teal-600 text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Zap className="w-3.5 h-3.5 mr-1" />
-                Flash
-              </Button>
+            {selectedLevel && (
+              <div className="space-y-3">
+                <Button
+                  onClick={startFlashStudy}
+                  disabled={hasReachedLimit}
+                  className="w-full h-14 text-base font-semibold bg-teal-500 hover:bg-teal-600 text-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed rounded-xl"
+                >
+                  <Zap className="w-5 h-5 mr-2" />
+                  Start Flash Study
+                </Button>
 
-              <Button
-                onClick={startSpacedRepetition}
-                size="sm"
-                variant="outline"
-                disabled={hasReachedLimit}
-                className="h-9 text-xs font-medium border-2 border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-950 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Brain className="w-3.5 h-3.5 mr-1" />
-                SRS
-              </Button>
-            </div>
+                <Button
+                  onClick={startSpacedRepetition}
+                  variant="outline"
+                  disabled={hasReachedLimit}
+                  className="w-full h-14 text-base font-semibold border-2 border-teal-500 text-teal-700 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-950 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl"
+                >
+                  <Brain className="w-5 h-5 mr-2" />
+                  Start Spaced Repetition
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 

@@ -26,9 +26,9 @@ export default function LevelSelector({ selectedLevel, onSelectLevel, vocabulary
   };
 
   return (
-    <div className="space-y-1.5">
-      <Label className="text-xs font-semibold text-foreground">JLPT Level</Label>
-      <div className="space-y-1">
+    <div className="space-y-2">
+      <Label className="text-base font-semibold text-foreground">Choose Level</Label>
+      <div className="space-y-2">
         {levels.map((level) => {
           const locked = isLocked(level.id);
           return (
@@ -38,38 +38,40 @@ export default function LevelSelector({ selectedLevel, onSelectLevel, vocabulary
             >
               <div
                 onClick={() => !locked && onSelectLevel(level.id)}
-                className={`${locked ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'} flex items-center gap-2 p-2 rounded-lg border transition-all ${
+                className={`${locked ? 'cursor-not-allowed opacity-60' : 'cursor-pointer active:scale-98'} flex items-center gap-4 p-4 rounded-2xl border-2 transition-all min-h-[64px] ${
                   selectedLevel === level.id && !locked
-                    ? 'border-teal-500 bg-teal-50 dark:bg-teal-950'
+                    ? 'border-teal-500 bg-teal-50 dark:bg-teal-950 shadow-md'
                     : 'border-border hover:border-teal-300'
                 }`}
               >
-                <div className={`w-8 h-8 rounded-lg ${level.color} flex items-center justify-center text-white font-semibold text-xs ${locked ? 'opacity-50' : ''}`}>
-                  {locked ? <Lock className="w-4 h-4" /> : level.id}
+                <div className={`w-12 h-12 rounded-xl ${level.color} flex items-center justify-center text-white font-bold text-lg shadow-sm flex-shrink-0 ${locked ? 'opacity-50' : ''}`}>
+                  {locked ? <Lock className="w-6 h-6" /> : level.id}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <p className="font-semibold text-xs text-foreground leading-tight">{level.label}</p>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <p className="font-semibold text-base text-foreground">{level.label}</p>
                     {locked && (
-                      <Badge variant="outline" className="text-[10px] h-4 px-1.5 bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700">
-                        Pro
+                      <Badge variant="outline" className="text-xs h-5 px-2 bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-300">
+                        Premium
                       </Badge>
                     )}
-                    {!locked && (
-                      <span className="text-[10px] text-muted-foreground">
-                        {getCountForLevel(level.id)}
-                      </span>
-                    )}
                   </div>
-                  <p className="text-[10px] text-muted-foreground leading-tight">{level.description}</p>
+                  <p className="text-sm text-muted-foreground">{level.description}</p>
                 </div>
-                {selectedLevel === level.id && !locked && (
-                  <div className="w-4 h-4 rounded-full bg-teal-600 flex items-center justify-center flex-shrink-0">
-                    <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                )}
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  {!locked && (
+                    <span className="text-sm font-medium text-muted-foreground">
+                      {getCountForLevel(level.id)}
+                    </span>
+                  )}
+                  {selectedLevel === level.id && !locked && (
+                    <div className="w-6 h-6 rounded-full bg-teal-600 flex items-center justify-center">
+                      <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
               </div>
             </motion.div>
           );

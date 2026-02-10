@@ -53,13 +53,13 @@ import Feedback from './pages/Feedback';
 import FlashStudy from './pages/FlashStudy';
 import Focus from './pages/Focus';
 import Home from './pages/Home';
+import ImportVocabulary from './pages/ImportVocabulary';
 import Profile from './pages/Profile';
 import Progress from './pages/Progress';
 import Settings from './pages/Settings';
 import SpacedRepetition from './pages/SpacedRepetition';
 import Subscription from './pages/Subscription';
 import Welcome from './pages/Welcome';
-import ImportVocabulary from './pages/ImportVocabulary';
 import __Layout from './Layout.jsx';
 
 
@@ -70,13 +70,13 @@ export const PAGES = {
     "FlashStudy": FlashStudy,
     "Focus": Focus,
     "Home": Home,
+    "ImportVocabulary": ImportVocabulary,
     "Profile": Profile,
     "Progress": Progress,
     "Settings": Settings,
     "SpacedRepetition": SpacedRepetition,
     "Subscription": Subscription,
     "Welcome": Welcome,
-    "ImportVocabulary": ImportVocabulary,
 }
 
 export const pagesConfig = {

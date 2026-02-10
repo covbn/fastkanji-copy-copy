@@ -83,15 +83,18 @@ export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSente
   return (
     <motion.div
       key={vocabulary.id}
-      initial={{ scale: 0.8, opacity: 0 }}
+      initial={{ scale: 0.95, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
-      exit={{ scale: 0.8, opacity: 0 }}
+      exit={{ scale: 0.95, opacity: 0 }}
       transition={{ duration: 0.2 }}
-      className="w-full max-w-3xl px-2"
+      className="w-full px-4"
     >
-      <Card>
-        <CardContent className="p-4 md:p-6">
-          <div className="space-y-3 md:space-y-4">
+      <Card 
+        className="cursor-pointer active:scale-98 transition-transform rounded-2xl"
+        onClick={() => !revealed && setRevealed(true)}
+      >
+        <CardContent className="p-6 md:p-8">
+          <div className="space-y-4 md:space-y-5">
             {/* Question */}
             <div className="text-center space-y-2">
               <p className="text-[10px] md:text-xs font-medium text-muted-foreground uppercase tracking-wider">
@@ -116,7 +119,7 @@ export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSente
               )}
 
               <motion.div
-                className="text-4xl sm:text-5xl md:text-6xl font-light text-foreground min-h-[50px] md:min-h-[60px] flex items-center justify-center px-2 break-all"
+                className="text-5xl sm:text-6xl md:text-7xl font-light text-foreground min-h-[80px] flex items-center justify-center px-2 break-all"
                 style={{fontFamily: "'Crimson Pro', serif"}}
                 initial={{ y: 20 }}
                 animate={{ y: 0 }}
@@ -196,23 +199,23 @@ export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSente
 
                   {/* Action Buttons - only show if not hidden */}
                   {!hideButtons && (
-                    <div className="grid grid-cols-2 gap-2 pt-1">
+                    <div className="grid grid-cols-2 gap-3 pt-2">
                       <Button
-                        onClick={() => handleAnswer(false)}
-                        size="sm"
+                        onClick={(e) => { e.stopPropagation(); handleAnswer(false); }}
                         variant="outline"
-                        className="h-8 md:h-9 text-xs font-medium border-2 border-rose-300 text-rose-700 hover:bg-rose-50 hover:border-rose-400"
+                        className="h-14 text-base font-semibold border-2 border-rose-300 text-rose-700 hover:bg-rose-50 hover:border-rose-400 rounded-xl"
                       >
-                        <X className="w-3 h-3 mr-1" />
-                        Wrong (1/←)
+                        <X className="w-5 h-5 mr-2" />
+                        <span className="md:inline hidden">Wrong</span>
+                        <span className="md:hidden">Again</span>
                       </Button>
                       <Button
-                        onClick={() => handleAnswer(true)}
-                        size="sm"
-                        className="h-8 md:h-9 text-xs font-medium bg-emerald-500 hover:bg-emerald-600 text-white"
+                        onClick={(e) => { e.stopPropagation(); handleAnswer(true); }}
+                        className="h-14 text-base font-semibold bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow-lg"
                       >
-                        <Check className="w-3 h-3 mr-1" />
-                        Correct (2/→)
+                        <Check className="w-5 h-5 mr-2" />
+                        <span className="md:inline hidden">Correct</span>
+                        <span className="md:hidden">Good</span>
                       </Button>
                     </div>
                   )}
@@ -222,9 +225,10 @@ export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSente
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="text-center py-4 md:py-6"
+                  className="text-center py-6 md:py-8"
                 >
-                  <p className="text-muted-foreground text-xs md:text-sm">Press Space/Enter to reveal</p>
+                  <p className="text-muted-foreground text-base md:hidden">Tap to reveal</p>
+                  <p className="text-muted-foreground text-sm hidden md:block">Press Space/Enter to reveal</p>
                 </motion.div>
               )}
             </AnimatePresence>

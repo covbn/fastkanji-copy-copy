@@ -12,7 +12,7 @@ const sizes = [
 
 export default function SessionSizeSelector({ sessionSize, onSelectSize }) {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5">
+    <div className="grid grid-cols-2 gap-2">
       {sizes.map((size) => (
         <motion.div
           key={size.value}
@@ -20,15 +20,15 @@ export default function SessionSizeSelector({ sessionSize, onSelectSize }) {
         >
           <div
             onClick={() => onSelectSize(size.value)}
-            className={`cursor-pointer transition-all p-1.5 rounded border text-center ${
+            className={`cursor-pointer transition-all p-3 rounded-xl border-2 text-center active:scale-98 ${
               sessionSize === size.value
-                ? 'border-teal-500 bg-teal-50 dark:bg-teal-950'
+                ? 'border-teal-500 bg-teal-50 dark:bg-teal-950 shadow-md'
                 : 'border-border hover:border-teal-300'
             }`}
           >
-            <p className="text-lg font-bold text-teal-700 dark:text-teal-400">{size.value}</p>
-            <p className="font-semibold text-foreground text-[10px] leading-tight">{size.label}</p>
-            <p className="text-[9px] text-muted-foreground leading-tight">{size.description}</p>
+            <p className="text-2xl font-bold text-teal-700 dark:text-teal-400">{size.value}</p>
+            <p className="font-semibold text-foreground text-sm mt-1">{size.label}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{size.description}</p>
           </div>
         </motion.div>
       ))}
