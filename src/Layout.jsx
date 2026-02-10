@@ -186,6 +186,15 @@ export default function Layout({ children, currentPageName }) {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             overscroll-behavior-y: none;
           }
+
+          .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+          }
+
+          .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+          }
           
           /* Mobile density utilities */
           .appPage {
