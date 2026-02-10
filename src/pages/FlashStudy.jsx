@@ -335,7 +335,7 @@ export default function FlashStudy() {
   const remainingCount = sessionSize - graduated.size;
 
   return (
-    <div className="h-dvh flex flex-col bg-background">
+    <div className="h-dvh w-full flex flex-col bg-background" style={{paddingTop: 'env(safe-area-inset-top, 0)'}}>
       {/* Compact Header */}
       <div className="border-b border-border px-4 py-2 bg-card/95 backdrop-blur-sm flex-shrink-0" style={{minHeight: '52px'}}>
         <div className="flex items-center justify-between gap-2">
