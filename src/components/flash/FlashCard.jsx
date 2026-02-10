@@ -87,14 +87,16 @@ export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSente
       animate={{ scale: 1, opacity: 1 }}
       exit={{ scale: 0.97, opacity: 0 }}
       transition={{ duration: 0.15 }}
-      className="w-full px-4 flex-1 flex items-center max-h-full"
+      className="w-full px-4 flex items-center"
+      style={{height: '100%', minHeight: 0}}
     >
       <Card 
-        className="w-full cursor-pointer active:scale-[0.99] transition-transform rounded-3xl shadow-lg max-h-full overflow-y-auto"
+        className="w-full cursor-pointer active:scale-[0.99] transition-transform rounded-3xl shadow-lg flex flex-col"
         onClick={() => !revealed && setRevealed(true)}
+        style={{maxHeight: '100%'}}
       >
-        <CardContent className="p-5 md:p-6 flex flex-col justify-center">
-          <div className="space-y-2.5 md:space-y-3">
+        <CardContent className="p-4 md:p-5 flex flex-col justify-center overflow-y-auto">
+          <div className="space-y-2 md:space-y-2.5">
             {/* Question */}
             <div className="text-center space-y-2">
               <p className="text-[10px] md:text-xs font-medium text-muted-foreground uppercase tracking-wider">

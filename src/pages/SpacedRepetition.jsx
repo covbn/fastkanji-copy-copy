@@ -707,9 +707,9 @@ export default function SpacedRepetition() {
   }
 
   return (
-    <div className="h-dvh flex flex-col bg-background overflow-hidden">
+    <div className="h-dvh flex flex-col bg-background">
       {/* Compact Header */}
-      <div className="border-b border-border px-4 py-2 bg-card/95 backdrop-blur-sm flex-shrink-0">
+      <div className="border-b border-border px-4 py-2 bg-card/95 backdrop-blur-sm flex-shrink-0" style={{minHeight: '52px'}}>
         <div className="flex items-center justify-between gap-2">
           <Button
             onClick={handleEndSession}
@@ -779,31 +779,35 @@ export default function SpacedRepetition() {
       </div>
 
       {/* Study Area */}
-      <div className="flex-1 flex flex-col items-center justify-between overflow-hidden">
+      <div className="flex-1 flex flex-col items-center overflow-hidden relative" style={{minHeight: 0}}>
         {studyMode === 'ADVANCING' && (
-          <div className="absolute top-20 px-3 py-1.5 rounded-full text-xs bg-muted text-foreground">
+          <div className="absolute top-4 px-3 py-1.5 rounded-full text-xs bg-muted text-foreground z-10">
             Loading next card...
           </div>
         )}
         
         {currentCard && (
           <>
-            <FlashCard
-              key={currentCard.id}
-              vocabulary={currentCard}
-              mode={mode}
-              onAnswer={handleAnswer}
-              showExampleSentences={settings?.show_example_sentences !== false}
-              hideButtons={true}
-              onRevealChange={handleRevealChange}
-            />
+            <div className="flex-1 flex items-center w-full" style={{minHeight: 0}}>
+              <FlashCard
+                key={currentCard.id}
+                vocabulary={currentCard}
+                mode={mode}
+                onAnswer={handleAnswer}
+                showExampleSentences={settings?.show_example_sentences !== false}
+                hideButtons={true}
+                onRevealChange={handleRevealChange}
+              />
+            </div>
             
             {studyMode === 'STUDYING' && (
-              <GradingButtons
-                onGrade={(rating) => handleAnswer(rating >= 3, rating)}
-                nightMode={nightMode}
-                revealed={currentCard?._revealed}
-              />
+              <div className="flex-shrink-0 w-full">
+                <GradingButtons
+                  onGrade={(rating) => handleAnswer(rating >= 3, rating)}
+                  nightMode={nightMode}
+                  revealed={currentCard?._revealed}
+                />
+              </div>
             )}
           </>
         )}
