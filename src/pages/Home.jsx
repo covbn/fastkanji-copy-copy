@@ -276,14 +276,14 @@ export default function Home() {
           animate={{ opacity: 1, y: 0 }}
         >
           <Card className="border-2 border-teal-500 rounded-3xl shadow-lg overflow-hidden bg-gradient-to-br from-teal-50 to-cyan-50 dark:from-teal-950 dark:to-cyan-950">
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between mb-3">
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
-                  <p className="text-xs font-medium text-muted-foreground mb-0.5">Continue Studying</p>
-                  <h2 className="text-lg font-bold text-foreground mb-1" style={{fontFamily: "'Crimson Pro', serif"}}>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Continue Studying</p>
+                  <h2 className="text-xl font-bold text-foreground mb-2" style={{fontFamily: "'Crimson Pro', serif"}}>
                     {getLevelName(selectedLevel)}
                   </h2>
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <span>{getModeName(selectedMode)}</span>
                     <span>•</span>
                     <span>{sessionSize} cards</span>
@@ -302,13 +302,13 @@ export default function Home() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 <Button
                   onClick={startFlashStudy}
                   disabled={hasReachedLimit}
-                  className="h-12 text-sm font-semibold bg-teal-500 hover:bg-teal-600 text-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed rounded-xl"
+                  className="h-14 text-base font-semibold bg-teal-500 hover:bg-teal-600 text-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed rounded-xl"
                 >
-                  <Play className="w-4 h-4 mr-1.5" />
+                  <Play className="w-5 h-5 mr-2" />
                   Flash
                 </Button>
 
@@ -316,9 +316,9 @@ export default function Home() {
                   onClick={startSpacedRepetition}
                   variant="outline"
                   disabled={hasReachedLimit}
-                  className="h-12 text-sm font-semibold border-2 border-teal-500 text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl"
+                  className="h-14 text-base font-semibold border-2 border-teal-500 text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl"
                 >
-                  <Brain className="w-4 h-4 mr-1.5" />
+                  <Brain className="w-5 h-5 mr-2" />
                   SRS
                 </Button>
               </div>
