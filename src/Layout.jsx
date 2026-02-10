@@ -444,18 +444,16 @@ export default function Layout({ children, currentPageName }) {
         </Sidebar>
 
         <main className="flex-1 flex flex-col h-dvh md:h-auto">
-          {!(currentPageName === "FlashStudy" || currentPageName === "SpacedRepetition") && (
-            <header className="bg-card/95 border-b border-border backdrop-blur-sm px-4 py-3 md:hidden flex-shrink-0">
-              <div className="flex items-center gap-3">
-                <SidebarTrigger className="hover:bg-accent p-2 rounded-lg transition-colors duration-200" />
-                <h1 className="text-lg font-semibold text-foreground" style={{fontFamily: "'Crimson Pro', serif"}}>
-                  FastKanji
-                </h1>
-              </div>
-            </header>
-          )}
+          <header className="bg-card/95 border-b border-border backdrop-blur-sm px-4 py-3 md:hidden flex-shrink-0">
+            <div className="flex items-center gap-3">
+              <SidebarTrigger className="hover:bg-accent p-2 rounded-lg transition-colors duration-200" />
+              <h1 className="text-lg font-semibold text-foreground" style={{fontFamily: "'Crimson Pro', serif"}}>
+                FastKanji
+              </h1>
+            </div>
+          </header>
 
-          <div className="flex-1 overflow-y-auto md:overflow-auto" style={{paddingBottom: (currentPageName === "FlashStudy" || currentPageName === "SpacedRepetition") ? '0' : 'max(4rem, env(safe-area-inset-bottom, 4rem))', paddingTop: (currentPageName === "FlashStudy" || currentPageName === "SpacedRepetition") ? 'env(safe-area-inset-top, 0)' : '0'}}>
+          <div className="flex-1 overflow-y-auto md:overflow-auto" style={{paddingBottom: 'max(4rem, env(safe-area-inset-bottom, 4rem))'}}>
             <AnimatePresence mode="wait">
               <motion.div
                 key={location.pathname}
@@ -471,9 +469,7 @@ export default function Layout({ children, currentPageName }) {
           </div>
           </main>
 
-          {!(currentPageName === "FlashStudy" || currentPageName === "SpacedRepetition") && (
-            <BottomNavbar />
-          )}
+          <BottomNavbar />
           </div>
           <Toaster />
           </SidebarProvider>
