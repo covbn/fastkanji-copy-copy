@@ -28,48 +28,46 @@ export default function GradingButtons({ onGrade, disabled = false, nightMode = 
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [revealed, disabled, onGrade]);
 
-  if (!revealed) return null;
-
   return (
-    <div className="grid grid-cols-2 gap-2 w-full max-w-3xl">
+    <div className="grid grid-cols-2 gap-3 w-full max-w-3xl px-4" style={{paddingBottom: 'max(1rem, env(safe-area-inset-bottom, 1rem))'}}>
       {/* Again (1) - Red */}
       <Button
         onClick={() => onGrade(1)}
-        disabled={disabled}
-        className="flex flex-col items-center gap-0.5 h-auto py-2.5 bg-red-600 hover:bg-red-700 text-white shadow-md transition-all"
+        disabled={!revealed || disabled}
+        className="flex flex-col items-center gap-1 h-16 py-3 bg-red-600 hover:bg-red-700 text-white shadow-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed rounded-xl"
       >
-        <XCircle className="w-4 h-4" />
-        <span className="text-xs font-semibold">Again</span>
+        <XCircle className="w-5 h-5" />
+        <span className="text-sm font-semibold">Again</span>
       </Button>
 
       {/* Hard (2) - Amber */}
       <Button
         onClick={() => onGrade(2)}
-        disabled={disabled}
-        className="flex flex-col items-center gap-0.5 h-auto py-2.5 bg-amber-600 hover:bg-amber-700 text-white shadow-md transition-all"
+        disabled={!revealed || disabled}
+        className="flex flex-col items-center gap-1 h-16 py-3 bg-amber-600 hover:bg-amber-700 text-white shadow-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed rounded-xl"
       >
-        <Zap className="w-4 h-4" />
-        <span className="text-xs font-semibold">Hard</span>
+        <Zap className="w-5 h-5" />
+        <span className="text-sm font-semibold">Hard</span>
       </Button>
 
       {/* Good (3) - Green */}
       <Button
         onClick={() => onGrade(3)}
-        disabled={disabled}
-        className="flex flex-col items-center gap-0.5 h-auto py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-md transition-all"
+        disabled={!revealed || disabled}
+        className="flex flex-col items-center gap-1 h-16 py-3 bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed rounded-xl"
       >
-        <CheckCircle className="w-4 h-4" />
-        <span className="text-xs font-semibold">Good</span>
+        <CheckCircle className="w-5 h-5" />
+        <span className="text-sm font-semibold">Good</span>
       </Button>
 
       {/* Easy (4) - Cyan */}
       <Button
         onClick={() => onGrade(4)}
-        disabled={disabled}
-        className="flex flex-col items-center gap-0.5 h-auto py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white shadow-md transition-all"
+        disabled={!revealed || disabled}
+        className="flex flex-col items-center gap-1 h-16 py-3 bg-cyan-600 hover:bg-cyan-700 text-white shadow-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed rounded-xl"
       >
-        <TrendingUp className="w-4 h-4" />
-        <span className="text-xs font-semibold">Easy</span>
+        <TrendingUp className="w-5 h-5" />
+        <span className="text-sm font-semibold">Easy</span>
       </Button>
     </div>
   );

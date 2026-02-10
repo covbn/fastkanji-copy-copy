@@ -708,80 +708,80 @@ export default function SpacedRepetition() {
 
   return (
     <div className="h-dvh flex flex-col bg-background overflow-hidden">
-      <div className="border-b border-border px-3 md:px-6 py-2 bg-card/80 backdrop-blur-sm flex-shrink-0">
-        <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
+      {/* Compact Header */}
+      <div className="border-b border-border px-4 py-2 bg-card/95 backdrop-blur-sm flex-shrink-0">
+        <div className="flex items-center justify-between gap-2">
           <Button
             onClick={handleEndSession}
             variant="ghost"
             size="icon"
-            className="md:hidden flex-shrink-0"
+            className="md:hidden h-9 w-9"
           >
             <ChevronLeft className="w-5 h-5" />
           </Button>
-          <div className="flex items-center gap-3 md:gap-6">
-            <div className="flex items-center gap-1.5 md:gap-2">
-              <BookOpen className="w-3 h-3 md:w-4 md:h-4 text-cyan-600" />
-              <span className="text-xs md:text-sm text-muted-foreground">New:</span>
-              <span className="font-semibold text-cyan-700 dark:text-cyan-400 text-sm md:text-base">
-                {Math.max(0, maxNewCardsPerDay - newCardsToday)}
-              </span>
+          
+          {/* Compact stats on mobile */}
+          <div className="flex-1 md:hidden flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground">New:</span>
+              <span className="font-semibold text-cyan-700">{Math.max(0, maxNewCardsPerDay - newCardsToday)}</span>
             </div>
-            <div className="flex items-center gap-1.5 md:gap-2">
-              <Brain className="w-3 h-3 md:w-4 md:h-4 text-amber-600" />
-              <span className="text-xs md:text-sm text-muted-foreground">Learning:</span>
-              <span className="font-semibold text-amber-700 dark:text-amber-400 text-sm md:text-base">
-                {cardCategories.totalLearning || 0}
-              </span>
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground">Learning:</span>
+              <span className="font-semibold text-amber-700">{cardCategories.totalLearning || 0}</span>
             </div>
-            <div className="flex items-center gap-1.5 md:gap-2">
-              <Clock className="w-3 h-3 md:w-4 md:h-4 text-emerald-600" />
-              <span className="text-xs md:text-sm text-muted-foreground">Due:</span>
-              <span className="font-semibold text-emerald-700 dark:text-emerald-400 text-sm md:text-base">
-                {cardCategories.dueCards.length} <span className="text-xs opacity-60">({reviewsToday}/{maxReviewsPerDay})</span>
-              </span>
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground">Due:</span>
+              <span className="font-semibold text-emerald-700">{cardCategories.dueCards.length}</span>
+            </div>
+          </div>
+
+          {/* Desktop stats */}
+          <div className="hidden md:flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <BookOpen className="w-4 h-4 text-cyan-600" />
+              <span className="text-xs text-muted-foreground">New:</span>
+              <span className="font-semibold text-sm text-cyan-700">{Math.max(0, maxNewCardsPerDay - newCardsToday)}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Brain className="w-4 h-4 text-amber-600" />
+              <span className="text-xs text-muted-foreground">Learning:</span>
+              <span className="font-semibold text-sm text-amber-700">{cardCategories.totalLearning || 0}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-emerald-600" />
+              <span className="text-xs text-muted-foreground">Due:</span>
+              <span className="font-semibold text-sm text-emerald-700">{cardCategories.dueCards.length}</span>
             </div>
             
-            <div className="h-6 w-px bg-border hidden md:block"></div>
-
-            <div className="hidden md:flex items-center gap-3">
-              <AccuracyMeter
-                accuracy={accuracy}
-                correctCount={correctCount}
-                incorrectCount={incorrectCount}
-                currentCard={0}
-                totalCards={0}
-                nightMode={nightMode}
-                showProgress={false}
-              />
-              
-              {!isPremium && (
-                <>
-                  <div className="h-6 w-px bg-border"></div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Free:</span>
-                    <span className={`font-semibold text-sm ${remainingSeconds < 60 ? 'text-rose-600' : 'text-teal-600 dark:text-teal-400'}`}>
-                      {formatTime(remainingSeconds)}
-                    </span>
-                  </div>
-                </>
-              )}
-            </div>
+            {!isPremium && (
+              <>
+                <div className="h-4 w-px bg-border"></div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Time:</span>
+                  <span className={`font-semibold text-sm ${remainingSeconds < 60 ? 'text-rose-600' : 'text-teal-600'}`}>
+                    {formatTime(remainingSeconds)}
+                  </span>
+                </div>
+              </>
+            )}
           </div>
           
           <Button
             onClick={handleEndSession}
             variant="ghost"
             size="sm"
-            className="text-xs hidden md:inline-flex"
+            className="text-xs hidden md:inline-flex h-9"
           >
-            End Session
+            End
           </Button>
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center p-3 gap-4 overflow-hidden">
+      {/* Study Area */}
+      <div className="flex-1 flex flex-col items-center justify-between py-2 overflow-hidden">
         {studyMode === 'ADVANCING' && (
-          <div className="mb-2 px-3 py-1.5 rounded-full text-xs bg-muted text-foreground">
+          <div className="absolute top-20 px-3 py-1.5 rounded-full text-xs bg-muted text-foreground">
             Loading next card...
           </div>
         )}

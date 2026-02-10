@@ -83,18 +83,18 @@ export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSente
   return (
     <motion.div
       key={vocabulary.id}
-      initial={{ scale: 0.95, opacity: 0 }}
+      initial={{ scale: 0.97, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
-      exit={{ scale: 0.95, opacity: 0 }}
-      transition={{ duration: 0.2 }}
-      className="w-full px-4"
+      exit={{ scale: 0.97, opacity: 0 }}
+      transition={{ duration: 0.15 }}
+      className="w-full px-4 flex-1 flex items-center"
     >
       <Card 
-        className="cursor-pointer active:scale-98 transition-transform rounded-2xl"
+        className="w-full cursor-pointer active:scale-[0.99] transition-transform rounded-3xl shadow-lg"
         onClick={() => !revealed && setRevealed(true)}
       >
-        <CardContent className="p-6 md:p-8">
-          <div className="space-y-4 md:space-y-5">
+        <CardContent className="p-6 md:p-8 min-h-[50vh] flex flex-col justify-center">
+          <div className="space-y-3 md:space-y-4">
             {/* Question */}
             <div className="text-center space-y-2">
               <p className="text-[10px] md:text-xs font-medium text-muted-foreground uppercase tracking-wider">
@@ -119,9 +119,9 @@ export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSente
               )}
 
               <motion.div
-                className="text-5xl sm:text-6xl md:text-7xl font-light text-foreground min-h-[80px] flex items-center justify-center px-2 break-all"
+                className="text-6xl sm:text-7xl md:text-8xl font-light text-foreground min-h-[100px] flex items-center justify-center px-2 break-all"
                 style={{fontFamily: "'Crimson Pro', serif"}}
-                initial={{ y: 20 }}
+                initial={{ y: 10 }}
                 animate={{ y: 0 }}
               >
                 {getQuestion()}
@@ -225,9 +225,8 @@ export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSente
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="text-center py-6 md:py-8"
+                  className="text-center py-12 md:py-8"
                 >
-                  <p className="text-muted-foreground text-base md:hidden">Tap to reveal</p>
                   <p className="text-muted-foreground text-sm hidden md:block">Press Space/Enter to reveal</p>
                 </motion.div>
               )}
