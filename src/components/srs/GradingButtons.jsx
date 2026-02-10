@@ -29,9 +29,8 @@ export default function GradingButtons({ onGrade, disabled = false, nightMode = 
   }, [revealed, disabled, onGrade]);
 
   return (
-    <div className="w-full max-w-3xl px-4 py-2" style={{paddingBottom: 'max(0.5rem, calc(env(safe-area-inset-bottom) + 0.5rem))', minHeight: '56px'}}>
-      {revealed ? (
-        <div className="flex gap-2 w-full">
+    <div className="w-full max-w-3xl px-4 py-2" style={{paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.5rem)'}}>
+      <div className="flex gap-2 w-full">
           <Button
             onClick={() => onGrade(1)}
             disabled={disabled}
@@ -63,8 +62,7 @@ export default function GradingButtons({ onGrade, disabled = false, nightMode = 
           >
             Easy
           </Button>
-        </div>
-      ) : null}
+      </div>
     </div>
   );
 }

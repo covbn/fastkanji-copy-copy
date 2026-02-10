@@ -707,9 +707,9 @@ export default function SpacedRepetition() {
   }
 
   return (
-    <div className="h-dvh flex flex-col bg-background">
+    <div className="h-dvh flex flex-col bg-background overflow-hidden">
       {/* Compact Header */}
-      <div className="border-b border-border px-4 py-2 bg-card/95 backdrop-blur-sm flex-shrink-0" style={{minHeight: '52px'}}>
+      <div className="border-b border-border px-4 py-2 bg-card/95 backdrop-blur-sm" style={{flex: '0 0 auto'}}>
         <div className="flex items-center justify-between gap-2">
           <Button
             onClick={handleEndSession}
@@ -779,7 +779,7 @@ export default function SpacedRepetition() {
       </div>
 
       {/* Study Area */}
-      <div className="flex-1 flex flex-col overflow-hidden relative" style={{minHeight: 0}}>
+      <div style={{flex: '1 1 auto', minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative'}}>
         {studyMode === 'ADVANCING' && (
           <div className="absolute top-4 left-1/2 transform -translate-x-1/2 px-3 py-1.5 rounded-full text-xs bg-muted text-foreground z-10">
             Loading next card...
@@ -788,30 +788,22 @@ export default function SpacedRepetition() {
         
         {currentCard && (
           <>
-            <div 
-              className="flex-1 flex items-start justify-center w-full pt-4" 
-              style={{
-                minHeight: 0,
-                maxHeight: currentCard?._revealed ? 'calc(100% - 68px)' : '100%'
-              }}
-            >
-              <FlashCard
-                key={currentCard.id}
-                vocabulary={currentCard}
-                mode={mode}
-                onAnswer={handleAnswer}
-                showExampleSentences={settings?.show_example_sentences !== false}
-                hideButtons={true}
-                onRevealChange={handleRevealChange}
-              />
-            </div>
+            <FlashCard
+              key={currentCard.id}
+              vocabulary={currentCard}
+              mode={mode}
+              onAnswer={handleAnswer}
+              showExampleSentences={settings?.show_example_sentences !== false}
+              hideButtons={true}
+              onRevealChange={handleRevealChange}
+            />
             
-            {studyMode === 'STUDYING' && (
-              <div className="flex-shrink-0 w-full">
+            {studyMode === 'STUDYING' && currentCard?._revealed && (
+              <div style={{flex: '0 0 auto'}}>
                 <GradingButtons
                   onGrade={(rating) => handleAnswer(rating >= 3, rating)}
                   nightMode={nightMode}
-                  revealed={currentCard?._revealed}
+                  revealed={true}
                 />
               </div>
             )}

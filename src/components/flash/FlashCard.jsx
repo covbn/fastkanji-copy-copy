@@ -88,15 +88,15 @@ export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSente
       exit={{ scale: 0.97, opacity: 0 }}
       transition={{ duration: 0.15 }}
       className="w-full px-4"
-      style={{height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column'}}
+      style={{flex: '1 1 auto', minHeight: 0, display: 'flex', flexDirection: 'column'}}
     >
       <Card 
-        className="w-full cursor-pointer active:scale-[0.99] transition-transform rounded-3xl shadow-lg flex flex-col"
+        className="w-full cursor-pointer active:scale-[0.99] transition-transform rounded-3xl shadow-lg"
         onClick={() => !revealed && setRevealed(true)}
-        style={{height: '100%', minHeight: 0, maxHeight: '100%', display: 'flex', flexDirection: 'column'}}
+        style={{height: '100%', maxHeight: '100%', display: 'flex', flexDirection: 'column', minHeight: 0}}
       >
-        <CardContent className="p-4 md:p-5 flex flex-col flex-1 overflow-hidden" style={{minHeight: 0}}>
-          <div className="flex-1 flex flex-col justify-center overflow-y-auto" style={{minHeight: 0}}>
+        <CardContent className="p-4 md:p-5" style={{flex: '1 1 auto', minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden'}}>
+          <div style={{flex: '0 0 auto'}}>
             <div className="space-y-2 md:space-y-2.5">
             {/* Question */}
             <div className="text-center space-y-2">
@@ -140,32 +140,35 @@ export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSente
               )}
             </div>
 
-            {/* Divider */}
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-border"></div>
-              </div>
-              <div className="relative flex justify-center">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setRevealed(!revealed)}
-                  className="bg-card px-4 py-2 text-xs md:text-sm"
-                >
-                  <Eye className="w-3 h-3 md:w-4 md:h-4 mr-1.5" />
-                  {revealed ? 'Hide' : 'Reveal'}
-                </Button>
+              {/* Divider */}
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-border"></div>
+                </div>
+                <div className="relative flex justify-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setRevealed(!revealed)}
+                    className="bg-card px-4 py-2 text-xs md:text-sm"
+                  >
+                    <Eye className="w-3 h-3 md:w-4 md:h-4 mr-1.5" />
+                    {revealed ? 'Hide' : 'Reveal'}
+                  </Button>
+                </div>
               </div>
             </div>
+          </div>
 
-            {/* Answer */}
+          {/* Answer - scrollable region */}
+          <div style={{flex: '1 1 auto', minHeight: 0, overflow: 'auto'}}>
             <AnimatePresence mode="wait">
               {revealed ? (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
-                  className="space-y-2.5"
+                  className="space-y-2.5 p-1"
                 >
                   <div className="text-center">
                     <p className="text-xl sm:text-2xl md:text-3xl font-normal text-teal-700 min-h-[32px] md:min-h-[40px] flex items-center justify-center px-2 break-all" style={{fontFamily: "'Crimson Pro', serif"}}>
@@ -178,8 +181,7 @@ export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSente
                    <motion.div
                      initial={{ opacity: 0 }}
                      animate={{ opacity: 1 }}
-                     className="text-xs text-muted-foreground p-2 md:p-2.5 bg-muted rounded-lg border border-border flex-1 overflow-y-auto custom-scrollbar"
-                     style={{minHeight: '60px', maxHeight: '140px'}}
+                     className="text-xs text-muted-foreground p-2 md:p-2.5 bg-muted rounded-lg border border-border custom-scrollbar"
                    >
                      <p className="font-medium mb-1 text-teal-700 dark:text-teal-400 text-[10px] md:text-xs">Example</p>
                       {!isReadingToMeaning && (
@@ -235,7 +237,6 @@ export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSente
                 </motion.div>
               )}
             </AnimatePresence>
-            </div>
           </div>
         </CardContent>
       </Card>
