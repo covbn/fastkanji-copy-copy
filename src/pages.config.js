@@ -50,16 +50,16 @@
 import CardBrowser from './pages/CardBrowser';
 import DebugSubscription from './pages/DebugSubscription';
 import Feedback from './pages/Feedback';
-import FlashStudy from './pages/FlashStudy';
 import Focus from './pages/Focus';
 import ImportVocabulary from './pages/ImportVocabulary';
 import Profile from './pages/Profile';
 import Progress from './pages/Progress';
 import Settings from './pages/Settings';
-import SpacedRepetition from './pages/SpacedRepetition';
 import Subscription from './pages/Subscription';
 import Welcome from './pages/Welcome';
 import Home from './pages/Home';
+import FlashStudy from './pages/FlashStudy';
+import SpacedRepetition from './pages/SpacedRepetition';
 import __Layout from './Layout.jsx';
 
 
@@ -67,16 +67,16 @@ export const PAGES = {
     "CardBrowser": CardBrowser,
     "DebugSubscription": DebugSubscription,
     "Feedback": Feedback,
-    "FlashStudy": FlashStudy,
     "Focus": Focus,
     "ImportVocabulary": ImportVocabulary,
     "Profile": Profile,
     "Progress": Progress,
     "Settings": Settings,
-    "SpacedRepetition": SpacedRepetition,
     "Subscription": Subscription,
     "Welcome": Welcome,
     "Home": Home,
+    "FlashStudy": FlashStudy,
+    "SpacedRepetition": SpacedRepetition,
 }
 
 export const pagesConfig = {
