@@ -593,86 +593,87 @@ export default function SpacedRepetition() {
     const totalLearningCount = cardCategories.totalLearning || 0;
     const nextLearning = cardCategories.nextLearningCard;
 
-    // Unified completion screen - always show the same options
+    // Unified completion screen - compact and momentum-focused
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-        <div className="text-center space-y-6 max-w-lg">
-          <div className="text-6xl">{totalLearningCount > 0 ? '⏰' : '🎉'}</div>
-          <h2 className="text-2xl font-semibold text-foreground" style={{fontFamily: "'Crimson Pro', serif"}}>
+      <div className="px-3 py-4 bg-background max-w-lg mx-auto space-y-4" style={{paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1.5rem))'}}>
+        <div className="text-center space-y-0">
+          <div className="text-4xl leading-none">{totalLearningCount > 0 ? '⏰' : '🎉'}</div>
+          <h2 className="text-xl font-semibold text-foreground mt-3" style={{fontFamily: "'Crimson Pro', serif"}}>
             {totalLearningCount > 0 ? 'Done for Now!' : 'All Done!'}
           </h2>
+        </div>
 
-          <div className="p-5 rounded-lg bg-card border border-border">
-            <p className="font-medium mb-3 text-foreground">
-              📊 Today's Progress
-            </p>
-            <div className="space-y-2 text-sm text-muted-foreground">
-              <div className="flex justify-between items-center">
-                <span>New introduced:</span>
-                <span className="font-semibold text-cyan-600">{newCardsToday} / {maxNewCardsPerDay}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span>New learned:</span>
-                <span className="font-semibold text-blue-600">{newLearnedToday}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span>Reviews (older):</span>
-                <span className="font-semibold text-emerald-600">{reviewsToday} / {maxReviewsPerDay}</span>
-              </div>
-              {totalLearningCount > 0 && (
-                <>
-                  <div className="flex justify-between items-center">
-                    <span>Learning:</span>
-                    <span className="font-semibold text-amber-600">{totalLearningCount} in progress</span>
-                  </div>
-                  {nextLearning && (
-                    <div className="flex justify-between items-center">
-                      <span>Next card:</span>
-                      <span className="font-semibold text-teal-600">~{nextLearning.minutesUntilDue} min</span>
-                    </div>
-                  )}
-                </>
-              )}
+        <div className="p-4 rounded-lg bg-card border border-border">
+          <p className="font-medium mb-2 text-foreground text-sm">
+            📊 Today's Progress
+          </p>
+          <div className="space-y-1.5 text-xs text-muted-foreground">
+            <div className="flex justify-between items-center">
+              <span>New introduced:</span>
+              <span className="font-semibold text-lg text-cyan-600">{newCardsToday} / {maxNewCardsPerDay}</span>
             </div>
+            <div className="flex justify-between items-center">
+              <span>New learned:</span>
+              <span className="font-semibold text-lg text-blue-600">{newLearnedToday}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span>Reviews (older):</span>
+              <span className="font-semibold text-lg text-emerald-600">{reviewsToday} / {maxReviewsPerDay}</span>
+            </div>
+            {totalLearningCount > 0 && (
+              <>
+                <div className="flex justify-between items-center">
+                  <span>Learning:</span>
+                  <span className="font-semibold text-lg text-amber-600">{totalLearningCount} in progress</span>
+                </div>
+                {nextLearning && (
+                  <div className="flex justify-between items-center">
+                    <span>Next card:</span>
+                    <span className="font-semibold text-lg text-teal-600">~{nextLearning.minutesUntilDue} min</span>
+                  </div>
+                )}
+              </>
+            )}
           </div>
+        </div>
 
-          <div className="space-y-2">
-            <Button
-              onClick={() => {
-                try {
-                  const dayKey = new Date().toISOString().split('T')[0];
-                  const currentDelta = getTodayDelta();
-                  const nextDelta = currentDelta + 10;
-                  const storageKey = `sr:newLimitDelta:${uiLevel}:${dayKey}`;
-                  localStorage.setItem(storageKey, nextDelta.toString());
-                  
-                  setLimitLogOnce(false);
-                  setDoneReason(null);
-                  setStudyQueue([]);
-                  setCurrentCard(null);
-                  setStudyMode('STUDYING');
-                } catch (e) {
-                  console.error('[EXTEND] ERROR', e);
-                }
-              }}
-              className="w-full bg-amber-600 hover:bg-amber-700 text-white"
-            >
-              +10 New Cards (Today Only)
-            </Button>
-            <Button
-              onClick={() => navigate(createPageUrl('FlashStudy?mode=' + mode + '&level=' + uiLevel))}
-              className="w-full bg-teal-600 hover:bg-teal-700 text-white"
-            >
-              Switch to Flash Study
-            </Button>
-            <Button
-              onClick={() => navigate(createPageUrl('Home'))}
-              variant="outline"
-              className="w-full"
-            >
-              Back to Home
-            </Button>
-          </div>
+        <Button
+          onClick={() => {
+            try {
+              const dayKey = new Date().toISOString().split('T')[0];
+              const currentDelta = getTodayDelta();
+              const nextDelta = currentDelta + 10;
+              const storageKey = `sr:newLimitDelta:${uiLevel}:${dayKey}`;
+              localStorage.setItem(storageKey, nextDelta.toString());
+              
+              setLimitLogOnce(false);
+              setDoneReason(null);
+              setStudyQueue([]);
+              setCurrentCard(null);
+              setStudyMode('STUDYING');
+            } catch (e) {
+              console.error('[EXTEND] ERROR', e);
+            }
+          }}
+          className="w-full h-10 text-sm bg-amber-600 hover:bg-amber-700 text-white"
+        >
+          +10 New Cards (Today Only)
+        </Button>
+
+        <div className="space-y-3">
+          <Button
+            onClick={() => navigate(createPageUrl('FlashStudy?mode=' + mode + '&level=' + uiLevel))}
+            className="w-full h-9 text-sm bg-teal-600 hover:bg-teal-700 text-white"
+          >
+            Switch to Flash Study
+          </Button>
+          <Button
+            onClick={() => navigate(createPageUrl('Home'))}
+            variant="outline"
+            className="w-full h-9 text-sm"
+          >
+            Back to Home
+          </Button>
         </div>
       </div>
     );
