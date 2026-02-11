@@ -28,43 +28,43 @@ export default function GradingButtons({ onGrade, disabled = false, nightMode = 
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [revealed, disabled, onGrade]);
 
+  if (!revealed) return null;
+
   return (
-    <div className="w-full max-w-3xl px-4" style={{paddingBottom: 'max(0.5rem, calc(env(safe-area-inset-bottom) + 0.5rem))', minHeight: '56px'}}>
-      {revealed ? (
-        <div className="flex gap-2 w-full">
-          <Button
-            onClick={() => onGrade(1)}
-            disabled={disabled}
-            className="flex-1 h-12 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white text-sm font-medium shadow-sm transition-all rounded-lg"
-          >
-            Again
-          </Button>
+    <div className="fixed left-0 right-0 z-50 border-t border-border bg-background/95 backdrop-blur-sm px-3 py-2" style={{bottom: '56px', paddingBottom: 'max(0.5rem, calc(env(safe-area-inset-bottom) + 0.5rem))'}}>
+      <div className="grid grid-cols-4 gap-2 w-full max-w-3xl mx-auto">
+        <Button
+          onClick={() => onGrade(1)}
+          disabled={disabled}
+          className="h-10 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white text-xs font-medium shadow-sm transition-all rounded-lg"
+        >
+          Again
+        </Button>
 
-          <Button
-            onClick={() => onGrade(2)}
-            disabled={disabled}
-            className="flex-1 h-12 bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white text-sm font-medium shadow-sm transition-all rounded-lg"
-          >
-            Hard
-          </Button>
+        <Button
+          onClick={() => onGrade(2)}
+          disabled={disabled}
+          className="h-10 bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white text-xs font-medium shadow-sm transition-all rounded-lg"
+        >
+          Hard
+        </Button>
 
-          <Button
-            onClick={() => onGrade(3)}
-            disabled={disabled}
-            className="flex-1 h-12 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-sm font-medium shadow-sm transition-all rounded-lg"
-          >
-            Good
-          </Button>
+        <Button
+          onClick={() => onGrade(3)}
+          disabled={disabled}
+          className="h-10 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-medium shadow-sm transition-all rounded-lg"
+        >
+          Good
+        </Button>
 
-          <Button
-            onClick={() => onGrade(4)}
-            disabled={disabled}
-            className="flex-1 h-12 bg-cyan-600 hover:bg-cyan-700 active:bg-cyan-800 text-white text-sm font-medium shadow-sm transition-all rounded-lg"
-          >
-            Easy
-          </Button>
-        </div>
-      ) : null}
+        <Button
+          onClick={() => onGrade(4)}
+          disabled={disabled}
+          className="h-10 bg-cyan-600 hover:bg-cyan-700 active:bg-cyan-800 text-white text-xs font-medium shadow-sm transition-all rounded-lg"
+        >
+          Easy
+        </Button>
+      </div>
     </div>
   );
 }

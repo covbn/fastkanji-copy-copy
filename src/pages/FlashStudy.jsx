@@ -401,26 +401,22 @@ export default function FlashStudy() {
       </div>
 
       {/* Study Area */}
-      <div className="flex-1 flex flex-col items-center overflow-hidden" style={{minHeight: 0}}>
-        <div className="flex-1 flex items-center w-full" style={{minHeight: 0}}>
-          <FlashCard
-            vocabulary={currentCard}
-            mode={mode}
-            onAnswer={() => {}}
-            showExampleSentences={settings?.show_example_sentences !== false}
-            hideButtons={true}
-            onRevealChange={handleRevealChange}
-          />
-        </div>
-        
-        <div className="flex-shrink-0 w-full">
-          <GradingButtons
-            onGrade={handleGrade}
-            nightMode={nightMode}
-            revealed={currentCard?._revealed}
-          />
-        </div>
+      <div className="flex-1 overflow-y-auto px-3 py-3" style={{paddingBottom: currentCard?._revealed ? '64px' : '16px'}}>
+        <FlashCard
+          vocabulary={currentCard}
+          mode={mode}
+          onAnswer={() => {}}
+          showExampleSentences={settings?.show_example_sentences !== false}
+          hideButtons={true}
+          onRevealChange={handleRevealChange}
+        />
       </div>
+      
+      <GradingButtons
+        onGrade={handleGrade}
+        nightMode={nightMode}
+        revealed={currentCard?._revealed}
+      />
     </div>
   );
 }

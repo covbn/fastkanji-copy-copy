@@ -87,15 +87,13 @@ export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSente
       animate={{ scale: 1, opacity: 1 }}
       exit={{ scale: 0.97, opacity: 0 }}
       transition={{ duration: 0.15 }}
-      className="w-full px-4 flex items-center"
-      style={{height: '100%', minHeight: 0}}
+      className="w-full"
     >
       <Card 
-        className="w-full cursor-pointer active:scale-[0.99] transition-transform rounded-3xl shadow-lg flex flex-col"
+        className="w-full cursor-pointer active:scale-[0.99] transition-transform rounded-3xl shadow-lg"
         onClick={() => !revealed && setRevealed(true)}
-        style={{maxHeight: '100%'}}
       >
-        <CardContent className="p-3 md:p-4 flex flex-col justify-center overflow-y-auto">
+        <CardContent className="p-3 sm:p-4">
           <div className="space-y-1.5 md:space-y-2">
             {/* Question */}
             <div className="text-center space-y-2">
@@ -177,7 +175,7 @@ export default function FlashCard({ vocabulary, mode, onAnswer, showExampleSente
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      className="text-xs text-muted-foreground p-2 md:p-2.5 bg-muted rounded-lg border border-border max-h-24 md:max-h-32 overflow-y-auto custom-scrollbar"
+                      className="text-xs text-muted-foreground p-2 md:p-2.5 bg-muted rounded-lg border border-border max-h-28 overflow-y-auto custom-scrollbar"
                     >
                       <p className="font-medium mb-1 text-teal-700 dark:text-teal-400 text-[10px] md:text-xs">Example</p>
                       {!isReadingToMeaning && (
