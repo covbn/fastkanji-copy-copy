@@ -416,6 +416,25 @@ export default function FlashStudy() {
   });
 
   return (
+    <div style={{
+      position: 'fixed',
+      inset: 0,
+      backgroundColor: 'lime',
+      zIndex: 99999,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: '48px',
+      fontWeight: 'bold',
+      color: 'black'
+    }}>
+      🔥 FLASHSTUDY RENDERING 🔥
+      <br />
+      Card: {currentCard?.kanji || 'NULL'}
+    </div>
+  );
+
+  return (
     <div className="h-dvh w-full flex flex-col bg-background relative" style={{paddingTop: 'env(safe-area-inset-top, 0)'}}>
       {/* CRITICAL DEBUG OVERLAY */}
       <div className="fixed inset-0 pointer-events-none z-[9999] flex items-center justify-center">
