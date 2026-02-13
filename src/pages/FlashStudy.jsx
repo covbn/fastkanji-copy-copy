@@ -192,18 +192,11 @@ export default function FlashStudy() {
   useEffect(() => {
     console.log('[FlashStudy][INIT] effect', {
       sessionKey,
-      isLoadingAll,
       vocabLen: vocabulary.length,
       queueLen: studyQueue.length,
       currentCard: !!currentCard,
       sessionComplete,
     });
-
-    // Don't init while still loading
-    if (isLoadingAll) {
-      console.log('[FlashStudy][INIT] early return: still loading');
-      return;
-    }
 
     if (vocabulary.length === 0) {
       console.log('[FlashStudy][INIT] early return: no vocab');
@@ -231,7 +224,7 @@ export default function FlashStudy() {
     const cards = new Map();
     initial.forEach(card => cards.set(card.id, { state: 'unseen', goodStreak: 0 }));
     setSessionCards(cards);
-  }, [sessionKey, vocabulary, sessionSize, studyQueue.length, currentCard, isLoadingAll]);
+  }, [sessionKey, vocabulary, sessionSize, studyQueue.length, currentCard]);
 
   useEffect(() => {
     const checkRestTime = setInterval(() => {

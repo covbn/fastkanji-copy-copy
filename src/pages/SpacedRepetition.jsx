@@ -441,19 +441,12 @@ export default function SpacedRepetition() {
   useEffect(() => {
     console.log('[SpacedRepetition][INIT] effect', {
       sessionKey,
-      isLoadingAll,
       statsReady,
       buildQueueLen: buildQueue.length,
       studyQueueLen: studyQueue.length,
       currentCard: !!currentCard,
       studyMode,
     });
-
-    // Don't init while still loading
-    if (isLoadingAll) {
-      console.log('[SpacedRepetition][INIT] early return: still loading');
-      return;
-    }
 
     if (!statsReady) {
       console.log('[SpacedRepetition][INIT] early return: stats not ready');
@@ -520,7 +513,7 @@ export default function SpacedRepetition() {
       setStudyMode('DONE');
       setCurrentCard(null);
     }
-  }, [sessionKey, buildQueue, studyQueue.length, currentCard, sessionComplete, studyMode, maxNewCardsPerDay, newCardsToday, userProgress, statsReady, getNoCardsReason, cardCategories, isLoadingAll]);
+  }, [sessionKey, buildQueue, studyQueue.length, currentCard, sessionComplete, studyMode, maxNewCardsPerDay, newCardsToday, userProgress, statsReady, getNoCardsReason, cardCategories]);
   
   useEffect(() => {
     autoSkipIfInvalidCurrentCard();
