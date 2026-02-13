@@ -488,15 +488,17 @@ export default function FlashStudy() {
 
       {/* Study Area */}
       <div className="flex-1 overflow-y-auto px-3 py-3" style={{paddingBottom: currentCard?._revealed ? '64px' : '16px'}}>
-        <FlashCard
-          key={`${location.search}:${currentCard?.id ?? 'none'}`}
-          vocabulary={currentCard}
-          mode={mode}
-          onAnswer={() => {}}
-          showExampleSentences={settings?.show_example_sentences !== false}
-          hideButtons={true}
-          onRevealChange={handleRevealChange}
-        />
+        {currentCard && (
+          <FlashCard
+            key={`${location.search}:${currentCard.id}`}
+            vocabulary={currentCard}
+            mode={mode}
+            onAnswer={() => {}}
+            showExampleSentences={settings?.show_example_sentences !== false}
+            hideButtons={true}
+            onRevealChange={handleRevealChange}
+          />
+        )}
       </div>
       
       <GradingButtons
