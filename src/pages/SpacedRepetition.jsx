@@ -435,9 +435,31 @@ export default function SpacedRepetition() {
   }, [currentCard, statsReady, maxNewCardsPerDay, newCardsToday, userProgress, studyQueue, getNoCardsReason, cardCategories]);
 
   useEffect(() => {
-    if (!statsReady) return;
+    console.log('[SpacedRepetition][INIT] effect', {
+      sessionKey,
+      statsReady,
+      buildQueueLen: buildQueue.length,
+      studyQueueLen: studyQueue.length,
+      currentCard: !!currentCard,
+      studyMode,
+    });
+
+    if (!statsReady) {
+      console.log('[SpacedRepetition][INIT] early return: stats not ready');
+      return;
+    }
     
-    if (buildQueue.length > 0 && studyQueue.length === 0 && !sessionComplete) {
+    if (studyQueue.length > 0 || currentCard) {
+      console.log('[SpacedRepetition][INIT] early return: already initialized', {
+        queueLen: studyQueue.length,
+        hasCurrent: !!currentCard,
+      });
+      return;
+    }
+
+    if (buildQueue.length > 0 && !sessionComplete) {
+      console.log('[SpacedRepetition][INIT] creating queue from buildQueue');
+
       const remainingNew = Math.max(0, maxNewCardsPerDay - newCardsToday);
       const canIntroduceNew = remainingNew > 0;
       
@@ -468,22 +490,26 @@ export default function SpacedRepetition() {
         const progress = userProgress.find(p => p.vocabulary_id === nextCard.id);
         const cardState = progress ? progress.state : 'New';
         
+        console.log('[SpacedRepetition][INIT] queue created', { source, cardState });
+        
         setStudyQueue(buildQueue);
         setCurrentCard(nextCard);
         setStudyMode('STUDYING');
       } else {
+        console.log('[SpacedRepetition][INIT] no valid next card');
         const reason = getNoCardsReason();
         setDoneReason(reason);
         setStudyMode('DONE');
         setCurrentCard(null);
       }
-    } else if (buildQueue.length === 0 && studyQueue.length === 0 && (studyMode === 'ADVANCING' || studyMode === 'STUDYING')) {
+    } else if (buildQueue.length === 0 && (studyMode === 'ADVANCING' || studyMode === 'STUDYING')) {
+      console.log('[SpacedRepetition][INIT] buildQueue empty, marking DONE');
       const reason = getNoCardsReason();
       setDoneReason(reason);
       setStudyMode('DONE');
       setCurrentCard(null);
     }
-  }, [buildQueue, studyQueue.length, sessionComplete, studyMode, maxNewCardsPerDay, newCardsToday, userProgress, statsReady, getNoCardsReason, cardCategories]);
+  }, [sessionKey, buildQueue, studyQueue.length, currentCard, sessionComplete, studyMode, maxNewCardsPerDay, newCardsToday, userProgress, statsReady, getNoCardsReason, cardCategories]);
   
   useEffect(() => {
     autoSkipIfInvalidCurrentCard();

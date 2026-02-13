@@ -199,6 +199,14 @@ export default function FlashStudy() {
       return;
     }
 
+    if (studyQueue.length > 0 || currentCard) {
+      console.log('[FlashStudy][INIT] early return: already initialized', {
+        queueLen: studyQueue.length,
+        hasCurrent: !!currentCard,
+      });
+      return;
+    }
+
     console.log('[FlashStudy][INIT] creating queue', { sessionSize });
 
     const shuffled = [...vocabulary].sort(() => Math.random() - 0.5);
@@ -212,7 +220,7 @@ export default function FlashStudy() {
     const cards = new Map();
     initial.forEach(card => cards.set(card.id, { state: 'unseen', goodStreak: 0 }));
     setSessionCards(cards);
-  }, [sessionKey, vocabulary, sessionSize]);
+  }, [sessionKey, vocabulary, sessionSize, studyQueue.length, currentCard]);
 
   useEffect(() => {
     const checkRestTime = setInterval(() => {
