@@ -6,7 +6,7 @@ import { Trophy, TrendingUp, Target, CheckCircle, Home } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 
-export default function SessionComplete({ correctCount, incorrectCount, accuracy, onContinue, reviewWords = [] }) {
+export default function SessionComplete({ correctCount, incorrectCount, accuracy, onContinue, onStartNext, onGoHome, onGoProgress, reviewWords = [] }) {
   const { data: user } = useQuery({
     queryKey: ['user'],
     queryFn: () => base44.auth.me(),
@@ -111,7 +111,7 @@ export default function SessionComplete({ correctCount, incorrectCount, accuracy
 
         {/* Primary CTA */}
         <Button
-          onClick={onContinue}
+          onClick={onStartNext || onContinue}
           className="h-10 text-sm w-full bg-teal-600 hover:bg-teal-700 text-white"
         >
           Start Next Session
@@ -120,7 +120,7 @@ export default function SessionComplete({ correctCount, incorrectCount, accuracy
         {/* Secondary Actions */}
         <div className="grid grid-cols-2 gap-2">
           <Button
-            onClick={onContinue}
+            onClick={onGoHome || onContinue}
             variant="outline"
             className="h-9 text-sm"
           >
@@ -128,7 +128,7 @@ export default function SessionComplete({ correctCount, incorrectCount, accuracy
             Home
           </Button>
           <Button
-            onClick={onContinue}
+            onClick={onGoProgress || onContinue}
             variant="outline"
             className="h-9 text-sm"
           >

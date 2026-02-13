@@ -687,6 +687,9 @@ export default function SpacedRepetition() {
         incorrectCount={incorrectCount}
         accuracy={accuracy}
         onContinue={() => navigate(createPageUrl('Home'))}
+        onStartNext={() => window.location.reload()}
+        onGoHome={() => navigate(createPageUrl('Home'))}
+        onGoProgress={() => navigate(createPageUrl('Progress'))}
         reviewWords={reviewAfterRest}
       />
     );
