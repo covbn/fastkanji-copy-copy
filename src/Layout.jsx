@@ -79,10 +79,7 @@ const bottomNavigationItems = [
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
   
-  // Debug log to verify currentPageName
-  React.useEffect(() => {
-    console.log('[LAYOUT] currentPageName:', currentPageName);
-  }, [currentPageName]);
+
 
   const { data: user } = useQuery({
     queryKey: ['user'],
@@ -111,9 +108,6 @@ export default function Layout({ children, currentPageName }) {
     } else {
       document.documentElement.classList.remove('dark');
     }
-    
-    // Diagnostic log
-    console.log(`[THEME] nightMode=${isDark} darkClassApplied=${document.documentElement.classList.contains('dark')} root=${document.documentElement.className}`);
   }, [settings?.night_mode]);
 
   const nightMode = settings?.night_mode || localStorage.getItem('theme') === 'dark';

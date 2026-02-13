@@ -19,8 +19,6 @@ export const useDailyStudyTimer = (userId, isPremium) => {
     const { remainingSeconds: initial, source } = loadRemainingTime(userId);
     setRemainingSeconds(initial);
     setIsLoading(false);
-    
-    console.log(`[HOME TIMER] dayKey=${new Date().toISOString().split('T')[0]} remaining=${initial} source=${source}`);
   }, [userId, isPremium]);
 
   // Listen to storage events (updates from other tabs/pages)
@@ -35,7 +33,6 @@ export const useDailyStudyTimer = (userId, isPremium) => {
         try {
           const data = JSON.parse(e.newValue);
           setRemainingSeconds(data.remainingSeconds);
-          console.log(`[HOME TIMER] dayKey=${dayKey} remaining=${data.remainingSeconds} source=storage-event`);
         } catch (err) {
           // ignore
         }

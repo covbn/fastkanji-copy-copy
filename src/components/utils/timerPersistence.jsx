@@ -62,7 +62,7 @@ export const saveRemainingTime = (userId, remainingSeconds, reason) => {
   };
 
   localStorage.setItem(key, JSON.stringify(data));
-  console.log(`[TIMER] save dayKey=${dayKey} remaining=${remaining} reason=${reason}`);
+
 };
 
 /**

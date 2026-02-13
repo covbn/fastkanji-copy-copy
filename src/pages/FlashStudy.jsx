@@ -49,10 +49,7 @@ export default function FlashStudy() {
   // Normalize and filter vocabulary (use UI level for filtering after normalization)
   const vocabulary = React.useMemo(() => {
     const normalized = normalizeVocabArray(rawVocabulary);
-    console.log('[FlashStudy] Loaded', rawVocabulary.length, 'raw vocab,', normalized.length, 'normalized');
-    console.log('[FlashStudy] UI level:', uiLevel, 'filtering normalized cards');
     const filtered = normalized.filter(v => v.level === uiLevel);
-    console.log('[FlashStudy] Filtered to', filtered.length, 'cards for UI level', uiLevel);
     return filtered;
   }, [rawVocabulary, uiLevel]);
 
