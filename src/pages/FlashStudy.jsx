@@ -24,6 +24,17 @@ export default function FlashStudy() {
   const uiLevel = (urlParams.get('level') || 'N5').toUpperCase();
   const sessionSize = parseInt(urlParams.get('size')) || 20;
 
+  // Debug: Log params on mount
+  React.useEffect(() => {
+    console.log('[FlashStudy] Mount', {
+      pathname: window.location.pathname,
+      search: window.location.search,
+      mode,
+      uiLevel,
+      sessionSize
+    });
+  }, []);
+
   // Session-only state (no UserProgress writes)
   const [studyQueue, setStudyQueue] = useState([]);
   const [currentCard, setCurrentCard] = useState(null);
