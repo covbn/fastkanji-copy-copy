@@ -635,6 +635,7 @@ export default function SpacedRepetition() {
   };
 
   if (isLoadingAll || !statsReady) {
+    console.log('[SpacedRepetition][RENDER] branch=loading', { isLoadingAll, statsReady });
     return (
       <div className="h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
@@ -646,6 +647,7 @@ export default function SpacedRepetition() {
   }
 
   if (studyMode === 'DONE') {
+    console.log('[SpacedRepetition][RENDER] branch=DONE');
     const totalLearningCount = cardCategories.totalLearning || 0;
     const nextLearning = cardCategories.nextLearningCard;
 
@@ -737,6 +739,7 @@ export default function SpacedRepetition() {
 
 
   if (sessionComplete) {
+    console.log('[SpacedRepetition][RENDER] branch=sessionComplete');
     return (
       <SessionComplete
         correctCount={correctCount}
@@ -752,10 +755,12 @@ export default function SpacedRepetition() {
   }
 
   if (showRest) {
+    console.log('[SpacedRepetition][RENDER] branch=showRest');
     return <RestInterval onContinue={continueAfterRest} duration={restDurationSeconds} />;
   }
 
   if (!currentCard && studyMode === 'ADVANCING') {
+    console.log('[SpacedRepetition][RENDER] branch=advancing');
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
@@ -765,6 +770,16 @@ export default function SpacedRepetition() {
       </div>
     );
   }
+
+  console.log('[SpacedRepetition][RENDER] branch=main', {
+    isLoadingAll,
+    statsReady,
+    studyMode,
+    hasCurrentCard: !!currentCard,
+    cardId: currentCard?.id,
+    revealed: currentCard?._revealed,
+    queueLen: studyQueue.length,
+  });
 
   return (
     <div className="h-dvh w-full flex flex-col bg-background" style={{paddingTop: 'env(safe-area-inset-top, 0)'}}>
@@ -846,9 +861,13 @@ export default function SpacedRepetition() {
           </div>
         )}
         
+        <div className="p-2 mb-2 rounded bg-yellow-200 text-black text-xs">
+          DEBUG: main render. cardId={String(currentCard?.id)} queue={studyQueue.length} mode={studyMode} revealed={String(currentCard?._revealed)}
+        </div>
+        
         {currentCard && (
           <FlashCard
-            key={currentCard.id}
+            key={`${location.search}:${currentCard.id}`}
             vocabulary={currentCard}
             mode={mode}
             onAnswer={handleAnswer}
@@ -861,6 +880,7 @@ export default function SpacedRepetition() {
       
       {studyMode === 'STUDYING' && currentCard && (
         <GradingButtons
+          key={`${location.search}`}
           onGrade={(rating) => handleAnswer(rating >= 3, rating)}
           nightMode={nightMode}
           revealed={currentCard?._revealed}
