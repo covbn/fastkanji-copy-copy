@@ -79,12 +79,13 @@ export default function FlashStudy() {
 
   const remainingSeconds = remainingTime !== null ? remainingTime : (7.5 * 60);
 
-  // Reset session state when params change - only if we have vocabulary ready
+  // Force reset on mount or when query params change
   useEffect(() => {
-    if (vocabulary.length === 0) return; // Wait for vocabulary to load
+    if (vocabulary.length === 0) return;
     
-    console.log('[FlashStudy] RESET for params', { mode, uiLevel, sessionSize, search: location.search, vocabLen: vocabulary.length });
+    console.log('[FlashStudy] FORCE RESET', { mode, uiLevel, sessionSize, vocabLen: vocabulary.length });
     
+    // Always reset state
     setStudyQueue([]);
     setCurrentCard(null);
     setSessionCards(new Map());
@@ -94,8 +95,10 @@ export default function FlashStudy() {
     setShowRest(false);
     setSessionComplete(false);
     setLastRestTime(Date.now());
-    setSessionKey(k => k + 1);
-  }, [mode, uiLevel, sessionSize, location.search, vocabulary.length]);
+    
+    // Generate new session key to trigger init
+    setSessionKey(Date.now());
+  }, [mode, uiLevel, sessionSize, vocabulary.length]);
 
   // Separate effect for rest duration when settings change
   useEffect(() => {
