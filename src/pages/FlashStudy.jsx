@@ -483,18 +483,20 @@ export default function FlashStudy() {
 
       {/* Study Area */}
       <div className="flex-1 overflow-y-auto px-3 py-3" style={{paddingBottom: currentCard?._revealed ? '64px' : '16px'}}>
-        <div className="p-2 mb-2 rounded bg-yellow-200 text-black text-xs">
-          DEBUG: main render. cardId={String(currentCard?.id)} queue={studyQueue.length} revealed={String(currentCard?._revealed)}
+        <div className="p-4 mb-4 rounded-lg bg-red-500 text-white font-bold text-xl z-50 relative">
+          🚨 DEBUG VISIBLE? Card: {currentCard?.kanji || 'NO_KANJI'} | ID: {String(currentCard?.id).slice(-6)}
         </div>
-        <FlashCard
-          key={`${location.search}:${currentCard?.id ?? 'none'}`}
-          vocabulary={currentCard}
-          mode={mode}
-          onAnswer={() => {}}
-          showExampleSentences={settings?.show_example_sentences !== false}
-          hideButtons={true}
-          onRevealChange={handleRevealChange}
-        />
+        {currentCard && (
+          <FlashCard
+            key={`${location.search}:${currentCard?.id ?? 'none'}`}
+            vocabulary={currentCard}
+            mode={mode}
+            onAnswer={() => {}}
+            showExampleSentences={settings?.show_example_sentences !== false}
+            hideButtons={true}
+            onRevealChange={handleRevealChange}
+          />
+        )}
       </div>
       
       <GradingButtons
