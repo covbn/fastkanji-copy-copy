@@ -455,18 +455,24 @@ export default function Layout({ children, currentPageName }) {
           )}
 
           <div className="flex-1 overflow-y-auto md:overflow-auto" style={{paddingBottom: (currentPageName === "FlashStudy" || currentPageName === "SpacedRepetition") ? '0' : 'max(4rem, env(safe-area-inset-bottom, 4rem))', paddingTop: (currentPageName === "FlashStudy" || currentPageName === "SpacedRepetition") ? 'env(safe-area-inset-top, 0)' : '0'}}>
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={location.pathname}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.2, ease: "easeInOut" }}
-                className="w-full max-w-full"
-              >
+            {(currentPageName === "FlashStudy" || currentPageName === "SpacedRepetition") ? (
+              <div key={location.pathname} className="w-full max-w-full h-full">
                 {children}
-              </motion.div>
-            </AnimatePresence>
+              </div>
+            ) : (
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={location.pathname}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.2, ease: "easeInOut" }}
+                  className="w-full max-w-full"
+                >
+                  {children}
+                </motion.div>
+              </AnimatePresence>
+            )}
           </div>
           </main>
 

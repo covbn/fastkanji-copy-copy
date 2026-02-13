@@ -416,32 +416,7 @@ export default function FlashStudy() {
   });
 
   return (
-    <div style={{
-      position: 'fixed',
-      inset: 0,
-      backgroundColor: 'lime',
-      zIndex: 99999,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: '48px',
-      fontWeight: 'bold',
-      color: 'black'
-    }}>
-      🔥 FLASHSTUDY RENDERING 🔥
-      <br />
-      Card: {currentCard?.kanji || 'NULL'}
-    </div>
-  );
-
-  return (
-    <div className="h-dvh w-full flex flex-col bg-background relative" style={{paddingTop: 'env(safe-area-inset-top, 0)'}}>
-      {/* CRITICAL DEBUG OVERLAY */}
-      <div className="fixed inset-0 pointer-events-none z-[9999] flex items-center justify-center">
-        <div className="bg-purple-600 text-white p-8 text-2xl font-black shadow-2xl pointer-events-auto">
-          ✅ RENDER OK | Card: {currentCard?.kanji || 'NONE'} | Queue: {studyQueue.length}
-        </div>
-      </div>
+    <div className="h-dvh w-full flex flex-col bg-background" style={{paddingTop: 'env(safe-area-inset-top, 0)'}}
 
       {/* Compact Header */}
       <div className="border-b border-border px-4 py-2 bg-card/95 backdrop-blur-sm flex-shrink-0" style={{minHeight: '52px'}}>
@@ -509,20 +484,15 @@ export default function FlashStudy() {
 
       {/* Study Area */}
       <div className="flex-1 overflow-y-auto px-3 py-3" style={{paddingBottom: currentCard?._revealed ? '64px' : '16px'}}>
-        <div className="p-4 mb-4 rounded-lg bg-red-500 text-white font-bold text-xl z-50 relative">
-          🚨 DEBUG VISIBLE? Card: {currentCard?.kanji || 'NO_KANJI'} | ID: {String(currentCard?.id).slice(-6)}
-        </div>
-        {currentCard && (
-          <FlashCard
-            key={`${location.search}:${currentCard?.id ?? 'none'}`}
-            vocabulary={currentCard}
-            mode={mode}
-            onAnswer={() => {}}
-            showExampleSentences={settings?.show_example_sentences !== false}
-            hideButtons={true}
-            onRevealChange={handleRevealChange}
-          />
-        )}
+        <FlashCard
+          key={`${location.search}:${currentCard?.id ?? 'none'}`}
+          vocabulary={currentCard}
+          mode={mode}
+          onAnswer={() => {}}
+          showExampleSentences={settings?.show_example_sentences !== false}
+          hideButtons={true}
+          onRevealChange={handleRevealChange}
+        />
       </div>
       
       <GradingButtons
