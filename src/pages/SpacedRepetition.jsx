@@ -33,6 +33,16 @@ export default function SpacedRepetition() {
   const mode = urlParams.get('mode') || 'kanji_to_meaning';
   const uiLevel = (urlParams.get('level') || 'N5').toUpperCase();
 
+  // Debug: Log params on mount
+  React.useEffect(() => {
+    console.log('[SpacedRepetition] Mount', {
+      pathname: window.location.pathname,
+      search: window.location.search,
+      mode,
+      uiLevel
+    });
+  }, []);
+
   // 🎯 STATE MACHINE: STUDYING | ADVANCING | DONE
   const [studyMode, setStudyMode] = useState('STUDYING');
   const [studyQueue, setStudyQueue] = useState([]);
