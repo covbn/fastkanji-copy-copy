@@ -119,11 +119,15 @@ export default function SpacedRepetition() {
     setShowLimitPrompt(false);
     setLimitPromptType(null);
     setDoneReason(null);
+    setSessionKey(k => k + 1);
+  }, [mode, uiLevel, location.search]);
+
+  // Separate effect for rest duration when settings change
+  useEffect(() => {
     setNextRestDuration(
       Math.floor(Math.random() * (restMaxSeconds - restMinSeconds) * 1000) + restMinSeconds * 1000
     );
-    setSessionKey(k => k + 1);
-  }, [mode, uiLevel, location.search, restMaxSeconds, restMinSeconds]);
+  }, [restMaxSeconds, restMinSeconds]);
 
   // Load persisted timer on mount
   useEffect(() => {

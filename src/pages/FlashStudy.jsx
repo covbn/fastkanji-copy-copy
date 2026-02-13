@@ -92,11 +92,15 @@ export default function FlashStudy() {
     setShowRest(false);
     setSessionComplete(false);
     setLastRestTime(Date.now());
+    setSessionKey(k => k + 1);
+  }, [mode, uiLevel, sessionSize, location.search]);
+
+  // Separate effect for rest duration when settings change
+  useEffect(() => {
     setNextRestDuration(
       Math.floor(Math.random() * (restMaxSeconds - restMinSeconds) * 1000) + restMinSeconds * 1000
     );
-    setSessionKey(k => k + 1);
-  }, [mode, uiLevel, sessionSize, location.search, restMaxSeconds, restMinSeconds]);
+  }, [restMaxSeconds, restMinSeconds]);
 
   // Load persisted timer on mount
   useEffect(() => {
@@ -336,6 +340,7 @@ export default function FlashStudy() {
   };
 
   if (isLoadingAll) {
+    console.log('[FlashStudy][RENDER] branch=isLoadingAll');
     return (
       <div className="h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -347,6 +352,7 @@ export default function FlashStudy() {
   }
 
   if (vocabulary.length === 0) {
+    console.log('[FlashStudy][RENDER] branch=noVocab');
     return (
       <div className="h-screen flex items-center justify-center p-4 bg-background">
         <div className="text-center space-y-4">
@@ -363,6 +369,7 @@ export default function FlashStudy() {
   }
 
   if (sessionComplete) {
+    console.log('[FlashStudy][RENDER] branch=sessionComplete');
     return (
       <SessionComplete
         correctCount={correctCount}
@@ -378,10 +385,12 @@ export default function FlashStudy() {
   }
 
   if (showRest) {
+    console.log('[FlashStudy][RENDER] branch=showRest');
     return <RestInterval onContinue={continueAfterRest} duration={restDurationSeconds} />;
   }
 
   if (!currentCard) {
+    console.log('[FlashStudy][RENDER] branch=noCurrentCard');
     return (
       <div className="h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
@@ -394,6 +403,17 @@ export default function FlashStudy() {
 
   const learningCount = Array.from(sessionCards.values()).filter(c => c.state === 'learning').length;
   const remainingCount = sessionSize - graduated.size;
+
+  console.log('[FlashStudy][RENDER] branch=main', {
+    isLoadingAll,
+    vocabLen: vocabulary.length,
+    sessionComplete,
+    showRest,
+    hasCurrentCard: !!currentCard,
+    cardId: currentCard?.id,
+    revealed: currentCard?._revealed,
+    queueLen: studyQueue.length,
+  });
 
   return (
     <div className="h-dvh w-full flex flex-col bg-background" style={{paddingTop: 'env(safe-area-inset-top, 0)'}}>
@@ -463,7 +483,11 @@ export default function FlashStudy() {
 
       {/* Study Area */}
       <div className="flex-1 overflow-y-auto px-3 py-3" style={{paddingBottom: currentCard?._revealed ? '64px' : '16px'}}>
+        <div className="p-2 mb-2 rounded bg-yellow-200 text-black text-xs">
+          DEBUG: main render. cardId={String(currentCard?.id)} queue={studyQueue.length} revealed={String(currentCard?._revealed)}
+        </div>
         <FlashCard
+          key={`${location.search}:${currentCard?.id ?? 'none'}`}
           vocabulary={currentCard}
           mode={mode}
           onAnswer={() => {}}
@@ -474,6 +498,7 @@ export default function FlashStudy() {
       </div>
       
       <GradingButtons
+        key={`${location.search}`}
         onGrade={handleGrade}
         nightMode={nightMode}
         revealed={currentCard?._revealed}
