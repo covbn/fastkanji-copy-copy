@@ -19,7 +19,6 @@ const getTodayKey = () => {
  */
 export const loadRemainingTime = (userId) => {
   if (!userId) {
-    console.log(`[TIMER] load dayKey=none remaining=${DAILY_LIMIT_SECONDS} source=default`);
     return { remainingSeconds: DAILY_LIMIT_SECONDS, source: 'default' };
   }
 
@@ -31,15 +30,12 @@ export const loadRemainingTime = (userId) => {
     try {
       const data = JSON.parse(stored);
       const remaining = Math.max(0, data.remainingSeconds);
-      console.log(`[TIMER] load dayKey=${dayKey} remaining=${remaining} source=storage`);
       return { remainingSeconds: remaining, source: 'storage' };
     } catch (e) {
-      console.log(`[TIMER] load dayKey=${dayKey} remaining=${DAILY_LIMIT_SECONDS} source=default`);
       return { remainingSeconds: DAILY_LIMIT_SECONDS, source: 'default' };
     }
   }
 
-  console.log(`[TIMER] load dayKey=${dayKey} remaining=${DAILY_LIMIT_SECONDS} source=default`);
   return { remainingSeconds: DAILY_LIMIT_SECONDS, source: 'default' };
 };
 
@@ -81,7 +77,6 @@ export const resetDailyAllowance = (userId) => {
   };
 
   localStorage.setItem(key, JSON.stringify(data));
-  console.log(`[TIMER] reset dayKey=${dayKey} remaining=${DAILY_LIMIT_SECONDS} reason=dayChange`);
 };
 
 /**
@@ -107,9 +102,5 @@ let lastTickLog = 0;
  * Throttled tick log (max once per 30 seconds)
  */
 export const logTick = (remainingSeconds) => {
-  const now = Date.now();
-  if (now - lastTickLog >= 30000) {
-    console.log(`[TIMER] tick remaining=${remainingSeconds}`);
-    lastTickLog = now;
-  }
+  // Removed console logging
 };
