@@ -86,7 +86,7 @@ export default function FlashStudy() {
       return;
     }
     
-    console.log('[FlashStudy] Initialize session', { mode, uiLevel, sessionSize, vocabLen: vocabulary.length });
+    console.log('[FlashStudy] Initialize session', { mode, uiLevel, sessionSize, vocabLen: vocabulary.length, search: location.search });
     
     // Shuffle and pick cards
     const shuffled = [...vocabulary].sort(() => Math.random() - 0.5);
@@ -109,7 +109,7 @@ export default function FlashStudy() {
     setShowRest(false);
     setSessionComplete(false);
     setLastRestTime(Date.now());
-  }, [mode, uiLevel, sessionSize, vocabulary.length, isLoadingAll]);
+  }, [location.search, vocabulary.length, isLoadingAll]);
 
   // Separate effect for rest duration when settings change
   useEffect(() => {
