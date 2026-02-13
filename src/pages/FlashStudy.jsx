@@ -79,26 +79,37 @@ export default function FlashStudy() {
 
   const remainingSeconds = remainingTime !== null ? remainingTime : (7.5 * 60);
 
-  // Force reset on mount or when query params change
+  // Initialize session when vocabulary loads and params are ready
   useEffect(() => {
-    if (vocabulary.length === 0) return;
+    if (vocabulary.length === 0 || isLoadingAll) {
+      console.log('[FlashStudy] Waiting for vocab', { vocabLen: vocabulary.length, isLoadingAll });
+      return;
+    }
     
-    console.log('[FlashStudy] FORCE RESET', { mode, uiLevel, sessionSize, vocabLen: vocabulary.length });
+    console.log('[FlashStudy] Initialize session', { mode, uiLevel, sessionSize, vocabLen: vocabulary.length });
     
-    // Always reset state
-    setStudyQueue([]);
-    setCurrentCard(null);
-    setSessionCards(new Map());
+    // Shuffle and pick cards
+    const shuffled = [...vocabulary].sort(() => Math.random() - 0.5);
+    const initial = shuffled.slice(0, Math.min(sessionSize, shuffled.length));
+    
+    console.log('[FlashStudy] Setting queue and card', { initialCount: initial.length });
+    
+    // Set everything at once to avoid race conditions
+    setStudyQueue(initial);
+    setCurrentCard(initial[0] || null);
+    
+    const cards = new Map();
+    initial.forEach(card => cards.set(card.id, { state: 'unseen', goodStreak: 0 }));
+    setSessionCards(cards);
+    
+    // Reset other state
     setGraduated(new Set());
     setCorrectCount(0);
     setIncorrectCount(0);
     setShowRest(false);
     setSessionComplete(false);
     setLastRestTime(Date.now());
-    
-    // Generate new session key to trigger init
-    setSessionKey(Date.now());
-  }, [mode, uiLevel, sessionSize, vocabulary.length]);
+  }, [mode, uiLevel, sessionSize, vocabulary.length, isLoadingAll]);
 
   // Separate effect for rest duration when settings change
   useEffect(() => {
@@ -193,46 +204,7 @@ export default function FlashStudy() {
     };
   }, [isPremium, sessionComplete, remainingTime, navigate, user]);
 
-  // Initialize session with random cards - triggers after reset sets sessionKey
-  useEffect(() => {
-    console.log('[FlashStudy][INIT] effect', {
-      sessionKey,
-      vocabLen: vocabulary.length,
-      queueLen: studyQueue.length,
-      currentCard: !!currentCard,
-      sessionComplete,
-    });
 
-    if (vocabulary.length === 0) {
-      console.log('[FlashStudy][INIT] early return: no vocab');
-      return;
-    }
-
-    if (studyQueue.length > 0 || currentCard) {
-      console.log('[FlashStudy][INIT] early return: already initialized', {
-        queueLen: studyQueue.length,
-        hasCurrent: !!currentCard,
-      });
-      return;
-    }
-
-    console.log('[FlashStudy][INIT] creating queue', { sessionSize });
-
-    const shuffled = [...vocabulary].sort(() => Math.random() - 0.5);
-    const initial = shuffled.slice(0, Math.min(sessionSize, shuffled.length));
-
-    console.log('[FlashStudy][INIT] queue created', { initialCount: initial.length });
-
-    // Set both queue and card in one batch to avoid race
-    setStudyQueue(initial);
-    if (initial[0]) {
-      setCurrentCard(initial[0]);
-    }
-
-    const cards = new Map();
-    initial.forEach(card => cards.set(card.id, { state: 'unseen', goodStreak: 0 }));
-    setSessionCards(cards);
-  }, [sessionKey, vocabulary, sessionSize]);
 
   useEffect(() => {
     const checkRestTime = setInterval(() => {
