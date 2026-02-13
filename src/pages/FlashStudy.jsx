@@ -79,9 +79,11 @@ export default function FlashStudy() {
 
   const remainingSeconds = remainingTime !== null ? remainingTime : (7.5 * 60);
 
-  // Reset session state when params change (fixes re-entry white screen)
+  // Reset session state when params change - only if we have vocabulary ready
   useEffect(() => {
-    console.log('[FlashStudy] RESET for params', { mode, uiLevel, sessionSize, search: location.search });
+    if (vocabulary.length === 0) return; // Wait for vocabulary to load
+    
+    console.log('[FlashStudy] RESET for params', { mode, uiLevel, sessionSize, search: location.search, vocabLen: vocabulary.length });
     
     setStudyQueue([]);
     setCurrentCard(null);
@@ -93,7 +95,7 @@ export default function FlashStudy() {
     setSessionComplete(false);
     setLastRestTime(Date.now());
     setSessionKey(k => k + 1);
-  }, [mode, uiLevel, sessionSize, location.search]);
+  }, [mode, uiLevel, sessionSize, location.search, vocabulary.length]);
 
   // Separate effect for rest duration when settings change
   useEffect(() => {
@@ -188,7 +190,7 @@ export default function FlashStudy() {
     };
   }, [isPremium, sessionComplete, remainingTime, navigate, user]);
 
-  // Initialize session with random cards
+  // Initialize session with random cards - triggers after reset sets sessionKey
   useEffect(() => {
     console.log('[FlashStudy][INIT] effect', {
       sessionKey,
@@ -218,13 +220,16 @@ export default function FlashStudy() {
 
     console.log('[FlashStudy][INIT] queue created', { initialCount: initial.length });
 
+    // Set both queue and card in one batch to avoid race
     setStudyQueue(initial);
-    setCurrentCard(initial[0] || null);
+    if (initial[0]) {
+      setCurrentCard(initial[0]);
+    }
 
     const cards = new Map();
     initial.forEach(card => cards.set(card.id, { state: 'unseen', goodStreak: 0 }));
     setSessionCards(cards);
-  }, [sessionKey, vocabulary, sessionSize, studyQueue.length, currentCard]);
+  }, [sessionKey, vocabulary, sessionSize]);
 
   useEffect(() => {
     const checkRestTime = setInterval(() => {
