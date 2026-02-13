@@ -156,8 +156,8 @@ export default function Layout({ children, currentPageName }) {
           .dark {
             --background: 222.2 84% 4.9%;
             --foreground: 210 40% 98%;
-            --card: 222.2 84% 4.9%;
-            --card-foreground: 210 40% 98%;
+            --card: 0 0% 100%;
+            --card-foreground: 222.2 84% 4.9%;
             --popover: 222.2 84% 4.9%;
             --popover-foreground: 210 40% 98%;
             --primary: 180 35% 55%;
