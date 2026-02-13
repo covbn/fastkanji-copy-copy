@@ -94,6 +94,7 @@ export default function FlashStudy() {
     setNextRestDuration(
       Math.floor(Math.random() * (restMaxSeconds - restMinSeconds) * 1000) + restMinSeconds * 1000
     );
+    setSessionKey(k => k + 1);
   }, [mode, uiLevel, sessionSize, location.search, restMaxSeconds, restMinSeconds]);
 
   // Load persisted timer on mount

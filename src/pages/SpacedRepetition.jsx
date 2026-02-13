@@ -57,6 +57,7 @@ export default function SpacedRepetition() {
   const [doneReason, setDoneReason] = useState(null);
   const [dayKey] = useState(() => new Date().toISOString().split('T')[0]);
   const [remainingTime, setRemainingTime] = useState(null);
+  const [sessionKey, setSessionKey] = useState(0);
 
   const today = new Date().toISOString().split('T')[0];
   
@@ -121,6 +122,7 @@ export default function SpacedRepetition() {
     setNextRestDuration(
       Math.floor(Math.random() * (restMaxSeconds - restMinSeconds) * 1000) + restMinSeconds * 1000
     );
+    setSessionKey(k => k + 1);
   }, [mode, uiLevel, location.search, restMaxSeconds, restMinSeconds]);
 
   // Load persisted timer on mount
