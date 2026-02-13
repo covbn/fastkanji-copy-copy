@@ -416,7 +416,14 @@ export default function FlashStudy() {
   });
 
   return (
-    <div className="h-dvh w-full flex flex-col bg-background" style={{paddingTop: 'env(safe-area-inset-top, 0)'}}>
+    <div className="h-dvh w-full flex flex-col bg-background relative" style={{paddingTop: 'env(safe-area-inset-top, 0)'}}>
+      {/* CRITICAL DEBUG OVERLAY */}
+      <div className="fixed inset-0 pointer-events-none z-[9999] flex items-center justify-center">
+        <div className="bg-purple-600 text-white p-8 text-2xl font-black shadow-2xl pointer-events-auto">
+          ✅ RENDER OK | Card: {currentCard?.kanji || 'NONE'} | Queue: {studyQueue.length}
+        </div>
+      </div>
+
       {/* Compact Header */}
       <div className="border-b border-border px-4 py-2 bg-card/95 backdrop-blur-sm flex-shrink-0" style={{minHeight: '52px'}}>
         <div className="flex items-center justify-between gap-2">
