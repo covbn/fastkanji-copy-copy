@@ -39,6 +39,7 @@ export default function FlashStudy() {
   const [currentUsage, setCurrentUsage] = useState(0);
   const [dayKey] = useState(() => new Date().toISOString().split('T')[0]);
   const [remainingTime, setRemainingTime] = useState(null);
+  const [sessionKey, setSessionKey] = useState(0);
 
   const today = new Date().toISOString().split('T')[0];
   
@@ -185,17 +186,33 @@ export default function FlashStudy() {
 
   // Initialize session with random cards
   useEffect(() => {
-    if (vocabulary.length > 0 && studyQueue.length === 0) {
-      const shuffled = [...vocabulary].sort(() => Math.random() - 0.5);
-      const initial = shuffled.slice(0, Math.min(sessionSize, shuffled.length));
-      setStudyQueue(initial);
-      setCurrentCard(initial[0]);
-      
-      const cards = new Map();
-      initial.forEach(card => cards.set(card.id, { state: 'unseen', goodStreak: 0 }));
-      setSessionCards(cards);
+    console.log('[FlashStudy][INIT] effect', {
+      sessionKey,
+      vocabLen: vocabulary.length,
+      queueLen: studyQueue.length,
+      currentCard: !!currentCard,
+      sessionComplete,
+    });
+
+    if (vocabulary.length === 0) {
+      console.log('[FlashStudy][INIT] early return: no vocab');
+      return;
     }
-  }, [vocabulary, sessionSize, studyQueue.length]);
+
+    console.log('[FlashStudy][INIT] creating queue', { sessionSize });
+
+    const shuffled = [...vocabulary].sort(() => Math.random() - 0.5);
+    const initial = shuffled.slice(0, Math.min(sessionSize, shuffled.length));
+
+    console.log('[FlashStudy][INIT] queue created', { initialCount: initial.length });
+
+    setStudyQueue(initial);
+    setCurrentCard(initial[0] || null);
+
+    const cards = new Map();
+    initial.forEach(card => cards.set(card.id, { state: 'unseen', goodStreak: 0 }));
+    setSessionCards(cards);
+  }, [sessionKey, vocabulary, sessionSize]);
 
   useEffect(() => {
     const checkRestTime = setInterval(() => {
