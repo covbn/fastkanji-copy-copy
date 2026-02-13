@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { BookOpen, Brain, Clock, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -28,20 +28,11 @@ let lastDebugSnapshot = null;
 export default function SpacedRepetition() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const location = useLocation();
   
-  const urlParams = new URLSearchParams(window.location.search);
+  const urlParams = React.useMemo(() => new URLSearchParams(location.search), [location.search]);
   const mode = urlParams.get('mode') || 'kanji_to_meaning';
   const uiLevel = (urlParams.get('level') || 'N5').toUpperCase();
-
-  // Debug: Log params on mount
-  React.useEffect(() => {
-    console.log('[SpacedRepetition] Mount', {
-      pathname: window.location.pathname,
-      search: window.location.search,
-      mode,
-      uiLevel
-    });
-  }, []);
 
   // 🎯 STATE MACHINE: STUDYING | ADVANCING | DONE
   const [studyMode, setStudyMode] = useState('STUDYING');
@@ -108,6 +99,29 @@ export default function SpacedRepetition() {
   const nightMode = settings?.night_mode || false;
   
   const remainingSeconds = remainingTime !== null ? remainingTime : (7.5 * 60);
+
+  // Reset session state when params change (fixes re-entry white screen)
+  useEffect(() => {
+    console.log('[SpacedRepetition] RESET for params', { mode, uiLevel, search: location.search });
+    
+    setStudyMode('STUDYING');
+    setStudyQueue([]);
+    setCurrentCard(null);
+    setCardsStudied(0);
+    setCorrectCount(0);
+    setIncorrectCount(0);
+    setShowRest(false);
+    setSessionComplete(false);
+    setReviewAfterRest([]);
+    setLastRestTime(Date.now());
+    setRecentlyRatedIds(new Set());
+    setShowLimitPrompt(false);
+    setLimitPromptType(null);
+    setDoneReason(null);
+    setNextRestDuration(
+      Math.floor(Math.random() * (restMaxSeconds - restMinSeconds) * 1000) + restMinSeconds * 1000
+    );
+  }, [mode, uiLevel, location.search, restMaxSeconds, restMinSeconds]);
 
   // Load persisted timer on mount
   useEffect(() => {

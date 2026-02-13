@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
@@ -18,22 +18,12 @@ import { loadRemainingTime, saveRemainingTime, checkAndResetIfNewDay, logTick } 
 export default function FlashStudy() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const location = useLocation();
   
-  const urlParams = new URLSearchParams(window.location.search);
+  const urlParams = React.useMemo(() => new URLSearchParams(location.search), [location.search]);
   const mode = urlParams.get('mode') || 'kanji_to_meaning';
   const uiLevel = (urlParams.get('level') || 'N5').toUpperCase();
-  const sessionSize = parseInt(urlParams.get('size')) || 20;
-
-  // Debug: Log params on mount
-  React.useEffect(() => {
-    console.log('[FlashStudy] Mount', {
-      pathname: window.location.pathname,
-      search: window.location.search,
-      mode,
-      uiLevel,
-      sessionSize
-    });
-  }, []);
+  const sessionSize = parseInt(urlParams.get('size') || '20', 10);
 
   // Session-only state (no UserProgress writes)
   const [studyQueue, setStudyQueue] = useState([]);
@@ -87,6 +77,24 @@ export default function FlashStudy() {
   const nightMode = settings?.night_mode || false;
 
   const remainingSeconds = remainingTime !== null ? remainingTime : (7.5 * 60);
+
+  // Reset session state when params change (fixes re-entry white screen)
+  useEffect(() => {
+    console.log('[FlashStudy] RESET for params', { mode, uiLevel, sessionSize, search: location.search });
+    
+    setStudyQueue([]);
+    setCurrentCard(null);
+    setSessionCards(new Map());
+    setGraduated(new Set());
+    setCorrectCount(0);
+    setIncorrectCount(0);
+    setShowRest(false);
+    setSessionComplete(false);
+    setLastRestTime(Date.now());
+    setNextRestDuration(
+      Math.floor(Math.random() * (restMaxSeconds - restMinSeconds) * 1000) + restMinSeconds * 1000
+    );
+  }, [mode, uiLevel, sessionSize, location.search, restMaxSeconds, restMinSeconds]);
 
   // Load persisted timer on mount
   useEffect(() => {
@@ -224,26 +232,42 @@ export default function FlashStudy() {
         shouldGraduate = true;
       } else {
         // First Good → mark learning, requeue mid/late
-        sessionCards.set(currentCard.id, { state: 'learning', goodStreak: 1 });
+        setSessionCards(prev => {
+          const next = new Map(prev);
+          next.set(currentCard.id, { state: 'learning', goodStreak: 1 });
+          return next;
+        });
         const insertPos = Math.floor(newQueue.length * (0.4 + Math.random() * 0.4));
         newQueue.splice(insertPos, 0, currentCard);
       }
     } else if (rating === 2) {
       // Hard: keep in learning, reset streak, requeue mid
       setIncorrectCount(prev => prev + 1);
-      sessionCards.set(currentCard.id, { state: 'learning', goodStreak: 0 });
+      setSessionCards(prev => {
+        const next = new Map(prev);
+        next.set(currentCard.id, { state: 'learning', goodStreak: 0 });
+        return next;
+      });
       const insertPos = Math.floor(newQueue.length * 0.4);
       newQueue.splice(insertPos, 0, currentCard);
     } else if (rating === 1) {
       // Again: reset, requeue near front
       setIncorrectCount(prev => prev + 1);
-      sessionCards.set(currentCard.id, { state: 'learning', goodStreak: 0 });
+      setSessionCards(prev => {
+        const next = new Map(prev);
+        next.set(currentCard.id, { state: 'learning', goodStreak: 0 });
+        return next;
+      });
       const insertPos = Math.min(2, newQueue.length);
       newQueue.splice(insertPos, 0, currentCard);
     }
 
     if (shouldGraduate) {
-      setGraduated(prev => new Set([...prev, currentCard.id]));
+      setGraduated(prev => {
+        const next = new Set(prev);
+        next.add(currentCard.id);
+        return next;
+      });
     }
 
     // Session complete when all graduated or queue empty
