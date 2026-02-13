@@ -147,12 +147,14 @@ export default function Home() {
 
   const startFlashStudy = () => {
     localStorage.setItem('lastStudyType', 'flash');
-    handleStartStudy(createPageUrl(`FlashStudy?mode=${selectedMode}&level=${selectedLevel}&size=${sessionSize}`));
+    const url = createPageUrl('FlashStudy') + `?mode=${selectedMode}&level=${selectedLevel}&size=${sessionSize}`;
+    handleStartStudy(url);
   };
 
   const startSpacedRepetition = () => {
     localStorage.setItem('lastStudyType', 'srs');
-    handleStartStudy(createPageUrl(`SpacedRepetition?mode=${selectedMode}&level=${selectedLevel}`));
+    const url = createPageUrl('SpacedRepetition') + `?mode=${selectedMode}&level=${selectedLevel}`;
+    handleStartStudy(url);
   };
 
   const getModeName = (mode) => {
